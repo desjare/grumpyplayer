@@ -126,8 +126,7 @@ namespace mediadecoder
         void   Destroy(Producer*,VideoFrame*);
         void   Destroy(Producer*,AudioFrame*);
 
-        uint64_t GetEpochTimeUs();
-        void     WaitForPlayback(Producer*);
+        void   WaitForPlayback(Producer*);
 
     };
 

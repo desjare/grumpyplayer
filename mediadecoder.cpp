@@ -11,7 +11,6 @@ extern "C" {
 #include <libavdevice/avdevice.h>
 #include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
-#include "avxmem/avxmem.h"
 }
 
 #include <boost/lockfree/queue.hpp>
@@ -31,8 +30,7 @@ namespace {
     const uint32_t NB_SECONDS_READ_AHEAD = 5;
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
-
-    bool debugWaitPlayback = true;
+    const uint32_t NB_BUFFER_FOR_PLAYBACK = 60;
 
     SampleFormat AVFormatToSampleFormat(AVSampleFormat f)
     {
@@ -146,7 +144,7 @@ namespace {
 
     void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
     {
-        uint64_t startTime = mediadecoder::producer::GetEpochTimeUs();
+        uint64_t startTime = playertime::Now();
 
         mediadecoder::VideoStream* videoStream 
                        = reinterpret_cast<mediadecoder::VideoStream*>(stream);
@@ -172,11 +170,11 @@ namespace {
         sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
                   videoStream->frame->data, videoStream->frame->linesize );
 
-        uint64_t scaleTime = mediadecoder::producer::GetEpochTimeUs();
+        uint64_t scaleTime = playertime::Now();
 
         memcpy(videoFrame->frame, videoStream->frame->data[0], bufferSize);
 
-        uint64_t memcpyTime = mediadecoder::producer::GetEpochTimeUs();
+        uint64_t memcpyTime = playertime::Now();
 
         bool success = false;
         do
@@ -194,7 +192,7 @@ namespace {
 
         } while( !success );
 
-        uint64_t endTime = mediadecoder::producer::GetEpochTimeUs();
+        uint64_t endTime = playertime::Now();
         //fprintf(stderr, "VideoDecode total %d scale %d memcpy %d\n", endTime - startTime, scaleTime - startTime, memcpyTime - scaleTime);
     }
 
@@ -357,7 +355,7 @@ namespace mediadecoder
 
                 av_init_packet(packet);
 
-                uint64_t start= mediadecoder::producer::GetEpochTimeUs();
+                uint64_t start= playertime::Now();
                 int32_t outcome = av_read_frame(producer->decoder->avFormatContext, packet);
                 if(outcome < 0 )
                 {
@@ -388,11 +386,11 @@ namespace mediadecoder
                          fprintf(stderr, "avcodec_receive_frame error %s\n", error.c_str());
                          return;
                     }
-                    uint64_t end= mediadecoder::producer::GetEpochTimeUs();
+                    uint64_t end= playertime::Now();
 
-                    uint64_t startCallback= GetEpochTimeUs();
+                    uint64_t startCallback= playertime::Now();
                     stream->processCallback(stream, producer, frame);
-                    uint64_t endCallback = GetEpochTimeUs();
+                    uint64_t endCallback = playertime::Now();
                     //printf("processing %d callback %d\n", end - start, endCallback - startCallback);
                 }
                 av_packet_free(&packet);
@@ -500,23 +498,17 @@ namespace mediadecoder
             }
         }
 
-        uint64_t GetEpochTimeUs()
-        {
-            return std::chrono::duration_cast<std::chrono::microseconds>(
-                                   std::chrono::high_resolution_clock::now().time_since_epoch()).count();
-        }
-
         void WaitForPlayback(Producer* producer)
         {
-            bool haveVideo = producer->videoQueueSize > 60;
-            bool haveAudio = producer->audioQueueSize > 60;
+            bool haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
+            bool haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
 
             while( !(haveVideo && haveAudio) )
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PLAYBACK_SLEEP_TIME_MS));
                 
-                haveVideo = producer->videoQueueSize > 60;
-                haveAudio = producer->audioQueueSize > 60;
+                haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
+                haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
             }
         }
     }
