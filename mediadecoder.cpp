@@ -3,7 +3,7 @@
 
 #include "mediaformat.h"
 #include "result.h"
-#include "playertime.h"
+#include "chrono.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -143,7 +143,7 @@ namespace {
         const uint32_t nbSamples = frame->nb_samples;
         const AVRational& timeBase = stream->stream->time_base;
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
-        const uint64_t timeUs = playertime::Microseconds(timeSeconds);
+        const uint64_t timeUs = chrono::Microseconds(timeSeconds);
 
         mediadecoder::producer::AudioFrame* audioFrame;
         Result result;
@@ -194,7 +194,7 @@ namespace {
 
     void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
     {
-        uint64_t startTime = playertime::Now();
+        uint64_t startTime = chrono::Now();
 
         mediadecoder::VideoStream* videoStream 
                        = reinterpret_cast<mediadecoder::VideoStream*>(stream);
@@ -202,7 +202,7 @@ namespace {
         const AVRational& timeBase = stream->stream->time_base;
         const uint32_t bufferSize = videoStream->bufferSize;
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
-        const uint64_t timeUs = playertime::Microseconds(timeSeconds);
+        const uint64_t timeUs = chrono::Microseconds(timeSeconds);
 
         mediadecoder::producer::VideoFrame* videoFrame;
         Result result;
@@ -220,11 +220,11 @@ namespace {
         sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
                   videoStream->frame->data, videoStream->frame->linesize );
 
-        uint64_t scaleTime = playertime::Now();
+        uint64_t scaleTime = chrono::Now();
 
         memcpy(videoFrame->frame, videoStream->frame->data[0], bufferSize);
 
-        uint64_t memcpyTime = playertime::Now();
+        uint64_t memcpyTime = chrono::Now();
 
         bool success = false;
         do
@@ -242,7 +242,7 @@ namespace {
 
         } while( !success );
 
-        uint64_t endTime = playertime::Now();
+        uint64_t endTime = chrono::Now();
         //fprintf(stderr, "VideoDecode total %d scale %d memcpy %d\n", endTime - startTime, scaleTime - startTime, memcpyTime - scaleTime);
     }
 
@@ -405,7 +405,7 @@ namespace mediadecoder
 
                 av_init_packet(packet);
 
-                uint64_t start= playertime::Now();
+                uint64_t start= chrono::Now();
                 int32_t outcome = av_read_frame(producer->decoder->avFormatContext, packet);
                 if(outcome < 0 )
                 {
@@ -436,11 +436,11 @@ namespace mediadecoder
                          fprintf(stderr, "avcodec_receive_frame error %s\n", error.c_str());
                          return;
                     }
-                    uint64_t end= playertime::Now();
+                    uint64_t end= chrono::Now();
 
-                    uint64_t startCallback= playertime::Now();
+                    uint64_t startCallback= chrono::Now();
                     stream->processCallback(stream, producer, frame);
-                    uint64_t endCallback = playertime::Now();
+                    uint64_t endCallback = chrono::Now();
                     //printf("processing %d callback %d\n", end - start, endCallback - startCallback);
                 }
                 av_packet_free(&packet);

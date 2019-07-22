@@ -1,6 +1,6 @@
 
 #include "player.h"
-#include "playertime.h"
+#include "chrono.h"
 
 #include <iostream>
 
@@ -17,30 +17,23 @@ namespace {
   
         while(player->play)
         {
-            uint64_t audiopopStartTime = playertime::Now();
+            uint64_t audiopopStartTime = chrono::Now();
             if(!audioFrame)
             {
                 mediadecoder::producer::Consume(player->producer, audioFrame);
             }
              if( audioFrame )
              {
-                 const bool writeFrame = true;
-                         //  = mediadecoder::producer::WaitForPlayback("audio", player->playbackStartTimeUs, audioFrame->timeUs);
-
-                 if( writeFrame )
+                 uint64_t startInterTime = chrono::Now();
+                 result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
+                 uint64_t endInterTime = chrono::Now();
+                 if(!result)
                  {
-                     uint64_t startInterTime = playertime::Now();
-                     result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
-                     uint64_t endInterTime = playertime::Now();
-                     if(!result)
-                     {
-                         std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
-                     }
-                     mediadecoder::producer::Release(player->producer, audioFrame);
-                     audioFrame = NULL;
-                     uint64_t audiopopEndTime = playertime::Now();
-                     //std::cerr << "Audio Time " << audiopopEndTime - audiopopStartTime << "write audio " << endInterTime - startInterTime << std::endl;
+                     std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
                  }
+                 mediadecoder::producer::Release(player->producer, audioFrame);
+                 audioFrame = NULL;
+                 uint64_t audiopopEndTime = chrono::Now();
              }
         }
     }
@@ -77,7 +70,7 @@ namespace player
     {
         mediadecoder::producer::WaitForPlayback(player->producer);
 
-        player->playbackStartTimeUs = playertime::Now();
+        player->playbackStartTimeUs = chrono::Now();
         player->play = true;
         player->audioThread = std::thread(AudioPlaybackThread, player);
     }
@@ -87,7 +80,7 @@ namespace player
          const uint32_t videoWidth = player->decoder->videoStream->width;
          const uint32_t videoHeight = player->decoder->videoStream->height;
 
-         uint64_t popStartTime = playertime::Now();
+         uint64_t popStartTime = chrono::Now();
          if(!player->videoFrame)
          {
              mediadecoder::producer::Consume(player->producer, player->videoFrame);
@@ -95,20 +88,21 @@ namespace player
 
          if( player->videoFrame  )
          {
+             const uint64_t waitThresholdUs = 25;
              const bool drawFrame 
-                       = playertime::WaitForPlayback("video", player->playbackStartTimeUs, player->videoFrame->timeUs);
+                       = chrono::WaitForPlayback("video", player->playbackStartTimeUs, player->videoFrame->timeUs, waitThresholdUs);
 
              if( drawFrame )
              {
-                 uint64_t drawStartTime = playertime::Now();
+                 uint64_t drawStartTime = chrono::Now();
 
                  videodevice::DrawFrame(player->videoDevice, player->videoFrame->frame, videoWidth, videoHeight);
 
-                 uint64_t drawFrameEndTime = playertime::Now();
+                 uint64_t drawFrameEndTime = chrono::Now();
 
                  swapBufferCallback();
 
-                 uint64_t drawEndTime = playertime::Now();
+                 uint64_t drawEndTime = chrono::Now();
 
                  std::cerr << "Draw Time Pop " << drawStartTime - popStartTime << " DrawFrame " << drawFrameEndTime - drawStartTime << " Swap " << drawEndTime - drawFrameEndTime << std::endl;
 

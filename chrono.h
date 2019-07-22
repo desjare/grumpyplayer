@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-namespace playertime
+namespace chrono
 {
     // epoch time in us
     inline uint64_t Now()
@@ -36,10 +36,9 @@ namespace playertime
         return static_cast<uint64_t>(seconds * 1000000.0);
     }
 
-    inline bool WaitForPlayback(const char* name, uint64_t startTimeUs, uint64_t timeUs)
+    inline bool WaitForPlayback(const char* name, uint64_t startTimeUs, uint64_t timeUs, uint64_t waitThresholdUs)
     {
         const int64_t sleepThresholdUs = 10000;
-        const int64_t waitThresholdUs = 25;
         const int64_t millisecondUs = 1000;
 
         int64_t waitTime = Wait(startTimeUs, timeUs);
@@ -75,7 +74,7 @@ namespace playertime
             const uint64_t currentTimeUs = Current(startTimeUs);
             const int64_t deltaUs = std::abs( static_cast<int64_t>(currentTimeUs-timeUs) );
 
-            printf("WaitForPlayback play time %ld us decode %ld us diff %ld\n", currentTimeUs, timeUs, deltaUs );
+            printf("WaitForPlayback %s play time %ld us decode %ld us diff %ld\n", name, currentTimeUs, timeUs, deltaUs );
         }
         return true;
     }
