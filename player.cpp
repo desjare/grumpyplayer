@@ -20,10 +20,7 @@ namespace {
             uint64_t audiopopStartTime = playertime::Now();
             if(!audioFrame)
             {
-                if( player->producer->audioQueue->pop(audioFrame) )
-                {
-                    player->producer->audioQueueSize--;
-                }
+                mediadecoder::producer::Consume(player->producer, audioFrame);
             }
              if( audioFrame )
              {
@@ -39,7 +36,7 @@ namespace {
                      {
                          std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
                      }
-                     mediadecoder::producer::Destroy(player->producer, audioFrame);
+                     mediadecoder::producer::Release(player->producer, audioFrame);
                      audioFrame = NULL;
                      uint64_t audiopopEndTime = playertime::Now();
                      //std::cerr << "Audio Time " << audiopopEndTime - audiopopStartTime << "write audio " << endInterTime - startInterTime << std::endl;
@@ -93,10 +90,7 @@ namespace player
          uint64_t popStartTime = playertime::Now();
          if(!player->videoFrame)
          {
-             if( player->producer->videoQueue->pop(player->videoFrame) )
-             {
-                 player->producer->videoQueueSize--;
-             }
+             mediadecoder::producer::Consume(player->producer, player->videoFrame);
          }
 
          if( player->videoFrame  )
@@ -118,7 +112,7 @@ namespace player
 
                  std::cerr << "Draw Time Pop " << drawStartTime - popStartTime << " DrawFrame " << drawFrameEndTime - drawStartTime << " Swap " << drawEndTime - drawFrameEndTime << std::endl;
 
-                 mediadecoder::producer::Destroy(player->producer, player->videoFrame);
+                 mediadecoder::producer::Release(player->producer, player->videoFrame);
                  player->videoFrame = NULL;
              }
              else if( !player->videoFrame )

@@ -3,7 +3,8 @@ project(grumpy)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_CXX_FLAGS "-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g -Wdeprecated-declarations")
+add_compile_options(-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g)
+add_compile_options(-Wno-deprecated -Wno-deprecated-declarations)
 
 find_library(AVFORMAT_LIBRARY avformat HINTS /usr/lib/x86_64-linux-gnu)
 find_library(AVCODEC_LIBRARY avcodec HINTS /usr/lib/x86_64-linux-gnu)

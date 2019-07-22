@@ -69,6 +69,56 @@ namespace {
         return std::string(buf);
     }
 
+    Result Create(mediadecoder::producer::Producer* producer, mediadecoder::producer::VideoFrame*& frame, uint32_t size)
+    {
+        Result result;
+        if( producer->videoFramePool->pop(frame) )
+        {
+            if(frame->bufferSize < size)
+            {
+                delete [] frame->frame;
+                frame->frame = new uint8_t[size];
+                frame->bufferSize = size;
+            }
+        }
+        else
+        {
+            frame = new mediadecoder::producer::VideoFrame();
+            frame->frame = new uint8_t[size];
+            frame->bufferSize = size;
+        }
+        return result;
+    }
+
+    Result Create(mediadecoder::producer::Producer* producer, mediadecoder::producer::AudioFrame*& frame, uint32_t nbSamples, uint32_t sampleSize, uint32_t channels)
+    {
+        const uint32_t requestedBufferSize = nbSamples * sampleSize * channels;
+        Result result;
+
+        if( producer->audioFramePool->pop(frame) )
+        {
+            const uint32_t frameBufferSize = frame->nbSamples * frame->sampleSize * frame->channels;
+            if(requestedBufferSize > frameBufferSize)
+            {
+                delete [] frame->samples;
+                frame->samples = new uint8_t[requestedBufferSize];
+                frame->sampleSize = sampleSize;
+                frame->nbSamples = nbSamples;
+                frame->channels = channels;
+            }
+        }
+        else
+        {
+            frame = new mediadecoder::producer::AudioFrame();
+            frame->samples = new uint8_t[requestedBufferSize];
+            frame->sampleSize = sampleSize;
+            frame->nbSamples = nbSamples;
+            frame->channels = channels;
+        }
+        return result;
+
+    }
+
     void PrintStream(mediadecoder::Stream& stream)
     {
         printf("Stream %s ID %d bit_rate %ld\n", stream.codec->long_name, 
@@ -98,7 +148,7 @@ namespace {
         mediadecoder::producer::AudioFrame* audioFrame;
         Result result;
 
-        result = mediadecoder::producer::Create(producer, audioFrame, frame->nb_samples, sampleSize, channels);
+        result = Create(producer, audioFrame, frame->nb_samples, sampleSize, channels);
         assert(result);
         if(!result)
         {
@@ -157,7 +207,7 @@ namespace {
         mediadecoder::producer::VideoFrame* videoFrame;
         Result result;
 
-        result = mediadecoder::producer::Create(producer, videoFrame, bufferSize);
+        result = Create(producer, videoFrame, bufferSize);
         assert(result);
         if(!result)
         {
@@ -425,57 +475,7 @@ namespace mediadecoder
             return producer;
         }
 
-        Result Create(Producer* producer, VideoFrame*& frame, uint32_t size)
-        {
-            Result result;
-            if( producer->videoFramePool->pop(frame) )
-            {
-                if(frame->bufferSize < size)
-                {
-                    delete [] frame->frame;
-                    frame->frame = new uint8_t[size];
-                    frame->bufferSize = size;
-                }
-            }
-            else
-            {
-                frame = new VideoFrame();
-                frame->frame = new uint8_t[size];
-                frame->bufferSize = size;
-            }
-            return result;
-        }
-
-        Result Create(Producer* producer, AudioFrame*& frame, uint32_t nbSamples, uint32_t sampleSize, uint32_t channels)
-        {
-            const uint32_t requestedBufferSize = nbSamples * sampleSize * channels;
-            Result result;
-
-            if( producer->audioFramePool->pop(frame) )
-            {
-                const uint32_t frameBufferSize = frame->nbSamples * frame->sampleSize * frame->channels;
-                if(requestedBufferSize > frameBufferSize)
-                {
-                    delete [] frame->samples;
-                    frame->samples = new uint8_t[requestedBufferSize];
-                    frame->sampleSize = sampleSize;
-                    frame->nbSamples = nbSamples;
-                    frame->channels = channels;
-                }
-            }
-            else
-            {
-                frame = new AudioFrame();
-                frame->samples = new uint8_t[requestedBufferSize];
-                frame->sampleSize = sampleSize;
-                frame->nbSamples = nbSamples;
-                frame->channels = channels;
-            }
-            return result;
-
-        }
-
-        void Destroy(Producer* producer, VideoFrame* frame)
+        void Release(Producer* producer, VideoFrame* frame)
         {
             const bool outcome
                         = producer->videoFramePool->push(frame);
@@ -487,7 +487,7 @@ namespace mediadecoder
             }
         }
 
-        void Destroy(Producer* producer, AudioFrame* frame)
+        void Release(Producer* producer, AudioFrame* frame)
         {
             const bool outcome
                         = producer->audioFramePool->push(frame);
@@ -495,6 +495,25 @@ namespace mediadecoder
             {
                 delete [] frame->samples;
                 delete frame;
+            }
+        }
+
+        
+        bool Consume(Producer* producer, VideoFrame*& videoFrame)
+        {
+             videoFrame = NULL;
+             if( producer->videoQueue->pop(videoFrame) )
+             {
+                 producer->videoQueueSize--;
+             }
+             return videoFrame != NULL;
+        }
+
+        bool Consume(Producer* producer,AudioFrame*& audioFrame)
+        {
+            if( producer->audioQueue->pop(audioFrame) )
+            {
+                producer->audioQueueSize--;
             }
         }
 

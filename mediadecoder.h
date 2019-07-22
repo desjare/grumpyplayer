@@ -120,11 +120,11 @@ namespace mediadecoder
 
         Result Create(Producer*& producer, Decoder*);
 
-        Result Create(Producer*, VideoFrame*&, uint32_t size);
-        Result Create(Producer*, AudioFrame*&, uint32_t nbSamples, uint32_t sampleSize, uint32_t channels);
+        bool   Consume(Producer*, VideoFrame*& frame);
+        bool   Consume(Producer*, AudioFrame*& frame);
 
-        void   Destroy(Producer*,VideoFrame*);
-        void   Destroy(Producer*,AudioFrame*);
+        void   Release(Producer*,VideoFrame*);
+        void   Release(Producer*,AudioFrame*);
 
         void   WaitForPlayback(Producer*);
 
