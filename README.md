@@ -19,10 +19,11 @@ OpenGL implementation has been adapted from https://gist.github.com/rcolinray/75
  * swsscale lib
  * glfw3 lib
  
- <h2>Ubuntu 18.04 </h2>
+ <h2>Ubuntu 18.04</h2>
  To install ffmpeg 4:
  See: http://ubuntuhandbook.org/index.php/2018/10/install-ffmpeg-4-0-2-ubuntu-18-0416-04/
 
 <h1>Build</h1>
+
   * cmake CMakeLists.txt
   * make
