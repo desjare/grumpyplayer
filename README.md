@@ -14,6 +14,7 @@ This is a proof of concept of how to design a player with modules having very li
 OpenGL implementation has been adapted from https://gist.github.com/rcolinray/7552384. 
 
 <h1>Requirements</h1>
+
  * ffmpeg libs version 4 or higher (ffmpeg --version)
  * ALSA asound dev lib
  * swsscale lib
