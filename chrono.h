@@ -38,7 +38,7 @@ namespace chrono
         return static_cast<uint64_t>(seconds * 1000000.0);
     }
 
-    inline bool WaitForPlayback(const char* name, uint64_t startTimeUs, uint64_t timeUs, uint64_t waitThresholdUs)
+    inline bool WaitForPlayback(const char* name, uint64_t startTimeUs, uint64_t timeUs, int64_t waitThresholdUs)
     {
         const int64_t sleepThresholdUs = 10000;
         const int64_t millisecondUs = 1000;
