@@ -6,7 +6,7 @@
 #include <iostream>
 
 namespace {
-    const uint64_t queueFullSleepTimeMs = 500;
+    const int64_t queueFullSleepTimeMs = 500;
     player::SwapBufferCallback swapBufferCallback;
 }
 
