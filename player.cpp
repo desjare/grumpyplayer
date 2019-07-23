@@ -6,6 +6,7 @@
 #include <iostream>
 
 namespace {
+    const uint64_t queueFullSleepTimeMs = 500;
     player::SwapBufferCallback swapBufferCallback;
 }
 
@@ -22,8 +23,18 @@ namespace {
             {
                 mediadecoder::producer::Consume(player->producer, audioFrame);
             }
+
             if( audioFrame )
             {
+                int64_t waitTime 
+                           = chrono::Wait(player->playbackStartTimeUs, audioFrame->timeUs);
+
+                if( waitTime >= audiodevice::ENQUEUE_SAMPLES_US )
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(queueFullSleepTimeMs));
+                    continue;
+                }
+               
                 stats::ScopeProfiler profiler(stats::PROFILER_AUDIO_WRITE);
                 result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
                 if(!result)

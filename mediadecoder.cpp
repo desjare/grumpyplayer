@@ -376,10 +376,16 @@ namespace mediadecoder
     {
         bool ContinueDecoding(Producer* producer)
         {
-            bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity;
-            bool audioFull = producer->audioQueueSize >= producer->audioQueueCapacity;
+            const bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity;
+            const bool audioFull = producer->audioQueueSize >= producer->audioQueueCapacity;
+            const bool continueDecoding = !(videoFull || audioFull);
 
-            return !(videoFull || audioFull);
+            if(!continueDecoding)
+            {
+                fprintf(stderr, "ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
+            }
+
+            return continueDecoding;
         }
 
         void DecoderThread(Producer* producer)
@@ -389,7 +395,6 @@ namespace mediadecoder
             {
                 while( !ContinueDecoding(producer) && !producer->quitting )
                 {
-                    fprintf(stderr, "Decoder thread sleeping\n");
                     std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
                 }
 
@@ -449,11 +454,8 @@ namespace mediadecoder
 
         Result Create(Producer*& producer, Decoder* decoder)
         {
-            const uint32_t videoFramesPerSecond = decoder->videoStream->stream->time_base.den;
-            const uint32_t audioFramesPerSecond = decoder->audioStream->stream->time_base.den;
-
-            const uint32_t videoQueueSize = std::min(videoFramesPerSecond * NB_SECONDS_READ_AHEAD, 65534u);
-            const uint32_t audioQueueSize = std::min(audioFramesPerSecond * NB_SECONDS_READ_AHEAD, 65534u);
+            const uint32_t videoQueueSize =  300u;
+            const uint32_t audioQueueSize = 300u;
 
             producer = new Producer();
             producer->decoder = decoder;
