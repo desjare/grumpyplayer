@@ -173,8 +173,6 @@ namespace {
             }
         }
 
- //       fprintf(stderr, "audio pts %d\n", frame->pts);
-
         bool success = false;
         do
         {
@@ -451,18 +449,20 @@ namespace mediadecoder
 
         Result Create(Producer*& producer, Decoder* decoder)
         {
-            const uint32_t videoFramesPerSecond = 60;
-            const uint32_t samplesPerFrame = decoder->audioStream->codecContext->frame_size;
-            const uint32_t audioFramesPerSecond = decoder->audioStream->sampleRate / (samplesPerFrame != 0 ? samplesPerFrame : 1024) * 10;
+            const uint32_t videoFramesPerSecond = decoder->videoStream->stream->time_base.den;
+            const uint32_t audioFramesPerSecond = decoder->audioStream->stream->time_base.den;
+
+            const uint32_t videoQueueSize = std::min(videoFramesPerSecond * NB_SECONDS_READ_AHEAD, 65534u);
+            const uint32_t audioQueueSize = std::min(audioFramesPerSecond * NB_SECONDS_READ_AHEAD, 65534u);
 
             producer = new Producer();
             producer->decoder = decoder;
-            producer->videoQueue = new VideoQueue(videoFramesPerSecond * NB_SECONDS_READ_AHEAD);
-            producer->audioQueue = new AudioQueue(audioFramesPerSecond * NB_SECONDS_READ_AHEAD);
-            producer->videoFramePool = new VideoQueue(videoFramesPerSecond * NB_SECONDS_READ_AHEAD);
-            producer->audioFramePool = new AudioQueue(audioFramesPerSecond * NB_SECONDS_READ_AHEAD);
-            producer->videoQueueCapacity = videoFramesPerSecond * NB_SECONDS_READ_AHEAD;
-            producer->audioQueueCapacity = videoFramesPerSecond * NB_SECONDS_READ_AHEAD;
+            producer->videoQueue = new VideoQueue(videoQueueSize);
+            producer->audioQueue = new AudioQueue(audioQueueSize);
+            producer->videoFramePool = new VideoQueue(videoQueueSize);
+            producer->audioFramePool = new AudioQueue(audioQueueSize);
+            producer->videoQueueCapacity = videoQueueSize;
+            producer->audioQueueCapacity = audioQueueSize;
 
             uint32_t streamArraySize 
                          = std::max(decoder->videoStream->streamIndex, decoder->audioStream->streamIndex) + 1;

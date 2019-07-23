@@ -1,6 +1,7 @@
 
 #include "player.h"
 #include "chrono.h"
+#include "stats.h"
 
 #include <iostream>
 
@@ -17,24 +18,21 @@ namespace {
   
         while(player->play)
         {
-            uint64_t audiopopStartTime = chrono::Now();
             if(!audioFrame)
             {
                 mediadecoder::producer::Consume(player->producer, audioFrame);
             }
-             if( audioFrame )
-             {
-                 uint64_t startInterTime = chrono::Now();
-                 result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
-                 uint64_t endInterTime = chrono::Now();
-                 if(!result)
-                 {
-                     std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
-                 }
-                 mediadecoder::producer::Release(player->producer, audioFrame);
-                 audioFrame = NULL;
-                 uint64_t audiopopEndTime = chrono::Now();
-             }
+            if( audioFrame )
+            {
+                stats::ScopeProfiler profiler(stats::PROFILER_AUDIO_WRITE);
+                result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
+                if(!result)
+                {
+                    std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
+                }
+                mediadecoder::producer::Release(player->producer, audioFrame);
+                audioFrame = NULL;
+            }
         }
     }
 }
@@ -94,17 +92,10 @@ namespace player
 
              if( drawFrame )
              {
-                 uint64_t drawStartTime = chrono::Now();
+                 stats::ScopeProfiler profiler(stats::PROFILER_VIDEO_DRAW);
 
                  videodevice::DrawFrame(player->videoDevice, player->videoFrame->frame, videoWidth, videoHeight);
-
-                 uint64_t drawFrameEndTime = chrono::Now();
-
                  swapBufferCallback();
-
-                 uint64_t drawEndTime = chrono::Now();
-
-                 std::cerr << "Draw Time Pop " << drawStartTime - popStartTime << " DrawFrame " << drawFrameEndTime - drawStartTime << " Swap " << drawEndTime - drawFrameEndTime << std::endl;
 
                  mediadecoder::producer::Release(player->producer, player->videoFrame);
                  player->videoFrame = NULL;

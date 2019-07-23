@@ -1,6 +1,8 @@
 #pragma once
 
 #include <chrono>
+#include <thread>
+#include <stdio.h>
 
 namespace chrono
 {
@@ -40,6 +42,7 @@ namespace chrono
     {
         const int64_t sleepThresholdUs = 10000;
         const int64_t millisecondUs = 1000;
+        const int64_t logDeltaThresholdUs = 100;
 
         int64_t waitTime = Wait(startTimeUs, timeUs);
 
@@ -74,7 +77,10 @@ namespace chrono
             const uint64_t currentTimeUs = Current(startTimeUs);
             const int64_t deltaUs = std::abs( static_cast<int64_t>(currentTimeUs-timeUs) );
 
-            printf("WaitForPlayback %s play time %ld us decode %ld us diff %ld\n", name, currentTimeUs, timeUs, deltaUs );
+            if( deltaUs > logDeltaThresholdUs )
+            {
+                fprintf(stderr, "WaitForPlayback %s play time %ld us decode %ld us diff %ld\n", name, currentTimeUs, timeUs, deltaUs );
+            }
         }
         return true;
     }

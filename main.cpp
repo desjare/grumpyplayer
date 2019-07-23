@@ -8,6 +8,7 @@
 #include "videodevice.h"
 #include "player.h"
 #include "gui.h"
+#include "stats.h"
 
 #include "result.h"
 
@@ -16,6 +17,7 @@ void Init()
 {
     mediadecoder::Init();
     videodevice::Init();
+    stats::Init();
 }
 
 Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
@@ -149,82 +151,9 @@ int main(int argc, char** argv)
     while( !gui::ShouldClose(uiHandle) )
     {
         player::Present(player);
+        stats::PrintPoints();
         gui::PollEvents();
     }
-
-/*
-    mediadecoder::producer::WaitForPlayback(producer);
-
-    uint64_t playbackStartTimeUs = mediadecoder::producer::GetEpochTimeUs();
-
-    mediadecoder::producer::VideoFrame* videoFrame = NULL;
-    mediadecoder::producer::AudioFrame* audioFrame = NULL;
-
-    while( gui::ShouldClose(ui) )
-    {
-         uint64_t popStartTime = mediadecoder::producer::GetEpochTimeUs();
-         if(!videoFrame)
-         {
-             if( producer->videoQueue->pop(videoFrame) )
-             {
-                 producer->videoQueueSize--;
-             }
-         }
-
-         if( videoFrame  )
-         {
-             const bool drawFrame 
-                       = mediadecoder::producer::WaitForPlayback("video", playbackStartTimeUs, videoFrame->timeUs);
-
-             if( drawFrame )
-             {
-                 uint64_t drawStartTime = mediadecoder::producer::GetEpochTimeUs();
-                 videodevice::DrawFrame(videoDevice, videoFrame->frame, videoWidth, videoHeight);
-                 uint64_t drawFrameEndTime = mediadecoder::producer::GetEpochTimeUs();
-                 gui::SwapBuffers(ui);
-                 uint64_t drawEndTime = mediadecoder::producer::GetEpochTimeUs();
-
-                 std::cerr << "Draw Time Pop " << drawStartTime - popStartTime << " DrawFrame " << drawFrameEndTime - drawStartTime << " Swap " << drawEndTime - drawFrameEndTime << std::endl;
-
-                 mediadecoder::producer::Destroy(producer, videoFrame);
-                 videoFrame = NULL;
-             }
-             else if( !videoFrame )
-             {
-                 std::cerr << "No video frame." << std::endl;
-             }
-         }
-         
-         uint64_t audiopopStartTime = mediadecoder::producer::GetEpochTimeUs();
-         if(!audioFrame)
-         {
-             if( producer->audioQueue->pop(audioFrame) )
-             {
-                 producer->audioQueueSize--;
-             }
-         }
-         if( audioFrame )
-         {
-             const bool writeFrame 
-                       = mediadecoder::producer::WaitForPlayback("audio", playbackStartTimeUs, audioFrame->timeUs);
-
-             if( writeFrame )
-             {
-                 uint64_t startInterTime = mediadecoder::producer::GetEpochTimeUs();
-                 result = audiodevice::WriteInterleaved( audioDevice, audioFrame->samples, audioFrame->nbSamples );
-                 uint64_t endInterTime = mediadecoder::producer::GetEpochTimeUs();
-                 if(!result)
-                 {
-                     std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
-                 }
-                 mediadecoder::producer::Destroy(producer, audioFrame);
-                 audioFrame = NULL;
-                 uint64_t audiopopEndTime = mediadecoder::producer::GetEpochTimeUs();
-                 std::cerr << "Audio Time " << audiopopEndTime - audiopopStartTime << "write audio " << endInterTime - startInterTime << std::endl;
-             }
-         }
-    }
-    */
 
     return 0;
 }
