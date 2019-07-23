@@ -9,12 +9,18 @@ namespace stats
     {
         PROFILER_VIDEO_DRAW = 0,
         PROFILER_AUDIO_WRITE,
+        PROFILER_DECODE_VIDEO_FRAME,
+        PROFILER_DECODE_AUDIO_FRAME,
+        PROFILER_PROCESS_VIDEO_FRAME,
+        PROFILER_PROCESS_AUDIO_FRAME,
         PROFILER_NB
     };
     
     struct Profiler
     {
          uint64_t startTime;
+         uint64_t endTime;
+         uint64_t currentTime;
          uint64_t avgTime;
          uint64_t count;
          uint64_t minTime;

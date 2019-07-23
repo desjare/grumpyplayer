@@ -89,7 +89,6 @@ namespace player
          const uint32_t videoWidth = player->decoder->videoStream->width;
          const uint32_t videoHeight = player->decoder->videoStream->height;
 
-         uint64_t popStartTime = chrono::Now();
          if(!player->videoFrame)
          {
              mediadecoder::producer::Consume(player->producer, player->videoFrame);

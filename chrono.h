@@ -32,6 +32,13 @@ namespace chrono
         return t / 1000000.0;
     }
 
+    // convert microseconds to milliseconds 
+    inline double Milliseconds(uint64_t timeUs)
+    {
+        double t = static_cast<double>(timeUs);
+        return t / 1000.0;
+    }
+
     // convert seconds to microseconds
     inline uint64_t Microseconds(double seconds)
     {

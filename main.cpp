@@ -151,7 +151,7 @@ int main(int argc, char** argv)
     while( !gui::ShouldClose(uiHandle) )
     {
         player::Present(player);
-        //stats::PrintPoints();
+        stats::PrintPoints();
         gui::PollEvents();
     }
 

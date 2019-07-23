@@ -23,10 +23,22 @@ namespace stats
         switch(point)
         {
             case PROFILER_VIDEO_DRAW:
-                name = "Video Draw";
+                name = "vdraw";
                 break;
             case PROFILER_AUDIO_WRITE:
-                name = "Audio Write";
+                name = "awrite";
+                break;
+            case PROFILER_DECODE_VIDEO_FRAME:
+                name = "vdec";
+                break;
+            case PROFILER_DECODE_AUDIO_FRAME:
+                name = "adec";
+                break;
+            case PROFILER_PROCESS_VIDEO_FRAME:
+                name = "vproc";
+                break;
+            case PROFILER_PROCESS_AUDIO_FRAME:
+                name = "aproc";
                 break;
         }
     }
@@ -42,36 +54,37 @@ namespace stats
     void StopProfiler(Point profiler)
     {
         Profiler& p = profilers[profiler];
-        uint64_t currentTime = chrono::Now();
-        uint64_t elapsedTime = currentTime - p.startTime;
+        p.endTime = chrono::Now();
+        p.currentTime = p.endTime - p.startTime;
 
-        p.startTime = currentTime;
-        
         if( p.avgTime == 0 )
         {
-            p.avgTime = elapsedTime;
+            p.avgTime = p.currentTime;
         }
         else
         {
-            p.avgTime = ((p.avgTime * (p.count-1)) + elapsedTime) / p.count;
+            double sums = p.avgTime * (p.count-1) + p.currentTime;
+            p.avgTime =  static_cast<uint64_t>(sums / static_cast<double>(p.count));
         }
 
         if( p.minTime == 0 )
         {
-            p.minTime = elapsedTime;
+            p.minTime = p.currentTime;
             
         }
         else
         {
-            p.minTime = std::min(p.minTime,elapsedTime);
+            p.minTime = std::min(p.minTime,p.currentTime);
         }
 
-        p.maxTime = std::min(p.maxTime,elapsedTime);
+        p.maxTime = std::max(p.maxTime,p.currentTime);
     }
 
     void PrintPoints()
     {
         std::ostringstream out;
+
+        out << "(curr(ms), avg(ms)) ";
 
         for(uint32_t i = 0; i < PROFILER_NB; i++)
         {
@@ -80,7 +93,7 @@ namespace stats
             std::string name;
             GetPointName(static_cast<Point>(i), name);
 
-            out << name << " " << chrono::Seconds(p.avgTime) << " avg(s) ";
+            out << name << " (" << chrono::Milliseconds(p.currentTime) << "," << chrono::Milliseconds(p.avgTime) << ") ";
         }
         out << std::endl;
 

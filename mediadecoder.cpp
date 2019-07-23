@@ -4,6 +4,7 @@
 #include "mediaformat.h"
 #include "result.h"
 #include "chrono.h"
+#include "stats.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -138,6 +139,7 @@ namespace {
 
     void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
     {
+        stats::ScopeProfiler profiler(stats::PROFILER_PROCESS_AUDIO_FRAME);
         const uint32_t sampleSize = av_get_bytes_per_sample(stream->codecContext->sample_fmt);
         const uint32_t channels = stream->codecContext->channels;
         const uint32_t nbSamples = frame->nb_samples;
@@ -192,7 +194,7 @@ namespace {
 
     void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
     {
-        uint64_t startTime = chrono::Now();
+        stats::ScopeProfiler profiler(stats::PROFILER_PROCESS_VIDEO_FRAME);
 
         mediadecoder::VideoStream* videoStream 
                        = reinterpret_cast<mediadecoder::VideoStream*>(stream);
@@ -218,11 +220,7 @@ namespace {
         sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
                   videoStream->frame->data, videoStream->frame->linesize );
 
-        uint64_t scaleTime = chrono::Now();
-
         memcpy(videoFrame->frame, videoStream->frame->data[0], bufferSize);
-
-        uint64_t memcpyTime = chrono::Now();
 
         bool success = false;
         do
@@ -239,9 +237,6 @@ namespace {
             }
 
         } while( !success );
-
-        uint64_t endTime = chrono::Now();
-        //fprintf(stderr, "VideoDecode total %d scale %d memcpy %d\n", endTime - startTime, scaleTime - startTime, memcpyTime - scaleTime);
     }
 
 }
@@ -382,7 +377,8 @@ namespace mediadecoder
 
             if(!continueDecoding)
             {
-                fprintf(stderr, "ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
+                //fprintf(stderr, "ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
+
             }
 
             return continueDecoding;
@@ -403,12 +399,12 @@ namespace mediadecoder
                     break;
                 }
 
+                
                 AVPacket* packet = av_packet_alloc();
                 AVFrame* frame = av_frame_alloc();
 
                 av_init_packet(packet);
 
-                uint64_t start= chrono::Now();
                 int32_t outcome = av_read_frame(producer->decoder->avFormatContext, packet);
                 if(outcome < 0 )
                 {
@@ -418,6 +414,13 @@ namespace mediadecoder
                 }
 
                 Stream* stream = producer->streams[packet->stream_index];
+                AVMediaType type = stream->codec->type;
+
+                const stats::Point profilePoint 
+                             = type == AVMEDIA_TYPE_VIDEO ? stats::PROFILER_DECODE_VIDEO_FRAME
+                                                          : stats::PROFILER_DECODE_AUDIO_FRAME;
+                stats::StartProfiler(profilePoint);
+
                 outcome = avcodec_send_packet(stream->codecContext, packet);
                 if(outcome < 0 )
                 {
@@ -435,17 +438,16 @@ namespace mediadecoder
                     }
                     else if(outcome < 0 )
                     {
+                         stats::StopProfiler(profilePoint);
                          std::string error = ErrorToString(outcome);
                          fprintf(stderr, "avcodec_receive_frame error %s\n", error.c_str());
                          return;
                     }
-                    uint64_t end= chrono::Now();
 
-                    uint64_t startCallback= chrono::Now();
+                    stats::StopProfiler(profilePoint);
                     stream->processCallback(stream, producer, frame);
-                    uint64_t endCallback = chrono::Now();
-                    //printf("processing %d callback %d\n", end - start, endCallback - startCallback);
                 }
+
                 av_packet_free(&packet);
                 av_frame_free(&frame);
             }
