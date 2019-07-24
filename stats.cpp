@@ -40,6 +40,8 @@ namespace stats
             case PROFILER_PROCESS_AUDIO_FRAME:
                 name = "aproc";
                 break;
+            case PROFILER_NB:
+                break;
         }
     }
 

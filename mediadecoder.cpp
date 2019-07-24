@@ -284,7 +284,6 @@ namespace mediadecoder
         {
             AVStream* stream = data->avFormatContext->streams[index];
             AVCodecParameters* codecParameters = data->avFormatContext->streams[index]->codecpar;
-            AVRational frameRate = data->avFormatContext->streams[index]->avg_frame_rate;
             AVCodec* codec = avcodec_find_decoder(codecParameters->codec_id);
             if(!codec)
             {
@@ -518,7 +517,9 @@ namespace mediadecoder
             if( producer->audioQueue->pop(audioFrame) )
             {
                 producer->audioQueueSize--;
+                return true;
             }
+            return false;
         }
 
         void WaitForPlayback(Producer* producer)
