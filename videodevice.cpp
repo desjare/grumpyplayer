@@ -12,6 +12,7 @@
 
 #include "videodevice.h"
 #include "result.h"
+#include "numeric.h"
 
 namespace {
     PFNGLCREATESHADERPROC glCreateShader;
@@ -274,6 +275,7 @@ namespace videodevice
 
         float adjustWidth = ww;
         float adjustHeight = wh;
+        float adjustRatio = 0.0f;
 
         if( maxw > maxh )
         {
@@ -303,6 +305,20 @@ namespace videodevice
             adjustWidth = w;
             adjustHeight = h;
         }
+
+        adjustRatio = adjustWidth / adjustHeight;
+
+        if( !equals(tr, adjustRatio) )
+        {
+            fprintf(stderr, "ratio differ\n");
+            if( adjustRatio < 1.0f )
+            {
+                adjustWidth = ww;
+                adjustHeight = adjustWidth / tr;
+            }
+        }
+
+
 
         float x1 = ww / 2.0f - adjustWidth / 2.0f;
         float x2 = x1 + adjustWidth;
