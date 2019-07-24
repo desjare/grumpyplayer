@@ -264,9 +264,59 @@ namespace videodevice
     {
         Result result;
 
+
+        const float ww = static_cast<float>(width);
+        const float wh = static_cast<float>(height);
+        const float wr = ww / wh;
+        const float tw = static_cast<float>(device->width);
+        const float th = static_cast<float>(device->height);
+        const float tr = tw / th;
+
+        const float maxw = std::max(ww,tw);
+        const float maxh = std::max(wh,th);
+
+        float adjustWidth = ww;
+        float adjustHeight = wh;
+
+        if( maxw > maxh )
+        {
+            float w = maxw;
+            float h = w / tr;
+
+            if( h > maxh )
+            {
+                h = maxh;
+                w = h * tr;
+            }
+
+            adjustWidth = w;
+            adjustHeight = h;
+        }
+        else
+        {
+            float h = maxh;
+            float w = h * tr;
+
+            if( w > maxw )
+            {
+                w = maxw;
+                h = h * tr;
+            }
+
+            adjustWidth = w;
+            adjustHeight = h;
+        }
+
+        float x1 = ww / 2.0f - adjustWidth / 2.0f
+        float x2 = x2 + adjustWidth;
+        float y1 = wh / 2.0f - adjustHeight / 2.0f
+        float y2 = y2 + adjustHeight;
+
+        fprintf(stderr, "w %f h %f adjustWidth %f adjustHeight %f\n", ww, wh, adjustWidth, adjustHeight);
+
         glViewport(0,0, width, height);
 
-        WriteVertexBuffer(device, width, height);
+        WriteVertexBuffer(device, adjustWidth, adjustHeight);
         WriteMVPMatrix(device, width, height);
 
         return result;
