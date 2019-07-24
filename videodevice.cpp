@@ -150,6 +150,29 @@ namespace {
 
         return result;
     }
+
+
+    void WriteVertexBuffer(videodevice::Device* device, uint32_t width, uint32_t height)
+    {
+        const float h = static_cast<float>(height);
+        const float w = static_cast<float>(width);
+
+        glBindBuffer(GL_ARRAY_BUFFER, device->vertexBuffer);
+        float quad[20] = {
+            // x      y     z     u      v
+             0.0f ,   h,   0.0f, 0.0f, 0.0f,
+             0.0f,   0.0f, 0.0f, 0.0f, 1.0f,
+              w,     0.0f, 0.0f, 1.0f, 1.0f,
+              w,      h,   0.0f, 1.0f, 0.0f
+        };
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+    }
+
+    void WriteMVPMatrix(videodevice::Device* device, uint32_t width, uint32_t height)
+    {
+        glm::mat4 mvp = glm::ortho(0.0f, static_cast<float>(width), 0.0f, static_cast<float>(height), -1.0f, 1.0f);
+        glUniformMatrix4fv(device->uniforms[videodevice::Device::MVP_MATRIX], 1, GL_FALSE, glm::value_ptr(mvp));
+    }
 }
 
 namespace videodevice
@@ -186,14 +209,7 @@ namespace videodevice
         
         // vertexBuffer
         glGenBuffers(1, &device->vertexBuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, device->vertexBuffer);
-        float quad[20] = {
-            -1.0f,  1.0f, 0.0f, 0.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f, 1.0f,
-             1.0f, -1.0f, 0.0f, 1.0f, 1.0f,
-             1.0f,  1.0f, 0.0f, 1.0f, 0.0f
-        };
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+        WriteVertexBuffer(device, width, height);
 
         glVertexAttribPointer(device->attribs[Device::VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)NULL + (0)));
         glEnableVertexAttribArray(device->attribs[Device::VERTICES]);
@@ -222,8 +238,7 @@ namespace videodevice
             0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glUniform1i(device->uniforms[Device::FRAME_TEX], 0);
         
-        glm::mat4 mvp = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
-        glUniformMatrix4fv(device->uniforms[Device::MVP_MATRIX], 1, GL_FALSE, glm::value_ptr(mvp));
+        WriteMVPMatrix(device, width, height);
 
         return result;
     }
@@ -239,6 +254,18 @@ namespace videodevice
         glBindVertexArray(device->vertexArray);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, ((char *)NULL + (0)));
         glBindVertexArray(0);
+        return result;
+    }
+
+    Result SetSize(Device* device, uint32_t width, uint32_t height)
+    {
+        Result result;
+
+        glViewport(0,0, width, height);
+
+        WriteVertexBuffer(device, width, height);
+        WriteMVPMatrix(device, width, height);
+
         return result;
     }
 

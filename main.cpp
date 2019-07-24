@@ -44,6 +44,11 @@ Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
     return result;
 }
 
+void WindowSizeChangeCallback(gui::Handle* handle, uint32_t w, uint32_t h, videodevice::Device* device)
+{
+    videodevice::SetSize(device, w,h);
+}
+
 int main(int argc, char** argv)
 {
     std::string filename;
@@ -129,7 +134,12 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    player::SwapBufferCallback swapBufferCallback = boost::bind( gui::SwapBuffers, uiHandle );
+    gui::WindowSizeChangeCb windowSizeChangeCallback 
+                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, videoDevice );
+    gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
+
+    player::SwapBufferCallback swapBufferCallback 
+                     = boost::bind( gui::SwapBuffers, uiHandle );
 
     result = player::Init( swapBufferCallback );
     if(!result)

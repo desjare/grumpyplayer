@@ -2,9 +2,18 @@
 #include "gui.h"
 
 namespace {
+    gui::WindowSizeChangeCb windowSizeChangeCb;
+    
     void ErrorCallback(int error, const char* description)
     {
         fprintf(stderr, "UI Error %d: %s\n", error, description);
+    }
+
+    void WindowSizeCallback(GLFWwindow* window, int width, int height)
+    {
+        gui::Handle handle;
+        handle.window = window;
+        windowSizeChangeCb(&handle, width, height);
     }
 }
 
@@ -51,6 +60,12 @@ namespace gui
         glfwMakeContextCurrent(handle->window);
 
         return result;
+    }
+
+    void SetWindowSizeChangeCallback(Handle* handle, WindowSizeChangeCb cb)
+    {
+        windowSizeChangeCb = cb;
+        glfwSetWindowSizeCallback(handle->window, WindowSizeCallback);
     }
 
     void SwapBuffers(Handle* handle)
