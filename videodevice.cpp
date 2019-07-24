@@ -152,18 +152,15 @@ namespace {
     }
 
 
-    void WriteVertexBuffer(videodevice::Device* device, uint32_t width, uint32_t height)
+    void WriteVertexBuffer(videodevice::Device* device, float x1, float y1, float x2, float y2)
     {
-        const float h = static_cast<float>(height);
-        const float w = static_cast<float>(width);
-
         glBindBuffer(GL_ARRAY_BUFFER, device->vertexBuffer);
         float quad[20] = {
             // x      y     z     u      v
-             0.0f ,   h,   0.0f, 0.0f, 0.0f,
-             0.0f,   0.0f, 0.0f, 0.0f, 1.0f,
-              w,     0.0f, 0.0f, 1.0f, 1.0f,
-              w,      h,   0.0f, 1.0f, 0.0f
+              x1,   y2,   0.0f, 0.0f, 0.0f,
+              x1,   y1,   0.0f, 0.0f, 1.0f,
+              x2,   y1,   0.0f, 1.0f, 1.0f,
+              x2,   y2,  0.0f, 1.0f, 0.0f
         };
         glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
     }
@@ -212,7 +209,7 @@ namespace videodevice
         
         // vertexBuffer
         glGenBuffers(1, &device->vertexBuffer);
-        WriteVertexBuffer(device, width, height);
+        WriteVertexBuffer(device, 0, 0, width, height);
 
         glVertexAttribPointer(device->attribs[Device::VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)NULL + (0)));
         glEnableVertexAttribArray(device->attribs[Device::VERTICES]);
@@ -307,16 +304,16 @@ namespace videodevice
             adjustHeight = h;
         }
 
-        float x1 = ww / 2.0f - adjustWidth / 2.0f
-        float x2 = x2 + adjustWidth;
-        float y1 = wh / 2.0f - adjustHeight / 2.0f
-        float y2 = y2 + adjustHeight;
+        float x1 = ww / 2.0f - adjustWidth / 2.0f;
+        float x2 = x1 + adjustWidth;
+        float y1 = wh / 2.0f - adjustHeight / 2.0f;
+        float y2 = y1 + adjustHeight;
 
-        fprintf(stderr, "w %f h %f adjustWidth %f adjustHeight %f\n", ww, wh, adjustWidth, adjustHeight);
+        fprintf(stderr, "w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f\n", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
 
         glViewport(0,0, width, height);
 
-        WriteVertexBuffer(device, adjustWidth, adjustHeight);
+        WriteVertexBuffer(device, x1, y1, x2, y2);
         WriteMVPMatrix(device, width, height);
 
         return result;
