@@ -12,6 +12,13 @@
 
 #include "result.h"
 
+namespace {
+    void WindowSizeChangeCallback(gui::Handle* handle, uint32_t w, uint32_t h, videodevice::Device* device)
+    {
+        videodevice::SetSize(device, w,h);
+    }
+}
+
 
 void Init()
 {
@@ -44,10 +51,35 @@ Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
     return result;
 }
 
-void WindowSizeChangeCallback(gui::Handle* handle, uint32_t w, uint32_t h, videodevice::Device* device)
+Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& audioDevice, mediadecoder::Decoder* decoder)
 {
-    videodevice::SetSize(device, w,h);
+    Result result;
+
+    mediadecoder::VideoStream* videoStream = decoder->videoStream;
+    mediadecoder::AudioStream* audioStream = decoder->audioStream;
+
+    const uint32_t videoWidth = videoStream->width;
+    const uint32_t videoHeight = videoStream->height;
+    const uint32_t channels = audioStream->channels;
+    const uint32_t sampleRate = audioStream->sampleRate;
+    const SampleFormat sampleFormat = audioStream->sampleFormat;
+
+    result = audiodevice::Create(audioDevice, channels, sampleRate, sampleFormat );
+    if(!result)
+    {
+        result = Result(false, result.getError());
+        return result;
+    }
+
+    result = videodevice::Create(videoDevice, videoWidth, videoHeight);
+    if(!result)
+    {
+        result = Result(false, result.getError());
+        return result;
+    }
+    return result;
 }
+
 
 int main(int argc, char** argv)
 {
@@ -81,15 +113,20 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // gui 
     gui::Handle* uiHandle = NULL;
 
+    // devices
     audiodevice::Device* audioDevice = NULL;
     videodevice::Device* videoDevice = NULL;
 
+    // decoder
     mediadecoder::Decoder* decoder = NULL;
-    mediadecoder::producer::Producer* producer = NULL;
+
+    // player
     player::Player* player = NULL;
 
+    // create decoder and open media
     Result result = mediadecoder::Create(decoder);
     if(!result)
     {
@@ -103,14 +140,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // create windows 
     mediadecoder::VideoStream* videoStream = decoder->videoStream;
-    mediadecoder::AudioStream* audioStream = decoder->audioStream;
-
     const uint32_t videoWidth = videoStream->width;
     const uint32_t videoHeight = videoStream->height;
-    const uint32_t channels = audioStream->channels;
-    const uint32_t sampleRate = audioStream->sampleRate;
-    const SampleFormat sampleFormat = audioStream->sampleFormat;
 
     result = CreateWindows(uiHandle, videoWidth, videoHeight);
     if(!result)
@@ -119,18 +152,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    result = audiodevice::Create(audioDevice, channels, sampleRate, sampleFormat );
+    // create audio and video devices
+    result = CreateDevices(videoDevice, audioDevice, decoder);
     if(!result)
     {
         std::cerr << result.getError() << std::endl;
-        return 1;
-    }
-
-    result = videodevice::Create(videoDevice, videoWidth, videoHeight);
-    if(!result)
-    {
-        std::cerr << result.getError() << std::endl;
-
         return 1;
     }
 
@@ -138,6 +164,7 @@ int main(int argc, char** argv)
                   = boost::bind(WindowSizeChangeCallback, _1, _2, _3, videoDevice );
     gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
 
+    // initialize the player
     player::SwapBufferCallback swapBufferCallback 
                      = boost::bind( gui::SwapBuffers, uiHandle );
 
@@ -155,7 +182,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    
+    // Play
     player::Play(player);
 
     while( !gui::ShouldClose(uiHandle) )
