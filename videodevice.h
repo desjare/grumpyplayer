@@ -20,6 +20,10 @@ namespace videodevice
             NB_UNIFORMS
         };
 
+        // texture size
+        GLuint width;
+        GLuint height;
+
         // rendering
         GLuint vertexArray;
         GLuint vertexBuffer;

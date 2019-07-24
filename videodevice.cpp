@@ -190,6 +190,9 @@ namespace videodevice
         device = new Device();
         memset(device, 0, sizeof(Device));
 
+        device->width = width;
+        device->height = height;
+
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glEnable(GL_TEXTURE_2D);
 
