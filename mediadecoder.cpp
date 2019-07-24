@@ -514,6 +514,7 @@ namespace mediadecoder
 
         bool Consume(Producer* producer,AudioFrame*& audioFrame)
         {
+            audioFrame = NULL;
             if( producer->audioQueue->pop(audioFrame) )
             {
                 producer->audioQueueSize--;
