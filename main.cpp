@@ -22,9 +22,10 @@ namespace {
 
 void Init()
 {
+    stats::Init();
+
     mediadecoder::Init();
     videodevice::Init();
-    stats::Init();
 }
 
 Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
@@ -80,6 +81,10 @@ Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& au
     return result;
 }
 
+void EnableStats(bool enable)
+{
+    stats::Enable(enable);
+}
 
 int main(int argc, char** argv)
 {
@@ -91,7 +96,8 @@ int main(int argc, char** argv)
 		boost::program_options::options_description desc{"Options"};
 		desc.add_options()
 		  ("help,h", "Help screen")
-		  ("filename", boost::program_options::value<std::string>());
+		  ("filename", boost::program_options::value<std::string>())
+		  ("stats", boost::program_options::bool_switch()->default_value(false)->notifier(EnableStats));
 
 		boost::program_options::variables_map vm;
 		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -188,7 +194,8 @@ int main(int argc, char** argv)
     while( !gui::ShouldClose(uiHandle) )
     {
         player::Present(player);
-        stats::PrintPoints();
+        stats::PrintStats();
+
         gui::PollEvents();
     }
 

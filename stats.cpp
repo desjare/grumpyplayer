@@ -9,6 +9,7 @@
 namespace {
 
     stats::Profiler profilers[stats::PROFILER_NB];
+    bool enable = false;
 }
 
 namespace stats
@@ -16,6 +17,11 @@ namespace stats
     void Init()
     {
         memset(&profilers, 0, sizeof(Profiler) * PROFILER_NB);
+    }
+
+    void Enable(bool e)
+    {
+        enable = e;
     }
 
     void GetPointName(Point point, std::string& name)
@@ -82,8 +88,13 @@ namespace stats
         p.maxTime = std::max(p.maxTime,p.currentTime);
     }
 
-    void PrintPoints()
+    void PrintStats()
     {
+        if( !enable )
+        {
+            return;
+        }
+
         std::ostringstream out;
 
         out << "(curr(ms), avg(ms)) ";

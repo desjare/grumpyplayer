@@ -28,10 +28,11 @@ namespace stats
     };
 
     void Init();
+    void Enable(bool);
     void GetPointName(Point, std::string&);
     void StartProfiler(Point profiler);
     void StopProfiler(Point profiler);
-    void PrintPoints();
+    void PrintStats();
 
     class ScopeProfiler
     {
