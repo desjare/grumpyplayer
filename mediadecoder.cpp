@@ -5,6 +5,7 @@
 #include "result.h"
 #include "chrono.h"
 #include "profiler.h"
+#include "logger.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -20,7 +21,6 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <thread>
-#include <iostream>
 
 #include <stdlib.h>
 #include <malloc.h>
@@ -122,18 +122,18 @@ namespace {
 
     void PrintStream(mediadecoder::Stream& stream)
     {
-        printf("Stream %s ID %d bit_rate %ld\n", stream.codec->long_name, 
-                 stream.codec->id, stream.codecParameters->bit_rate);
+        logger::Info("Stream %s ID %d bit_rate %ld", stream.codec->long_name, 
+                      stream.codec->id, stream.codecParameters->bit_rate);
 
         if(stream.codecParameters->codec_type == AVMEDIA_TYPE_VIDEO)
         {
-            printf("Video Codec: resolution %d x %d\n", stream.codecParameters->width,
-                       stream.codecParameters->height);
+            logger::Info("Video Codec: resolution %d x %d", stream.codecParameters->width,
+                         stream.codecParameters->height);
         }
         else
         {
-            printf("Audio Codec: %d channels, sample rate %d\n", stream.codecParameters->channels,
-                       stream.codecParameters->sample_rate);
+            logger::Info("Audio Codec: %d channels, sample rate %d", stream.codecParameters->channels,
+                         stream.codecParameters->sample_rate);
         }
     }
 
@@ -154,7 +154,7 @@ namespace {
         assert(result);
         if(!result)
         {
-            std::cerr << "AudioDecoderCallback cannot create audio frame: " << result.getError();
+            logger::Error("AudioDecoderCallback cannot create audio frame: %s", result.getError().c_str());
             return;
         }
 
@@ -185,7 +185,7 @@ namespace {
             }
             else
             {
-                std::cerr << "AudioDecoderCallback queue full. Waiting." << std::endl;
+                logger::Warn("AudioDecoderCallback queue full. Waiting.");
                 std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
             }
 
@@ -211,7 +211,7 @@ namespace {
         assert(result);
         if(!result)
         {
-            std::cerr << "VideoDecoderCallback cannot create audio frame: " << result.getError();
+            logger::Error("VideoDecoderCallback cannot create audio frame: %s", result.getError().c_str());
             return;
         }
 
@@ -232,7 +232,7 @@ namespace {
             }
             else
             {
-                std::cerr << "VideoDecoderCallback queue full. Waiting." << std::endl;
+                logger::Warn("VideoDecoderCallback queue full. Waiting.");
                 std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
             }
 

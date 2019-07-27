@@ -1,12 +1,13 @@
 
 #include "gui.h"
+#include "logger.h"
 
 namespace {
     gui::WindowSizeChangeCb windowSizeChangeCb;
     
     void ErrorCallback(int error, const char* description)
     {
-        fprintf(stderr, "UI Error %d: %s\n", error, description);
+        logger::Error("UI %d: %s", error, description);
     }
 
     void WindowSizeCallback(GLFWwindow* window, int width, int height)

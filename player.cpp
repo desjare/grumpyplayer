@@ -2,8 +2,7 @@
 #include "player.h"
 #include "chrono.h"
 #include "profiler.h"
-
-#include <iostream>
+#include "logger.h"
 
 namespace {
     const int64_t queueFullSleepTimeMs = 500;
@@ -39,7 +38,7 @@ namespace {
                 result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
                 if(!result)
                 {
-                    std::cerr << "AudioDeviceWriteInterleaved failed " << result.getError() << std::endl;
+                    logger::Error("AudioDeviceWriteInterleaved failed %s", result.getError().c_str());
                 }
                 mediadecoder::producer::Release(player->producer, audioFrame);
                 audioFrame = NULL;
@@ -112,9 +111,11 @@ namespace player
              }
              else if( !player->videoFrame )
              {
-                 std::cerr << "No video frame." << std::endl;
-             } else {
-                 std::cerr << "No draw frame." << std::endl;
+                 logger::Warn( "Player: No video frame" );
+             } 
+             else 
+             {
+                 logger::Warn( "Player: No draw frame" );
              }
          }
     }

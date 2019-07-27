@@ -1,6 +1,5 @@
 #include <boost/program_options.hpp>
 #include <boost/bind.hpp>
-#include <iostream>
 #include <string>
 
 #include "mediadecoder.h"
@@ -9,6 +8,7 @@
 #include "player.h"
 #include "gui.h"
 #include "profiler.h"
+#include "logger.h"
 
 #include "result.h"
 
@@ -33,20 +33,20 @@ Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
     Result result = gui::Init();
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return result;
     }
     result = gui::Create(ui);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return result;
     }
 
     result = gui::OpenWindow(ui, videoWidth, videoHeight);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return result;
     }
     return result;
@@ -86,6 +86,18 @@ void EnableProfiler(bool enable)
     profiler::Enable(enable);
 }
 
+void SetLogLevel(std::string level)
+{
+    logger::Level logLevel = logger::GetLevelFromString(level);
+    if( logLevel == logger::INVALID )
+    {
+        logger::Error("Invalid log level %s", level.c_str() );
+        exit(1);
+    }
+
+    logger::SetLevel(logLevel);
+}
+
 int main(int argc, char** argv)
 {
     std::string filename;
@@ -97,7 +109,8 @@ int main(int argc, char** argv)
 		desc.add_options()
 		  ("help,h", "Help screen")
 		  ("filename", boost::program_options::value<std::string>())
-		  ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler));
+		  ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler))
+		  ("loglevel", boost::program_options::value<std::string>());
 
 		boost::program_options::variables_map vm;
 		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -108,10 +121,15 @@ int main(int argc, char** argv)
             filename = vm["filename"].as<std::string>();
         }
 
+        if( vm.count("loglevel") )
+        {
+            SetLogLevel(vm["loglevel"].as<std::string>());
+        }
+
     }
     catch( boost::program_options::error& ex)
     {
-        std::cerr  << ex.what() << "\n";
+        logger::Error("Program Option Error: %s", ex.what());
     }
 
     if(filename.empty())
@@ -136,13 +154,13 @@ int main(int argc, char** argv)
     Result result = mediadecoder::Create(decoder);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return 1;
     }
     result = mediadecoder::Open(decoder, filename);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return 1;
     }
 
@@ -154,7 +172,7 @@ int main(int argc, char** argv)
     result = CreateWindows(uiHandle, videoWidth, videoHeight);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return 1;
     }
 
@@ -162,7 +180,7 @@ int main(int argc, char** argv)
     result = CreateDevices(videoDevice, audioDevice, decoder);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return 1;
     }
 
@@ -177,14 +195,14 @@ int main(int argc, char** argv)
     result = player::Init( swapBufferCallback );
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return 1;
     }
 
     result = player::Create(player, decoder, audioDevice, videoDevice);
     if(!result)
     {
-        std::cerr << result.getError() << std::endl;
+        logger::Error(result.getError().c_str());
         return 1;
     }
 

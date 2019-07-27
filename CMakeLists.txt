@@ -15,7 +15,7 @@ find_library(GLFW_LIBRARY glfw HINTS /usr/lib/x86_64-linux-gnu)
 find_library(SWSCALE_LIBRARY swscale HINTS /usr/lib/x86_64-linux-gnu)
 
 add_definitions( -D__AVX2__ )
-add_executable(grumpyplayer main videodevice audiodevice gui mediadecoder player profiler)
+add_executable(grumpyplayer main videodevice audiodevice gui mediadecoder player profiler logger)
 
 target_link_libraries(
 	grumpyplayer 

@@ -13,6 +13,7 @@
 #include "videodevice.h"
 #include "result.h"
 #include "numeric.h"
+#include "logger.h"
 
 namespace {
     PFNGLCREATESHADERPROC glCreateShader;
@@ -310,7 +311,7 @@ namespace videodevice
 
         if( !equals(tr, adjustRatio) )
         {
-            fprintf(stderr, "ratio differ\n");
+            logger::Debug("ratio differ");
             if( adjustRatio < 1.0f )
             {
                 adjustWidth = ww;
@@ -325,7 +326,7 @@ namespace videodevice
         float y1 = wh / 2.0f - adjustHeight / 2.0f;
         float y2 = y1 + adjustHeight;
 
-        fprintf(stderr, "w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f\n", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
+        logger::Debug("w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
 
         glViewport(0,0, width, height);
 
