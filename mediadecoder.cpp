@@ -374,7 +374,7 @@ namespace mediadecoder
 
         if(!continueDecoding)
         {
-            logger::Debug("ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
+            logger::Debug("ContinueDecoding queue full video %d audio %d", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
         }
 
         return continueDecoding;
