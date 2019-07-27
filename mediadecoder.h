@@ -23,13 +23,10 @@ namespace mediadecoder
 {
     // forward declaration
     struct Stream;
-    namespace producer 
-    {
-        struct Producer;
-    }
+    struct Producer;
 
     // types
-    typedef boost::function<void (Stream*, producer::Producer*, AVFrame*)> DecoderCallback;
+    typedef boost::function<void (Stream*, Producer*, AVFrame*)> DecoderCallback;
 
     struct Stream
     {
@@ -62,6 +59,25 @@ namespace mediadecoder
         uint32_t channels;
     };
 
+    struct VideoFrame
+    {
+        uint8_t* frame;
+        uint32_t bufferSize;
+        uint64_t timeUs;
+    };
+
+    struct AudioFrame
+    {
+        uint8_t* samples;
+        uint32_t sampleSize;
+        uint32_t nbSamples;
+        uint32_t channels;
+        uint64_t timeUs;
+    };
+
+    typedef boost::lockfree::queue<AudioFrame*, boost::lockfree::fixed_sized<true> > AudioQueue;
+    typedef boost::lockfree::queue<VideoFrame*, boost::lockfree::fixed_sized<true> > VideoQueue;
+
     struct Decoder
     {
         AVFormatContext* avFormatContext;
@@ -69,66 +85,42 @@ namespace mediadecoder
         AudioStream* audioStream;
     };
 
+    struct Producer
+    {
+        Decoder* decoder;
+
+        // playback frames
+        VideoQueue* videoQueue;
+        AudioQueue* audioQueue;
+
+        std::atomic<uint32_t> videoQueueSize;
+        std::atomic<uint32_t> audioQueueSize;
+
+        uint32_t videoQueueCapacity;
+        uint32_t audioQueueCapacity;
+
+        // frame pools
+        VideoQueue* videoFramePool;
+        AudioQueue* audioFramePool;
+
+        std::vector<Stream*> streams;
+
+        std::thread thread;
+        std::atomic<bool> quitting;
+    };
+
     Result Init();
     Result Create(Decoder*& decoder);
     Result Open(Decoder*& decoder, const std::string& filename);
 
-    namespace producer
-    {
-        struct VideoFrame
-        {
-            uint8_t* frame;
-            uint32_t bufferSize;
-            uint64_t timeUs;
-        };
+    Result Create(Producer*& producer, Decoder*);
 
-        struct AudioFrame
-        {
-            uint8_t* samples;
-            uint32_t sampleSize;
-            uint32_t nbSamples;
-            uint32_t channels;
-            uint64_t timeUs;
-        };
+    bool   Consume(Producer*, VideoFrame*& frame);
+    bool   Consume(Producer*, AudioFrame*& frame);
 
-        typedef boost::lockfree::queue<AudioFrame*, boost::lockfree::fixed_sized<true> > AudioQueue;
-        typedef boost::lockfree::queue<VideoFrame*, boost::lockfree::fixed_sized<true> > VideoQueue;
+    void   Release(Producer*,VideoFrame*);
+    void   Release(Producer*,AudioFrame*);
 
-        struct Producer
-        {
-            Decoder* decoder;
-
-            // playback frames
-            VideoQueue* videoQueue;
-            AudioQueue* audioQueue;
-
-            std::atomic<uint32_t> videoQueueSize;
-            std::atomic<uint32_t> audioQueueSize;
-
-            uint32_t videoQueueCapacity;
-            uint32_t audioQueueCapacity;
-
-            // frame pools
-            VideoQueue* videoFramePool;
-            AudioQueue* audioFramePool;
-
-            std::vector<Stream*> streams;
-
-            std::thread thread;
-            std::atomic<bool> quitting;
-        };
-
-        Result Create(Producer*& producer, Decoder*);
-
-        bool   Consume(Producer*, VideoFrame*& frame);
-        bool   Consume(Producer*, AudioFrame*& frame);
-
-        void   Release(Producer*,VideoFrame*);
-        void   Release(Producer*,AudioFrame*);
-
-        void   WaitForPlayback(Producer*);
-
-    };
-
+    void   WaitForPlayback(Producer*);
 };
 

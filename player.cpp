@@ -59,14 +59,14 @@ namespace {
 
     void AudioPlaybackThread(player::Player* player)
     {
-        mediadecoder::producer::AudioFrame* audioFrame = NULL;
+        mediadecoder::AudioFrame* audioFrame = NULL;
         Result result;
   
         while(player->play)
         {
             if(!audioFrame)
             {
-                mediadecoder::producer::Consume(player->producer, audioFrame);
+                mediadecoder::Consume(player->producer, audioFrame);
             }
 
             if( audioFrame )
@@ -86,7 +86,7 @@ namespace {
                 {
                     logger::Error("AudioDeviceWriteInterleaved failed %s", result.getError().c_str());
                 }
-                mediadecoder::producer::Release(player->producer, audioFrame);
+                mediadecoder::Release(player->producer, audioFrame);
                 audioFrame = NULL;
             }
         }
@@ -112,7 +112,7 @@ namespace player
         player->videoDevice = videoDevice;
         player->playbackStartTimeUs = 0;
 
-        result = mediadecoder::producer::Create(player->producer, decoder);
+        result = mediadecoder::Create(player->producer, decoder);
         if(!result)
         {
             return result;
@@ -122,7 +122,7 @@ namespace player
 
     void Play(Player* player)
     {
-        mediadecoder::producer::WaitForPlayback(player->producer);
+        mediadecoder::WaitForPlayback(player->producer);
 
         player->playbackStartTimeUs = chrono::Now();
         player->play = true;
@@ -136,7 +136,7 @@ namespace player
 
          if(!player->videoFrame)
          {
-             mediadecoder::producer::Consume(player->producer, player->videoFrame);
+             mediadecoder::Consume(player->producer, player->videoFrame);
          }
 
          if( player->videoFrame  )
@@ -152,7 +152,7 @@ namespace player
                  videodevice::DrawFrame(player->videoDevice, player->videoFrame->frame, videoWidth, videoHeight);
                  swapBufferCallback();
 
-                 mediadecoder::producer::Release(player->producer, player->videoFrame);
+                 mediadecoder::Release(player->producer, player->videoFrame);
                  player->videoFrame = NULL;
              }
              else if( !player->videoFrame )

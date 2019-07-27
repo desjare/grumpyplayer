@@ -70,7 +70,7 @@ namespace {
         return std::string(buf);
     }
 
-    Result Create(mediadecoder::producer::Producer* producer, mediadecoder::producer::VideoFrame*& frame, uint32_t size)
+    Result Create(mediadecoder::Producer* producer, mediadecoder::VideoFrame*& frame, uint32_t size)
     {
         Result result;
         if( producer->videoFramePool->pop(frame) )
@@ -84,14 +84,14 @@ namespace {
         }
         else
         {
-            frame = new mediadecoder::producer::VideoFrame();
+            frame = new mediadecoder::VideoFrame();
             frame->frame = new uint8_t[size];
             frame->bufferSize = size;
         }
         return result;
     }
 
-    Result Create(mediadecoder::producer::Producer* producer, mediadecoder::producer::AudioFrame*& frame, uint32_t nbSamples, uint32_t sampleSize, uint32_t channels)
+    Result Create(mediadecoder::Producer* producer, mediadecoder::AudioFrame*& frame, uint32_t nbSamples, uint32_t sampleSize, uint32_t channels)
     {
         const uint32_t requestedBufferSize = nbSamples * sampleSize * channels;
         Result result;
@@ -110,7 +110,7 @@ namespace {
         }
         else
         {
-            frame = new mediadecoder::producer::AudioFrame();
+            frame = new mediadecoder::AudioFrame();
             frame->samples = new uint8_t[requestedBufferSize];
             frame->sampleSize = sampleSize;
             frame->nbSamples = nbSamples;
@@ -137,7 +137,7 @@ namespace {
         }
     }
 
-    void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
+    void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame)
     {
         profiler::ScopeProfiler profiler(profiler::PROFILER_PROCESS_AUDIO_FRAME);
         const uint32_t sampleSize = av_get_bytes_per_sample(stream->codecContext->sample_fmt);
@@ -147,7 +147,7 @@ namespace {
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
         const uint64_t timeUs = chrono::Microseconds(timeSeconds);
 
-        mediadecoder::producer::AudioFrame* audioFrame;
+        mediadecoder::AudioFrame* audioFrame;
         Result result;
 
         result = Create(producer, audioFrame, frame->nb_samples, sampleSize, channels);
@@ -192,7 +192,7 @@ namespace {
         } while( !success );
     }
 
-    void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
+    void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame)
     {
         profiler::ScopeProfiler profiler(profiler::PROFILER_PROCESS_VIDEO_FRAME);
 
@@ -204,7 +204,7 @@ namespace {
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
         const uint64_t timeUs = chrono::Microseconds(timeSeconds);
 
-        mediadecoder::producer::VideoFrame* videoFrame;
+        mediadecoder::VideoFrame* videoFrame;
         Result result;
 
         result = Create(producer, videoFrame, bufferSize);
@@ -366,177 +366,173 @@ namespace mediadecoder
         return result;
     }
 
-    namespace producer
+    bool ContinueDecoding(Producer* producer)
     {
-        bool ContinueDecoding(Producer* producer)
+        const bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity;
+        const bool audioFull = producer->audioQueueSize >= producer->audioQueueCapacity;
+        const bool continueDecoding = !(videoFull || audioFull);
+
+        if(!continueDecoding)
         {
-            const bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity;
-            const bool audioFull = producer->audioQueueSize >= producer->audioQueueCapacity;
-            const bool continueDecoding = !(videoFull || audioFull);
-
-            if(!continueDecoding)
-            {
-                logger::Debug("ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
-            }
-
-            return continueDecoding;
+            logger::Debug("ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
         }
 
-        void DecoderThread(Producer* producer)
+        return continueDecoding;
+    }
+
+    void DecoderThread(Producer* producer)
+    {
+
+        while( !producer->quitting )
         {
-
-            while( !producer->quitting )
+            while( !ContinueDecoding(producer) && !producer->quitting )
             {
-                while( !ContinueDecoding(producer) && !producer->quitting )
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
-                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
+            }
 
-                if( producer->quitting )
+            if( producer->quitting )
+            {
+                break;
+            }
+
+            
+            AVPacket* packet = av_packet_alloc();
+            AVFrame* frame = av_frame_alloc();
+
+            av_init_packet(packet);
+
+            int32_t outcome = av_read_frame(producer->decoder->avFormatContext, packet);
+            if(outcome < 0 )
+            {
+                std::string error = ErrorToString(outcome);
+                logger::Error("av_read_frame error %s", error.c_str());
+                continue;
+            }
+
+            Stream* stream = producer->streams[packet->stream_index];
+            AVMediaType type = stream->codec->type;
+
+            const profiler::Point profilePoint 
+                         = type == AVMEDIA_TYPE_VIDEO ? profiler::PROFILER_DECODE_VIDEO_FRAME
+                                                      : profiler::PROFILER_DECODE_AUDIO_FRAME;
+            profiler::StartBlock(profilePoint);
+
+            outcome = avcodec_send_packet(stream->codecContext, packet);
+            if(outcome < 0 )
+            {
+                std::string error = ErrorToString(outcome);
+                logger::Error("accodec_send_packet error %s", error.c_str());
+            }
+
+            while( outcome >= 0 )
+            {
+                outcome = avcodec_receive_frame(stream->codecContext, frame);
+                
+                if (outcome == AVERROR(EAGAIN) || outcome == AVERROR_EOF)
                 {
                     break;
                 }
-
-                
-                AVPacket* packet = av_packet_alloc();
-                AVFrame* frame = av_frame_alloc();
-
-                av_init_packet(packet);
-
-                int32_t outcome = av_read_frame(producer->decoder->avFormatContext, packet);
-                if(outcome < 0 )
+                else if(outcome < 0 )
                 {
-                    std::string error = ErrorToString(outcome);
-                    logger::Error("av_read_frame error %s", error.c_str());
-                    continue;
+                     profiler::StopBlock(profilePoint);
+                     std::string error = ErrorToString(outcome);
+                     logger::Error("avcodec_receive_frame error %s", error.c_str());
+                     return;
                 }
 
-                Stream* stream = producer->streams[packet->stream_index];
-                AVMediaType type = stream->codec->type;
-
-                const profiler::Point profilePoint 
-                             = type == AVMEDIA_TYPE_VIDEO ? profiler::PROFILER_DECODE_VIDEO_FRAME
-                                                          : profiler::PROFILER_DECODE_AUDIO_FRAME;
-                profiler::StartBlock(profilePoint);
-
-                outcome = avcodec_send_packet(stream->codecContext, packet);
-                if(outcome < 0 )
-                {
-                    std::string error = ErrorToString(outcome);
-                    logger::Error("accodec_send_packet error %s", error.c_str());
-                }
-
-                while( outcome >= 0 )
-                {
-                    outcome = avcodec_receive_frame(stream->codecContext, frame);
-                    
-                    if (outcome == AVERROR(EAGAIN) || outcome == AVERROR_EOF)
-                    {
-                        break;
-                    }
-                    else if(outcome < 0 )
-                    {
-                         profiler::StopBlock(profilePoint);
-                         std::string error = ErrorToString(outcome);
-                         logger::Error("avcodec_receive_frame error %s", error.c_str());
-                         return;
-                    }
-
-                    profiler::StopBlock(profilePoint);
-                    stream->processCallback(stream, producer, frame);
-                }
-
-                av_packet_free(&packet);
-                av_frame_free(&frame);
+                profiler::StopBlock(profilePoint);
+                stream->processCallback(stream, producer, frame);
             }
 
+            av_packet_free(&packet);
+            av_frame_free(&frame);
         }
 
-        Result Create(Producer*& producer, Decoder* decoder)
+    }
+
+    Result Create(Producer*& producer, Decoder* decoder)
+    {
+        const uint32_t videoQueueSize =  300u;
+        const uint32_t audioQueueSize = 300u;
+
+        producer = new Producer();
+        producer->decoder = decoder;
+        producer->videoQueue = new VideoQueue(videoQueueSize);
+        producer->audioQueue = new AudioQueue(audioQueueSize);
+        producer->videoFramePool = new VideoQueue(videoQueueSize);
+        producer->audioFramePool = new AudioQueue(audioQueueSize);
+        producer->videoQueueCapacity = videoQueueSize;
+        producer->audioQueueCapacity = audioQueueSize;
+
+        uint32_t streamArraySize 
+                     = std::max(decoder->videoStream->streamIndex, decoder->audioStream->streamIndex) + 1;
+        producer->streams.resize(streamArraySize);
+        producer->streams[decoder->videoStream->streamIndex] = decoder->videoStream;
+        producer->streams[decoder->audioStream->streamIndex] = decoder->audioStream;
+        producer->quitting = false;
+
+        producer->thread = std::thread(DecoderThread, producer);
+        return producer;
+    }
+
+    void Release(Producer* producer, VideoFrame* frame)
+    {
+        const bool outcome
+                    = producer->videoFramePool->push(frame);
+
+        if(!outcome)
         {
-            const uint32_t videoQueueSize =  300u;
-            const uint32_t audioQueueSize = 300u;
-
-            producer = new Producer();
-            producer->decoder = decoder;
-            producer->videoQueue = new VideoQueue(videoQueueSize);
-            producer->audioQueue = new AudioQueue(audioQueueSize);
-            producer->videoFramePool = new VideoQueue(videoQueueSize);
-            producer->audioFramePool = new AudioQueue(audioQueueSize);
-            producer->videoQueueCapacity = videoQueueSize;
-            producer->audioQueueCapacity = audioQueueSize;
-
-            uint32_t streamArraySize 
-                         = std::max(decoder->videoStream->streamIndex, decoder->audioStream->streamIndex) + 1;
-            producer->streams.resize(streamArraySize);
-            producer->streams[decoder->videoStream->streamIndex] = decoder->videoStream;
-            producer->streams[decoder->audioStream->streamIndex] = decoder->audioStream;
-            producer->quitting = false;
-
-            producer->thread = std::thread(DecoderThread, producer);
-            return producer;
-        }
-
-        void Release(Producer* producer, VideoFrame* frame)
-        {
-            const bool outcome
-                        = producer->videoFramePool->push(frame);
-
-            if(!outcome)
-            {
-                delete frame->frame;
-                delete frame;
-            }
-        }
-
-        void Release(Producer* producer, AudioFrame* frame)
-        {
-            const bool outcome
-                        = producer->audioFramePool->push(frame);
-            if(!outcome)
-            {
-                delete [] frame->samples;
-                delete frame;
-            }
-        }
-
-        
-        bool Consume(Producer* producer, VideoFrame*& videoFrame)
-        {
-             videoFrame = NULL;
-             if( producer->videoQueue->pop(videoFrame) )
-             {
-                 producer->videoQueueSize--;
-             }
-             return videoFrame != NULL;
-        }
-
-        bool Consume(Producer* producer,AudioFrame*& audioFrame)
-        {
-            audioFrame = NULL;
-            if( producer->audioQueue->pop(audioFrame) )
-            {
-                producer->audioQueueSize--;
-                return true;
-            }
-            return false;
-        }
-
-        void WaitForPlayback(Producer* producer)
-        {
-            bool haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
-            bool haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
-
-            while( !(haveVideo && haveAudio) )
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PLAYBACK_SLEEP_TIME_MS));
-                
-                haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
-                haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
-            }
+            delete frame->frame;
+            delete frame;
         }
     }
 
+    void Release(Producer* producer, AudioFrame* frame)
+    {
+        const bool outcome
+                    = producer->audioFramePool->push(frame);
+        if(!outcome)
+        {
+            delete [] frame->samples;
+            delete frame;
+        }
+    }
+
+    
+    bool Consume(Producer* producer, VideoFrame*& videoFrame)
+    {
+         videoFrame = NULL;
+         if( producer->videoQueue->pop(videoFrame) )
+         {
+             producer->videoQueueSize--;
+         }
+         return videoFrame != NULL;
+    }
+
+    bool Consume(Producer* producer,AudioFrame*& audioFrame)
+    {
+        audioFrame = NULL;
+        if( producer->audioQueue->pop(audioFrame) )
+        {
+            producer->audioQueueSize--;
+            return true;
+        }
+        return false;
+    }
+
+    void WaitForPlayback(Producer* producer)
+    {
+        bool haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
+        bool haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
+
+        while( !(haveVideo && haveAudio) )
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PLAYBACK_SLEEP_TIME_MS));
+            
+            haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
+            haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
+        }
+    }
 }
 
 

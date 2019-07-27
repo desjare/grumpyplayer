@@ -16,8 +16,8 @@ namespace player
     {
         mediadecoder::Decoder* decoder;
         
-        mediadecoder::producer::Producer* producer;
-        mediadecoder::producer::VideoFrame* videoFrame;
+        mediadecoder::Producer* producer;
+        mediadecoder::VideoFrame* videoFrame;
 
         audiodevice::Device* audioDevice;
         videodevice::Device* videoDevice;
