@@ -376,8 +376,7 @@ namespace mediadecoder
 
             if(!continueDecoding)
             {
-                //fprintf(stderr, "ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
-
+                logger::Debug("ContinueDecoding queue full video %d audio %d\n", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
             }
 
             return continueDecoding;
@@ -408,7 +407,7 @@ namespace mediadecoder
                 if(outcome < 0 )
                 {
                     std::string error = ErrorToString(outcome);
-                    fprintf(stderr, "av_read_frame error %s\n", error.c_str());
+                    logger::Error("av_read_frame error %s", error.c_str());
                     continue;
                 }
 
@@ -424,7 +423,7 @@ namespace mediadecoder
                 if(outcome < 0 )
                 {
                     std::string error = ErrorToString(outcome);
-                    fprintf(stderr, "accodec_send_packet error %s\n", error.c_str());
+                    logger::Error("accodec_send_packet error %s", error.c_str());
                 }
 
                 while( outcome >= 0 )
@@ -439,7 +438,7 @@ namespace mediadecoder
                     {
                          profiler::StopBlock(profilePoint);
                          std::string error = ErrorToString(outcome);
-                         fprintf(stderr, "avcodec_receive_frame error %s\n", error.c_str());
+                         logger::Error("avcodec_receive_frame error %s", error.c_str());
                          return;
                     }
 

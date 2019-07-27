@@ -10,6 +10,52 @@ namespace {
 }
 
 namespace {
+    bool WaitForPlayback(const char* name, uint64_t startTimeUs, uint64_t timeUs, int64_t waitThresholdUs)
+    {
+        const int64_t sleepThresholdUs = 10000;
+        const int64_t millisecondUs = 1000;
+        const int64_t logDeltaThresholdUs = 100;
+
+        int64_t waitTime = chrono::Wait(startTimeUs, timeUs);
+
+        if( waitTime <= 0 )
+        {
+            logger::Warn("WaitForPlayback. %s Late Playback. %f\n", name, chrono::Seconds(waitTime));
+            return true;
+        }
+        else
+        {
+            if( waitTime >= sleepThresholdUs )
+            {
+                std::this_thread::sleep_for(std::chrono::microseconds(waitTime-millisecondUs));
+                waitTime = chrono::Wait(startTimeUs, timeUs);
+
+                if( waitTime <= 0 )
+                {
+                    return true;
+                }
+            }
+
+            if( waitTime > 0 )
+            {
+                do
+                {
+                    std::this_thread::yield();
+                    waitTime = chrono::Wait(startTimeUs, timeUs);
+
+                } while( waitTime >= waitThresholdUs );
+            } 
+
+            const uint64_t currentTimeUs = chrono::Current(startTimeUs);
+            const int64_t deltaUs = std::abs( static_cast<int64_t>(currentTimeUs-timeUs) );
+
+            if( deltaUs > logDeltaThresholdUs )
+            {
+                logger::Warn("WaitForPlayback %s play time %ld us decode %ld us diff %ld\n", name, currentTimeUs, timeUs, deltaUs );
+            }
+        }
+        return true;
+    }
 
     void AudioPlaybackThread(player::Player* player)
     {
@@ -97,7 +143,7 @@ namespace player
          {
              const uint64_t waitThresholdUs = 25;
              const bool drawFrame 
-                       = chrono::WaitForPlayback("video", player->playbackStartTimeUs, player->videoFrame->timeUs, waitThresholdUs);
+                       = WaitForPlayback("video", player->playbackStartTimeUs, player->videoFrame->timeUs, waitThresholdUs);
 
              if( drawFrame )
              {
