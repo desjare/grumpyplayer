@@ -126,5 +126,12 @@ namespace audiodevice
         return result;
     }
 
+    void Destroy(Device* device)
+    {
+        snd_pcm_close(device->playbackHandle);
+        delete device;
+        
+    }
+
 }
 

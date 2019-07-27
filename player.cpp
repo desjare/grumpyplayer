@@ -166,4 +166,14 @@ namespace player
          }
     }
 
+    void Destroy(Player* player)
+    {
+        player->play = false;
+
+        mediadecoder::Destroy(player->producer);
+
+        player->audioThread.join();
+        delete player;
+    }
+
 }

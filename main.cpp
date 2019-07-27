@@ -221,5 +221,14 @@ int main(int argc, char** argv)
         gui::PollEvents();
     }
 
+    player::Destroy(player);
+
+    mediadecoder::Destroy(decoder);
+
+    videodevice::Destroy(videoDevice);
+    audiodevice::Destroy(audioDevice);
+
+    gui::Destroy();
+
     return 0;
 }

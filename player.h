@@ -23,9 +23,9 @@ namespace player
         videodevice::Device* videoDevice;
         SwapBufferCallback swapBufferCallback;
 
-        bool play;
         uint64_t playbackStartTimeUs;
 
+        std::atomic<bool> play;
         std::thread audioThread;
     };
 
@@ -35,6 +35,7 @@ namespace player
     
     void   Play(Player*);
     void   Present(Player*);
+    void   Destroy(Player*);
 
 
 };

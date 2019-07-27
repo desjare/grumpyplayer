@@ -15,6 +15,7 @@ namespace audiodevice
 
     Result Create(Device*& device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat);
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames);
+    void   Destroy(Device* device);
 }
 
 

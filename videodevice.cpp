@@ -37,6 +37,8 @@ namespace {
     PFNGLUNIFORM1IPROC glUniform1i;
     PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
     PFNGLBUFFERDATAPROC glBufferData;
+    PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
+    PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 
     videodevice::Device* currentDevice = NULL;
 
@@ -63,6 +65,8 @@ namespace {
         glUniform1i = (PFNGLUNIFORM1IPROC) glXGetProcAddress((const GLubyte*) "glUniform1i");
         glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC) glXGetProcAddress((const GLubyte*) "glUniformMatrix4fv");
         glBufferData = (PFNGLBUFFERDATAPROC) glXGetProcAddress((const GLubyte*) "glBufferData");
+        glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC) glXGetProcAddress((const GLubyte*) "glDeleteVertexArrays");
+        glDeleteBuffers = (PFNGLDELETEBUFFERSPROC) glXGetProcAddress((const GLubyte*) "glDeleteBuffers");
     }
 
     Result BuildShader(std::string const &shaderSource, GLuint &shader, GLenum type) {
@@ -343,6 +347,16 @@ namespace videodevice
         WriteMVPMatrix(device, width, height);
 
         return result;
+    }
+
+    void Destroy(Device* device)
+    {
+        glDeleteVertexArrays(1, &device->vertexArray);
+     	glDeleteBuffers(1, &device->vertexBuffer);
+    	glDeleteBuffers(1, &device->elementBuffer);
+	    glDeleteTextures(1, &device->frameTexture);
+        delete device;
+        currentDevice = NULL;
     }
 
 }

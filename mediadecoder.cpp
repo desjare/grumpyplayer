@@ -379,6 +379,20 @@ namespace mediadecoder
         return result;
     }
 
+    void Destroy(Decoder* decoder)
+    {  
+        av_frame_free(&decoder->videoStream->frame);
+        sws_freeContext(decoder->videoStream->swsContext);
+
+        avcodec_close(decoder->videoStream->codecContext);
+        avcodec_close(decoder->audioStream->codecContext);
+        avcodec_free_context(&decoder->videoStream->codecContext);
+        avcodec_free_context(&decoder->audioStream->codecContext);
+        avformat_free_context(decoder->avFormatContext);
+
+        delete decoder;
+    }
+
     bool ContinueDecoding(Producer* producer)
     {
         const bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity;
@@ -492,6 +506,19 @@ namespace mediadecoder
         producer->thread = std::thread(DecoderThread, producer);
 
         return result;
+    }
+
+    void Destroy(Producer* producer)
+    {
+        producer->quitting = true;
+        producer->thread.join();
+
+        delete producer->videoQueue;
+        delete producer->audioQueue;
+        delete producer->videoFramePool;
+        delete producer->audioFramePool;
+ 
+        delete producer;
     }
 
     void Release(Producer* producer, VideoFrame* frame)

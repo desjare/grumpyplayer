@@ -104,6 +104,7 @@ namespace mediadecoder
         VideoQueue* videoFramePool;
         AudioQueue* audioFramePool;
 
+        // media streams owned by the decoder
         std::vector<Stream*> streams;
 
         std::thread thread;
@@ -113,8 +114,10 @@ namespace mediadecoder
     Result Init();
     Result Create(Decoder*& decoder);
     Result Open(Decoder*& decoder, const std::string& filename);
+    void   Destroy(Decoder*);
 
     Result Create(Producer*& producer, Decoder*);
+    void   Destroy(Producer*);
 
     bool   Consume(Producer*, VideoFrame*& frame);
     bool   Consume(Producer*, AudioFrame*& frame);
