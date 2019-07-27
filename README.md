@@ -19,6 +19,7 @@ OpenGL implementation has been adapted from https://gist.github.com/rcolinray/75
  * ALSA asound dev lib
  * swsscale lib
  * glfw3 lib
+ * cmake
  
  <h2>Ubuntu 18.04</h2>
  To install ffmpeg 4:
