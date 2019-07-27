@@ -83,6 +83,7 @@ namespace mediadecoder
         AVFormatContext* avFormatContext;
         VideoStream* videoStream;
         AudioStream* audioStream;
+        Producer* producer;
     };
 
     struct Producer
