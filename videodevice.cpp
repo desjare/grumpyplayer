@@ -279,7 +279,6 @@ namespace videodevice
 
         const float ww = static_cast<float>(width);
         const float wh = static_cast<float>(height);
-        const float wr = ww / wh;
         const float tw = static_cast<float>(device->width);
         const float th = static_cast<float>(device->height);
         const float tr = tw / th;

@@ -265,7 +265,7 @@ namespace mediadecoder
     {
         Result result;
         decoder = new Decoder();
-        memset(decoder, 0, sizeof(decoder));
+        memset(decoder, 0, sizeof(Decoder));
         decoder->avFormatContext = avformat_alloc_context();
         return result;
     }

@@ -4,15 +4,14 @@ project(grumpy)
 set(CMAKE_CXX_STANDARD 14)
 
 add_compile_options(-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g)
-add_compile_options(-Wno-deprecated -Wno-deprecated-declarations)
+add_compile_options(-Wall -Wno-deprecated -Wno-deprecated-declarations)
 
-find_library(AVFORMAT_LIBRARY avformat HINTS /usr/lib/x86_64-linux-gnu)
-find_library(AVCODEC_LIBRARY avcodec HINTS /usr/lib/x86_64-linux-gnu)
-find_library(AVUTIL_LIBRARY avutil HINTS /usr/lib/x86_64-linux-gnu)
-find_library(AVDEVICE_LIBRARY avdevice HINTS /usr/lib/x86_64-linux-gnu)
-find_library(ASOUND_LIBRARY asound HINTS /usr/lib/x86_64-linux-gnu)
-find_library(GLFW_LIBRARY glfw HINTS /usr/lib/x86_64-linux-gnu)
-find_library(SWSCALE_LIBRARY swscale HINTS /usr/lib/x86_64-linux-gnu)
+find_library(AVFORMAT_LIBRARY avformat.58 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(AVCODEC_LIBRARY avcodec.58 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(AVUTIL_LIBRARY avutil.56 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(ASOUND_LIBRARY asound REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(GLFW_LIBRARY glfw.3 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(SWSCALE_LIBRARY swscale REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 
 add_definitions( -D__AVX2__ )
 add_executable(grumpyplayer main videodevice audiodevice gui mediadecoder player profiler logger)
@@ -22,7 +21,6 @@ target_link_libraries(
 	${AVFORMAT_LIBRARY} 
 	${AVCODEC_LIBRARY} 
 	${AVUTIL_LIBRARY}
-	${AVDEVICE_LIBRARY}
     ${ASOUND_LIBRARY}
     ${GLFW_LIBRARY}
     ${SWSCALE_LIBRARY}
