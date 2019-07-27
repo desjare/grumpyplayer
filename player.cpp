@@ -1,7 +1,7 @@
 
 #include "player.h"
 #include "chrono.h"
-#include "stats.h"
+#include "profiler.h"
 
 #include <iostream>
 
@@ -35,7 +35,7 @@ namespace {
                     continue;
                 }
                
-                stats::ScopeProfiler profiler(stats::PROFILER_AUDIO_WRITE);
+                profiler::ScopeProfiler profiler(profiler::PROFILER_AUDIO_WRITE);
                 result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
                 if(!result)
                 {
@@ -102,7 +102,7 @@ namespace player
 
              if( drawFrame )
              {
-                 stats::ScopeProfiler profiler(stats::PROFILER_VIDEO_DRAW);
+                 profiler::ScopeProfiler profiler(profiler::PROFILER_VIDEO_DRAW);
 
                  videodevice::DrawFrame(player->videoDevice, player->videoFrame->frame, videoWidth, videoHeight);
                  swapBufferCallback();

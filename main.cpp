@@ -8,7 +8,7 @@
 #include "videodevice.h"
 #include "player.h"
 #include "gui.h"
-#include "stats.h"
+#include "profiler.h"
 
 #include "result.h"
 
@@ -22,7 +22,7 @@ namespace {
 
 void Init()
 {
-    stats::Init();
+    profiler::Init();
 
     mediadecoder::Init();
     videodevice::Init();
@@ -81,9 +81,9 @@ Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& au
     return result;
 }
 
-void EnableStats(bool enable)
+void EnableProfiler(bool enable)
 {
-    stats::Enable(enable);
+    profiler::Enable(enable);
 }
 
 int main(int argc, char** argv)
@@ -97,7 +97,7 @@ int main(int argc, char** argv)
 		desc.add_options()
 		  ("help,h", "Help screen")
 		  ("filename", boost::program_options::value<std::string>())
-		  ("stats", boost::program_options::bool_switch()->default_value(false)->notifier(EnableStats));
+		  ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler));
 
 		boost::program_options::variables_map vm;
 		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
@@ -188,14 +188,18 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // Play
+    // start playback
     player::Play(player);
 
     while( !gui::ShouldClose(uiHandle) )
     {
+        // wait for frame time and draw frame
         player::Present(player);
-        stats::PrintStats();
 
+        // print profile point stats if enable
+        profiler::Print();
+
+        // poll ui events
         gui::PollEvents();
     }
 

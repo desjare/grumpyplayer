@@ -3,7 +3,7 @@
 #include <string>
 #include <stdint.h>
 
-namespace stats
+namespace profiler
 {
     enum Point
     {
@@ -16,12 +16,14 @@ namespace stats
         PROFILER_NB
     };
     
+    // simple flat profiler that keeps track
+    // of average time for a given profile point
     struct Profiler
     {
          uint64_t startTime;
          uint64_t endTime;
          uint64_t currentTime;
-         uint64_t avgTime;
+         uint64_t totalTime;
          uint64_t count;
          uint64_t minTime;
          uint64_t maxTime;
@@ -29,10 +31,15 @@ namespace stats
 
     void Init();
     void Enable(bool);
+
     void GetPointName(Point, std::string&);
-    void StartProfiler(Point profiler);
-    void StopProfiler(Point profiler);
-    void PrintStats();
+
+    // Start a profiler block
+    void StartBlock(Point profiler);
+    void StopBlock(Point profiler);
+
+    // Print profiler point stats
+    void Print();
 
     class ScopeProfiler
     {
@@ -40,12 +47,12 @@ namespace stats
         ScopeProfiler(Point profiler)
         : type(profiler)
         {
-            StartProfiler(type);
+            StartBlock(type);
         }
 
         ~ScopeProfiler()
         {
-            StopProfiler(type);
+            StopBlock(type);
         }
     private:
         Point type;

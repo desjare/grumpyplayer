@@ -4,7 +4,7 @@
 #include "mediaformat.h"
 #include "result.h"
 #include "chrono.h"
-#include "stats.h"
+#include "profiler.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -139,7 +139,7 @@ namespace {
 
     void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
     {
-        stats::ScopeProfiler profiler(stats::PROFILER_PROCESS_AUDIO_FRAME);
+        profiler::ScopeProfiler profiler(profiler::PROFILER_PROCESS_AUDIO_FRAME);
         const uint32_t sampleSize = av_get_bytes_per_sample(stream->codecContext->sample_fmt);
         const uint32_t channels = stream->codecContext->channels;
         const uint32_t nbSamples = frame->nb_samples;
@@ -194,7 +194,7 @@ namespace {
 
     void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::producer::Producer* producer, AVFrame* frame)
     {
-        stats::ScopeProfiler profiler(stats::PROFILER_PROCESS_VIDEO_FRAME);
+        profiler::ScopeProfiler profiler(profiler::PROFILER_PROCESS_VIDEO_FRAME);
 
         mediadecoder::VideoStream* videoStream 
                        = reinterpret_cast<mediadecoder::VideoStream*>(stream);
@@ -415,10 +415,10 @@ namespace mediadecoder
                 Stream* stream = producer->streams[packet->stream_index];
                 AVMediaType type = stream->codec->type;
 
-                const stats::Point profilePoint 
-                             = type == AVMEDIA_TYPE_VIDEO ? stats::PROFILER_DECODE_VIDEO_FRAME
-                                                          : stats::PROFILER_DECODE_AUDIO_FRAME;
-                stats::StartProfiler(profilePoint);
+                const profiler::Point profilePoint 
+                             = type == AVMEDIA_TYPE_VIDEO ? profiler::PROFILER_DECODE_VIDEO_FRAME
+                                                          : profiler::PROFILER_DECODE_AUDIO_FRAME;
+                profiler::StartBlock(profilePoint);
 
                 outcome = avcodec_send_packet(stream->codecContext, packet);
                 if(outcome < 0 )
@@ -437,13 +437,13 @@ namespace mediadecoder
                     }
                     else if(outcome < 0 )
                     {
-                         stats::StopProfiler(profilePoint);
+                         profiler::StopBlock(profilePoint);
                          std::string error = ErrorToString(outcome);
                          fprintf(stderr, "avcodec_receive_frame error %s\n", error.c_str());
                          return;
                     }
 
-                    stats::StopProfiler(profilePoint);
+                    profiler::StopBlock(profilePoint);
                     stream->processCallback(stream, producer, frame);
                 }
 

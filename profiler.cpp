@@ -1,22 +1,32 @@
 
-#include "stats.h"
+#include "profiler.h"
 #include "chrono.h"
 
 #include <iostream>
 #include <sstream>
 #include <string.h>
 
+
 namespace {
 
-    stats::Profiler profilers[stats::PROFILER_NB];
+    profiler::Profiler profilers[profiler::PROFILER_NB];
     bool enable = false;
+
+    double Average(uint64_t totalTime, uint64_t count)
+    {
+        return static_cast<double>(totalTime) / static_cast<double>(count);
+    }
 }
 
-namespace stats
+namespace profiler
 {
     void Init()
     {
         memset(&profilers, 0, sizeof(Profiler) * PROFILER_NB);
+        for(uint32_t i = 0; i < PROFILER_NB; i++)
+        {
+            profilers[i].minTime = std::numeric_limits<uint64_t>::max();
+        }
     }
 
     void Enable(bool e)
@@ -51,44 +61,35 @@ namespace stats
         }
     }
 
-    void StartProfiler(Point profiler)
+    void StartBlock(Point profiler)
     {
+        if( !enable )
+        {
+            return;
+        }
+
         uint64_t currentTime = chrono::Now();
         Profiler& p = profilers[profiler];
         p.startTime = currentTime;
         p.count++;
     }
 
-    void StopProfiler(Point profiler)
+    void StopBlock(Point profiler)
     {
+        if( !enable )
+        {
+            return;
+        }
+
         Profiler& p = profilers[profiler];
         p.endTime = chrono::Now();
         p.currentTime = p.endTime - p.startTime;
-
-        if( p.avgTime == 0 )
-        {
-            p.avgTime = p.currentTime;
-        }
-        else
-        {
-            double sums = p.avgTime * (p.count-1) + p.currentTime;
-            p.avgTime =  static_cast<uint64_t>(sums / static_cast<double>(p.count));
-        }
-
-        if( p.minTime == 0 )
-        {
-            p.minTime = p.currentTime;
-            
-        }
-        else
-        {
-            p.minTime = std::min(p.minTime,p.currentTime);
-        }
-
+        p.totalTime += p.currentTime;
+        p.minTime = std::min(p.minTime,p.currentTime);
         p.maxTime = std::max(p.maxTime,p.currentTime);
     }
 
-    void PrintStats()
+    void Print()
     {
         if( !enable )
         {
@@ -106,7 +107,10 @@ namespace stats
             std::string name;
             GetPointName(static_cast<Point>(i), name);
 
-            out << name << " (" << chrono::Milliseconds(p.currentTime) << "," << chrono::Milliseconds(p.avgTime) << ") ";
+            double currentTime = chrono::Milliseconds(p.currentTime);
+            double averageTime = chrono::Milliseconds(Average(p.totalTime, p.count));
+
+            out << name << " (" << currentTime << "," << averageTime << ") ";
         }
         out << std::endl;
 
