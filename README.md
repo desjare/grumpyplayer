@@ -9,9 +9,10 @@ Modules are:
 * videodevice (OpenGL & glfw3)
 * mediadecoder
 
+
 This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. It does not use polymorphism or exception.
 
-OpenGL implementation has been adapted from https://gist.github.com/rcolinray/7552384. 
+OpenGL implementation is from https://gist.github.com/rcolinray/7552384. It has been adapted for windows scaling.
 
 <h1>Requirements</h1>
 
