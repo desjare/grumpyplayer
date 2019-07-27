@@ -18,12 +18,6 @@ public:
     {
     }
 
-    Result(bool status, const char* error)
-    : status(status),
-      error(error)
-    {
-    }
-
     Result(bool status, const std::string& error)
     : status(status),
       error(error)

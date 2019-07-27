@@ -38,6 +38,8 @@ namespace {
     PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
     PFNGLBUFFERDATAPROC glBufferData;
 
+    videodevice::Device* currentDevice = NULL;
+
     void InitGLext()
     {
         glCreateShader = (PFNGLCREATESHADERPROC) glXGetProcAddress((const GLubyte*) "glCreateShader");
@@ -186,8 +188,15 @@ namespace videodevice
     {
         Result result;
 
+        if( currentDevice != NULL )
+        {
+            return Result(false, "Video device already exist. Cannot create more than one device.");
+        }
+
         device = new Device();
         memset(device, 0, sizeof(Device));
+
+        currentDevice = device;
 
         device->width = width;
         device->height = height;
