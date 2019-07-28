@@ -8,7 +8,6 @@ namespace {
 
     std::map<GLFWwindow*, gui::Handle*> handles;
 
-    gui::WindowSizeChangeCb windowSizeChangeCb;
     
     void ErrorCallback(int error, const char* description)
     {
@@ -21,7 +20,17 @@ namespace {
         handle->width = width;
         handle->height = height;
 
-        windowSizeChangeCb(handle, width, height);
+        handle->sizeChangeCb(handle, width, height);
+    }
+
+    void DropCallback(GLFWwindow* window, int count, const char** paths)
+    {
+        gui::Handle* handle = handles[window];
+        if( count > 1 || count == 0 )
+        {
+            return;
+        }
+        handle->fileDropCb(handle, paths[0]);
     }
 
     void ToggleFullScreen(GLFWwindow* window)
@@ -104,6 +113,8 @@ namespace gui
         }
 
         glfwSetKeyCallback(handle->window, KeyCallback);
+        glfwSetDropCallback(handle->window, DropCallback);
+
         glfwMakeContextCurrent(handle->window);
 
         handles[handle->window] = handle;
@@ -113,8 +124,13 @@ namespace gui
 
     void SetWindowSizeChangeCallback(Handle* handle, WindowSizeChangeCb cb)
     {
-        windowSizeChangeCb = cb;
+        handle->sizeChangeCb = cb;
         glfwSetWindowSizeCallback(handle->window, WindowSizeCallback);
+    }
+
+    void SetFileDropCallback(Handle* handle, FileDropCb cb)
+    {
+        handle->fileDropCb = cb;
     }
 
     bool IsFullScreen(Handle* handle)
