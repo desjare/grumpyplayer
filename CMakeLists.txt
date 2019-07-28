@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(grumpy)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 add_compile_options(-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g)
 add_compile_options(-Wall -Wno-deprecated -Wno-deprecated-declarations)

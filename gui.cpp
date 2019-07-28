@@ -2,7 +2,12 @@
 #include "gui.h"
 #include "logger.h"
 
+#include <map>
+
 namespace {
+
+    std::map<GLFWwindow*, gui::Handle*> handles;
+
     gui::WindowSizeChangeCb windowSizeChangeCb;
     
     void ErrorCallback(int error, const char* description)
@@ -12,9 +17,48 @@ namespace {
 
     void WindowSizeCallback(GLFWwindow* window, int width, int height)
     {
-        gui::Handle handle;
-        handle.window = window;
-        windowSizeChangeCb(&handle, width, height);
+        gui::Handle* handle = handles[window];
+        handle->width = width;
+        handle->height = height;
+
+        windowSizeChangeCb(handle, width, height);
+    }
+
+    void ToggleFullScreen(GLFWwindow* window)
+    {
+        gui::Handle* handle = handles[window];
+
+        if( gui::IsFullScreen(handle) )
+        {
+            glfwSetWindowMonitor( handle->window, NULL,  handle->posx, handle->posy, handle->backupWidth, handle->backupHeight, 0 );
+        }
+        else
+        {
+            // backup window position and window size
+            glfwGetWindowPos( handle->window, &handle->posx, &handle->posy );
+            glfwGetWindowSize( handle->window, &handle->backupWidth, &handle->backupHeight );
+
+            // get reolution of monitor
+            GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+            const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+            // switch to full screen
+            glfwSetWindowMonitor( handle->window, monitor, 0, 0, mode->width, mode->height, 0 );
+        }
+    }
+
+
+    void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        if(action == GLFW_PRESS)
+        {
+            switch(key)
+            {
+                case GLFW_KEY_F:
+                    ToggleFullScreen(window);
+                    break;
+            }
+        }
     }
 }
 
@@ -38,7 +82,8 @@ namespace gui
     {
         Result result;
         handle = new Handle();
-        handle->window = NULL;
+        memset(handle,0, sizeof(Handle));
+
         return result;
     }
 
@@ -58,7 +103,10 @@ namespace gui
             return result;
         }
 
+        glfwSetKeyCallback(handle->window, KeyCallback);
         glfwMakeContextCurrent(handle->window);
+
+        handles[handle->window] = handle;
 
         return result;
     }
@@ -67,6 +115,11 @@ namespace gui
     {
         windowSizeChangeCb = cb;
         glfwSetWindowSizeCallback(handle->window, WindowSizeCallback);
+    }
+
+    bool IsFullScreen(Handle* handle)
+    {
+        return glfwGetWindowMonitor(handle->window)  != NULL;
     }
 
     void SwapBuffers(Handle* handle)
