@@ -9,9 +9,10 @@ Modules are:
 * videodevice (OpenGL & glfw3)
 * mediadecoder
 
+
 This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. It does not use polymorphism or exception.
 
-OpenGL implementation has been adapted from https://gist.github.com/rcolinray/7552384. 
+OpenGL implementation is from https://gist.github.com/rcolinray/7552384. It has been adapted for windows scaling.
 
 <h1>Requirements</h1>
 
@@ -19,6 +20,7 @@ OpenGL implementation has been adapted from https://gist.github.com/rcolinray/75
  * ALSA asound dev lib
  * swsscale lib
  * glfw3 lib
+ * cmake
  
  <h2>Ubuntu 18.04</h2>
  To install ffmpeg 4:
