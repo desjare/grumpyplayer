@@ -126,6 +126,25 @@ namespace audiodevice
         return result;
     }
 
+    Result Drop(Device* device)
+    {
+        Result result;
+        int err = snd_pcm_drop(device->playbackHandle);
+        if( err < 0 )
+        {
+            result = Result(false, "Cannot prepare audio interface for use %s", snd_strerror(err));
+            return result;
+        }
+
+        err = snd_pcm_prepare(device->playbackHandle);
+        if( err < 0 )
+        {
+            result = Result(false, "Cannot prepare audio interface for use %s", snd_strerror(err));
+            return result;
+        }
+        return result;
+    }
+
     void Destroy(Device* device)
     {
         snd_pcm_close(device->playbackHandle);

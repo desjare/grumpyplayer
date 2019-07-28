@@ -314,7 +314,27 @@ namespace videodevice
         return result;
     }
 
-    Result SetSize(Device* device, uint32_t width, uint32_t height)
+    Result SetVideoSize(Device* device, uint32_t width, uint32_t height)
+    {
+        Result result;
+
+        device->width = width;
+        device->height = height;
+
+        glBindTexture(GL_TEXTURE_2D, device->frameTexture);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 
+            0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glUniform1i(device->uniforms[Device::FRAME_TEX], 0);
+
+        return result;
+    }
+
+    Result SetWindowSize(Device* device, uint32_t width, uint32_t height)
     {
         Result result;
 

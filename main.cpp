@@ -16,10 +16,22 @@
 namespace {
     void WindowSizeChangeCallback(gui::Handle* handle, uint32_t w, uint32_t h, videodevice::Device* device)
     {
-        videodevice::SetSize(device, w,h);
+        videodevice::SetWindowSize(device, w,h);
+    }
+
+    void FileDropCallback(gui::Handle* handle, const std::string& filename, player::Player* player)
+    {
+        Result result = player::Open(player, filename);
+        if(!result)
+        {
+            logger::Error("Unable to open %s: %s", filename.c_str(), result.getError().c_str());
+        }
+        else
+        {
+            gui::SetWindowSize(handle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+        }
     }
 }
-
 
 void Init()
 {
@@ -192,10 +204,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    gui::WindowSizeChangeCb windowSizeChangeCallback 
-                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, videoDevice );
-    gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
-
     // initialize the player
     player::SwapBufferCallback swapBufferCallback 
                      = boost::bind( gui::SwapBuffers, uiHandle );
@@ -214,6 +222,17 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // initialize gui callbacks
+    gui::WindowSizeChangeCb windowSizeChangeCallback 
+                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, videoDevice );
+
+    gui::FileDropCb fileDropCallback
+                  = boost::bind(FileDropCallback, _1, _2, player);
+
+    gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
+    gui::SetFileDropCallback(uiHandle, fileDropCallback);
+
+
     // start playback
     player::Play(player);
 
@@ -230,8 +249,6 @@ int main(int argc, char** argv)
     }
 
     player::Destroy(player);
-
-    mediadecoder::Destroy(decoder);
 
     videodevice::Destroy(videoDevice);
     audiodevice::Destroy(audioDevice);

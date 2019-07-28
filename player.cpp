@@ -129,6 +129,38 @@ namespace player
         player->audioThread = std::thread(AudioPlaybackThread, player);
     }
 
+    Result Open(Player* player, const std::string& filename)
+    {
+        Close(player);
+
+        Result result = mediadecoder::Create(player->decoder);
+        if(!result)
+        {
+            return result;
+        }
+        result = mediadecoder::Open(player->decoder, filename);
+        if(!result)
+        {
+            return result;
+        }
+
+        result = mediadecoder::Create(player->producer, player->decoder);
+        if(!result)
+        {
+            return result;
+        }
+
+        result = videodevice::SetVideoSize(player->videoDevice, player->decoder->videoStream->width, player->decoder->videoStream->height);
+        if(!result)
+        {
+            return result;
+        }
+
+        Play(player); 
+
+        return result;
+    }
+
     void Present(Player* player)
     {
          const uint32_t videoWidth = player->decoder->videoStream->width;
@@ -166,13 +198,24 @@ namespace player
          }
     }
 
-    void Destroy(Player* player)
+    void Close(Player* player)
     {
         player->play = false;
+        player->playbackStartTimeUs = 0;
 
         mediadecoder::Destroy(player->producer);
-
+        player->producer = NULL;
         player->audioThread.join();
+
+        mediadecoder::Destroy(player->decoder);
+        player->decoder = NULL;
+ 
+        audiodevice::Drop(player->audioDevice);
+    }
+
+    void Destroy(Player* player)
+    {
+        Close(player);
         delete player;
     }
 

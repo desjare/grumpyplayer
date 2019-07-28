@@ -133,6 +133,11 @@ namespace gui
         handle->fileDropCb = cb;
     }
 
+    void SetWindowSize(Handle* handle, uint32_t width, uint32_t height)
+    {
+        glfwSetWindowSize(handle->window, width, height);
+    }
+
     bool IsFullScreen(Handle* handle)
     {
         return glfwGetWindowMonitor(handle->window)  != NULL;

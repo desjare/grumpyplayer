@@ -37,7 +37,8 @@ namespace videodevice
     Result Init();
     Result Create(Device*& device, uint32_t width, uint32_t height);
     Result DrawFrame(Device* device, uint8_t* frameBuffer, uint32_t width, uint32_t height);
-    Result SetSize(Device* device, uint32_t width, uint32_t height);
+    Result SetVideoSize(Device* device, uint32_t width, uint32_t height);
+    Result SetWindowSize(Device* device, uint32_t width, uint32_t height);
     void   Destroy(Device* device);
 }
 

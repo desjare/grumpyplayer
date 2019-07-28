@@ -42,6 +42,7 @@ namespace gui
 
 
     bool   IsFullScreen(Handle* handle);
+    void   SetWindowSize(Handle*, uint32_t width, uint32_t height);
     void   SwapBuffers(Handle* handle);
     
     bool   ShouldClose(Handle* handle);
