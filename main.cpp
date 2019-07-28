@@ -1,6 +1,7 @@
 #include <boost/program_options.hpp>
 #include <boost/bind.hpp>
 #include <string>
+#include <iostream>
 
 #include "mediadecoder.h"
 #include "audiodevice.h"
@@ -107,35 +108,42 @@ int main(int argc, char** argv)
     try{
 		boost::program_options::options_description desc{"Options"};
 		desc.add_options()
-		  ("help,h", "Help screen")
-		  ("filename", boost::program_options::value<std::string>())
-		  ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler))
-		  ("loglevel", boost::program_options::value<std::string>());
+		  ("help,h", "Print program options.")
+		  ("filename", boost::program_options::value<std::string>(), "Path the the media file.")
+		  ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler), "Enable profiling.")
+		  ("loglevel", boost::program_options::value<std::string>(), "Specify log level: debug, info, warning or error.");
 
 		boost::program_options::variables_map vm;
 		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
 		boost::program_options::notify(vm);
+        
+        if( vm.count("help" ) )
+        {
+            std::cout << desc;
+            return 1;
+        }
 
         if( vm.count("filename") )
         {
             filename = vm["filename"].as<std::string>();
+        }
+        else
+        {
+            logger::Error("No filename spacified.");
+            std::cerr << desc;
+            return 1;
         }
 
         if( vm.count("loglevel") )
         {
             SetLogLevel(vm["loglevel"].as<std::string>());
         }
-
     }
     catch( boost::program_options::error& ex)
     {
         logger::Error("Program Option Error: %s", ex.what());
     }
 
-    if(filename.empty())
-    {
-        return 1;
-    }
 
     // gui 
     gui::Handle* uiHandle = NULL;
