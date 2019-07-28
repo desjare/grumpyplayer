@@ -1,18 +1,19 @@
 # grumpyplayer
 
-Experimental linux video player video player based on glfw, OpenGL, ALSA and ffmpeg. The player uses a consumer and producer pattern to play and decode and fetch the media. It is multithreaded and uses lock free queue as IPC. It has no locks.
+Experimental linux video player video player based on glfw, OpenGL, ALSA, ffmpeg and boost. It supports full screen mode using the 'f' key, drag & drop, bicubic gpu resizing.
 
-Modules are:
+This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. While the implementation uses encapsulation, structure and data definitions are public. It relies heavily on C++ standard library or boost but it uses a more a C style design approach in the implementation. Explicit is better than implicit. It does not use polymorphism, abstract classes or exception. It contains very little OS specific calls and is probably easy to port to another platform. 
+
+The player uses a consumer and producer pattern to play and decode and fetch the media. It is multithreaded and uses lock free queue as IPC. It has no locks.
+
+Main modules are:
 * player
-* gui
+* gui (glfw3)
 * audiodevice (ALSA)
-* videodevice (OpenGL & glfw3)
-* mediadecoder
+* videodevice (OpenGL)
+* mediadecoder (ffmpeg)
 
-
-This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. It does not use polymorphism or exception.
-
-OpenGL implementation is from https://gist.github.com/rcolinray/7552384. It has been adapted for windows scaling.
+OpenGL implementation is from https://gist.github.com/rcolinray/7552384. It has been adapted for windows scaling. The resizing GLSL bicubic algorithm is from http://www.java-gaming.org/index.php?topic=35123.0.
 
 <h1>Requirements</h1>
 
