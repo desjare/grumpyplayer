@@ -64,27 +64,55 @@ namespace {
     void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     {
         gui::Handle* handle = handles[window];
-        if( action == GLFW_RELEASE ) 
+
+        if( button == GLFW_MOUSE_BUTTON_LEFT )
         {
-            // double click handling
-            if( handle->mouseReleaseTimeUs == 0 )
+            if( action == GLFW_PRESS )
             {
-                handle->mouseReleaseTimeUs = chrono::Now();
+                handle->mouseButtonPress = true;
+                handle->mouseButtonShift = mods & GLFW_MOD_SHIFT;
             }
-            else
+            else if( action == GLFW_RELEASE ) 
             {
-                uint64_t diffUs = chrono::Now() - handle->mouseReleaseTimeUs;
-                double diffMs = chrono::Milliseconds(diffUs);
-                if(diffMs >10.0 && diffMs < 200.0)
+                handle->mouseButtonPress = false;
+                handle->mouseButtonShift = mods & GLFW_MOD_SHIFT;
+
+                // double click handling
+                if( handle->mouseReleaseTimeUs == 0 )
                 {
-                    MouseDoubleClick(window);
+                    handle->mouseReleaseTimeUs = chrono::Now();
                 }
-                handle->mouseReleaseTimeUs = 0;
+                else
+                {
+                    uint64_t diffUs = chrono::Now() - handle->mouseReleaseTimeUs;
+                    double diffMs = chrono::Milliseconds(diffUs);
+                    if(diffMs >10.0 && diffMs < 200.0)
+                    {
+                        MouseDoubleClick(window);
+                    }
+                    handle->mouseReleaseTimeUs = 0;
+                }
             }
+
         }
     }
 
+    void CursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
+    {
+        gui::Handle* handle = handles[window];
 
+        handle->posx = xpos;
+        handle->posy = ypos;
+
+        if( handle->mouseButtonPress && handle->mouseButtonShift )
+        {
+            const double seekPercent 
+                              = xpos / static_cast<double>(handle->width);
+
+            logger::Debug("Seeking %f %%", seekPercent);
+            handle->seekCb(handle, seekPercent);
+        }
+    }
 
     void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
@@ -140,9 +168,12 @@ namespace gui
             result = Result(false, std::string("gwfw failed to open window"));
             return result;
         }
+        handle->width = width;
+        handle->height = height;
 
         glfwSetKeyCallback(handle->window, KeyCallback);
         glfwSetMouseButtonCallback(handle->window, MouseButtonCallback);
+        glfwSetCursorPosCallback(handle->window, CursorPositionCallback);
         glfwSetDropCallback(handle->window, DropCallback);
 
         glfwMakeContextCurrent(handle->window);
@@ -161,6 +192,11 @@ namespace gui
     void SetFileDropCallback(Handle* handle, FileDropCb cb)
     {
         handle->fileDropCb = cb;
+    }
+
+    void SetSeekCallback(Handle* handle, SeekCb seekCb)
+    {
+        handle->seekCb = seekCb;
     }
 
     void SetWindowSize(Handle* handle, uint32_t width, uint32_t height)

@@ -39,6 +39,10 @@ namespace logger
 
     void Debug(const char* fmt, ...)
     {
+      if(logLevel != DEBUG )
+      {
+          return;
+      }
       va_list args;
       char buffer[BUFSIZ];
 
@@ -51,7 +55,7 @@ namespace logger
 
     void Info(const char* fmt, ...)
     {
-      if(logLevel < INFO )
+      if(logLevel > INFO )
       {
           return;
       }
@@ -68,7 +72,7 @@ namespace logger
 
     void Warn(const char* fmt, ...)
     {
-      if(logLevel < WARNING )
+      if(logLevel > WARNING )
       {
           return;
       }
@@ -84,7 +88,7 @@ namespace logger
 
     void Error(const char* fmt, ...)
     {
-      if(logLevel < ERROR )
+      if(logLevel > ERROR )
       {
           return;
       }

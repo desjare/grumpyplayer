@@ -31,6 +31,11 @@ namespace {
             gui::SetWindowSize(handle, player->decoder->videoStream->width, player->decoder->videoStream->height);
         }
     }
+
+    void SeekCallback(gui::Handle* handle, double percent, player::Player* player)
+    {
+
+    }
 }
 
 void Init()
@@ -229,8 +234,12 @@ int main(int argc, char** argv)
     gui::FileDropCb fileDropCallback
                   = boost::bind(FileDropCallback, _1, _2, player);
 
+    gui::SeekCb seekCallback
+                  = boost::bind(SeekCallback, _1, _2, player);
+
     gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
     gui::SetFileDropCallback(uiHandle, fileDropCallback);
+    gui::SetSeekCallback(uiHandle, seekCallback);
 
 
     // start playback
