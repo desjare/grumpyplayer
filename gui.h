@@ -30,6 +30,8 @@ namespace gui
 
         int32_t backupWidth;
         int32_t backupHeight;
+
+        uint64_t mouseReleaseTimeUs;
     };
 
 

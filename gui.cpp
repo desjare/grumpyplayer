@@ -1,6 +1,7 @@
 
 #include "gui.h"
 #include "logger.h"
+#include "chrono.h"
 
 #include <map>
 
@@ -8,7 +9,6 @@ namespace {
 
     std::map<GLFWwindow*, gui::Handle*> handles;
 
-    
     void ErrorCallback(int error, const char* description)
     {
         logger::Error("UI %d: %s", error, description);
@@ -55,6 +55,35 @@ namespace {
             glfwSetWindowMonitor( handle->window, monitor, 0, 0, mode->width, mode->height, 0 );
         }
     }
+
+    void MouseDoubleClick(GLFWwindow* window)
+    {
+        ToggleFullScreen(window);
+    }
+
+    void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+    {
+        gui::Handle* handle = handles[window];
+        if( action == GLFW_RELEASE ) 
+        {
+            // double click handling
+            if( handle->mouseReleaseTimeUs == 0 )
+            {
+                handle->mouseReleaseTimeUs = chrono::Now();
+            }
+            else
+            {
+                uint64_t diffUs = chrono::Now() - handle->mouseReleaseTimeUs;
+                double diffMs = chrono::Milliseconds(diffUs);
+                if(diffMs >10.0 && diffMs < 200.0)
+                {
+                    MouseDoubleClick(window);
+                }
+                handle->mouseReleaseTimeUs = 0;
+            }
+        }
+    }
+
 
 
     void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -113,6 +142,7 @@ namespace gui
         }
 
         glfwSetKeyCallback(handle->window, KeyCallback);
+        glfwSetMouseButtonCallback(handle->window, MouseButtonCallback);
         glfwSetDropCallback(handle->window, DropCallback);
 
         glfwMakeContextCurrent(handle->window);
