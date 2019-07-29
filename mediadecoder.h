@@ -111,16 +111,22 @@ namespace mediadecoder
 
         std::thread thread;
         std::atomic<bool> quitting;
+
+        // seeking
+        std::atomic<bool> seeking;
+        uint64_t seekTime;
     };
 
-    Result Init();
-    Result Create(Decoder*& decoder);
-    Result Open(Decoder*& decoder, const std::string& filename);
-    void   Destroy(Decoder*);
+    Result   Init();
+    Result   Create(Decoder*& decoder);
+    Result   Open(Decoder*& decoder, const std::string& filename);
+    uint64_t GetDuration(Decoder* decoder);
+    void     Destroy(Decoder*);
 
     Result Create(Producer*& producer, Decoder*);
     void   Destroy(Producer*);
 
+    void   Seek(Producer*,uint64_t timeUs);
     bool   Consume(Producer*, VideoFrame*& frame);
     bool   Consume(Producer*, AudioFrame*& frame);
 

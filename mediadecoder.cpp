@@ -170,7 +170,16 @@ namespace {
         {
             Delete(item);
         }
+    }
 
+    template<typename T>
+    void Release(mediadecoder::Producer* producer, mediadecoder::FrameQueue<T>* q)
+    {
+        T item;
+        while( q->pop(item) )
+        {
+            mediadecoder::Release(producer,item);
+        }
     }
 
     void PrintStream(mediadecoder::Stream& stream)
@@ -361,6 +370,10 @@ namespace mediadecoder
             data->videoStream->height = codecContext->height;
             PrintStream(*data->videoStream);
         }
+        else
+        {
+            return Result(false, "Cannot find best video stream");
+        }
 
         index = av_find_best_stream(data->avFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
         if(index >= 0)
@@ -402,6 +415,15 @@ namespace mediadecoder
         return result;
     }
 
+    uint64_t GetDuration(Decoder* decoder)
+    {
+        if(!decoder)
+        {
+            return 0;
+        }
+        return decoder->avFormatContext->duration;
+    }
+
     void Destroy(Decoder* decoder)
     {  
         av_frame_free(&decoder->videoStream->frame);
@@ -434,7 +456,7 @@ namespace mediadecoder
     {
         while( !producer->quitting )
         {
-            while( !ContinueDecoding(producer) && !producer->quitting )
+            while( !ContinueDecoding(producer) && !producer->quitting && !producer->seeking )
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
             }
@@ -442,6 +464,29 @@ namespace mediadecoder
             if( producer->quitting )
             {
                 break;
+            }
+
+            if( producer->seeking )
+            {
+                for( auto it = producer->streams.begin(); it != producer->streams.end(); ++it)
+                {
+                    Stream* stream = *it;
+                    const AVRational& timeBase = stream->stream->time_base;
+                    const double timeInTimeBase = chrono::Seconds(producer->seekTime) * static_cast<double>(timeBase.den) / static_cast<double>(timeBase.num);
+                    int outcome = av_seek_frame(producer->decoder->avFormatContext, stream->streamIndex, static_cast<int64_t>(timeInTimeBase), 0);
+                    if(outcome < 0 )
+                    {
+                        std::string error = ErrorToString(outcome);
+                        logger::Error("av_read_frame error %s", error.c_str());
+                        continue;
+                    }
+                }
+
+                ::Release(producer, producer->videoQueue);
+                ::Release(producer, producer->audioQueue);
+
+                producer->seekTime = 0;
+                producer->seeking = false;
             }
 
             
@@ -547,6 +592,12 @@ namespace mediadecoder
         delete producer->audioFramePool;
  
         delete producer;
+    }
+
+    void Seek(Producer* producer, uint64_t timeUs)
+    {
+        producer->seekTime = timeUs;
+        producer->seeking = true;
     }
 
     void Release(Producer* producer, VideoFrame* frame)

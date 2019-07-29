@@ -10,6 +10,7 @@
 #include "gui.h"
 #include "profiler.h"
 #include "logger.h"
+#include "chrono.h"
 
 #include "result.h"
 
@@ -34,7 +35,11 @@ namespace {
 
     void SeekCallback(gui::Handle* handle, double percent, player::Player* player)
     {
+        const uint64_t duration = player::GetDuration(player);
+        const double pos = static_cast<double>(duration) * percent;
 
+        logger::Info("Seeking duration %f s percent %f %% pos %f s" , chrono::Seconds(duration), percent, chrono::Seconds(static_cast<uint64_t>(pos)));
+        player::Seek(player, static_cast<uint64_t>(pos));
     }
 }
 

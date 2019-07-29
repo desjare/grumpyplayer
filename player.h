@@ -33,11 +33,13 @@ namespace player
 
     Result Create(Player*& player, mediadecoder::Decoder*, audiodevice::Device* audioDevice, videodevice::Device* videoDevice);
     
-    void   Play(Player*);
-    Result Open(Player*, const std::string& filename);
-    void   Present(Player*);
-    void   Close(Player*);
-    void   Destroy(Player*);
+    void     Play(Player*);
+    Result   Open(Player*, const std::string& filename);
+    void     Seek(Player*, uint64_t timeUs);
+    uint64_t GetDuration(Player*);
+    void     Present(Player*);
+    void     Close(Player*);
+    void     Destroy(Player*);
 
 
 };

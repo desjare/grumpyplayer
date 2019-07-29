@@ -161,6 +161,24 @@ namespace player
         return result;
     }
 
+    void Seek(Player* player, uint64_t timeUs)
+    {
+        player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
+
+        mediadecoder::Seek(player->producer, timeUs);
+        audiodevice::Drop(player->audioDevice);
+    }
+
+    uint64_t GetDuration(Player* player)
+    {
+        if(!player || !player->decoder)
+        {
+            return 0;
+        }
+
+        return mediadecoder::GetDuration(player->decoder);
+    }
+
     void Present(Player* player)
     {
          const uint32_t videoWidth = player->decoder->videoStream->width;
