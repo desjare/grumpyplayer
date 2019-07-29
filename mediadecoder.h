@@ -75,8 +75,10 @@ namespace mediadecoder
         uint64_t timeUs;
     };
 
-    typedef boost::lockfree::queue<AudioFrame*, boost::lockfree::fixed_sized<true> > AudioQueue;
-    typedef boost::lockfree::queue<VideoFrame*, boost::lockfree::fixed_sized<true> > VideoQueue;
+    template<typename T>
+    using FrameQueue = boost::lockfree::queue<T, boost::lockfree::fixed_sized<true> >;
+    typedef FrameQueue<AudioFrame*> AudioQueue;
+    typedef FrameQueue<VideoFrame*> VideoQueue;
 
     struct Decoder
     {

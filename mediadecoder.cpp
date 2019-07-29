@@ -150,6 +150,29 @@ namespace {
         return success;
     }
 
+    void Delete(mediadecoder::VideoFrame* frame)
+    {
+        delete frame->frame;
+        delete frame;
+    }
+
+    void Delete(mediadecoder::AudioFrame* frame)
+    {
+        delete [] frame->samples;
+        delete frame;
+    }
+
+    template<typename T>
+    void Clear(mediadecoder::FrameQueue<T>* q)
+    {
+        T item;
+        while( q->pop(item) )
+        {
+            Delete(item);
+        }
+
+    }
+
     void PrintStream(mediadecoder::Stream& stream)
     {
         logger::Info("Stream %s ID %d bit_rate %ld", stream.codec->long_name, 
@@ -513,6 +536,11 @@ namespace mediadecoder
         producer->quitting = true;
         producer->thread.join();
 
+        Clear(producer->videoQueue);
+        Clear(producer->audioQueue);
+        Clear(producer->videoFramePool);
+        Clear(producer->audioFramePool);
+        
         delete producer->videoQueue;
         delete producer->audioQueue;
         delete producer->videoFramePool;
