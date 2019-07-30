@@ -2,7 +2,9 @@
 #include "gui.h"
 #include "logger.h"
 #include "chrono.h"
+#include "icon.h"
 
+#include <lodepng/picopng.h>
 #include <map>
 
 namespace {
@@ -177,6 +179,22 @@ namespace gui
         glfwSetDropCallback(handle->window, DropCallback);
 
         glfwMakeContextCurrent(handle->window);
+
+        std::vector<unsigned char> imageBuffer;
+        unsigned long iconWidth;
+        unsigned long iconHeight;
+
+        int outcome = decodePNG(imageBuffer, iconWidth, iconHeight, icon_png, icon_png_len);
+        if( outcome == 0 )
+        {
+            GLFWimage image;
+            image.width = iconWidth;
+            image.height = iconHeight;
+            image.pixels = &imageBuffer[0];
+            glfwSetWindowIcon(handle->window, 1, &image);
+
+        }
+
 
         handles[handle->window] = handle;
 

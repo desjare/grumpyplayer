@@ -15,6 +15,10 @@ Main modules are:
 
 OpenGL implementation is from https://gist.github.com/rcolinray/7552384. It has been adapted for windows scaling. The resizing GLSL bicubic algorithm is from http://www.java-gaming.org/index.php?topic=35123.0.
 
+The png library used is lodepng. It can be found here: https://lodev.org/lodepng/.
+
+The icon is from http://www.pngall.com/?p=23412 and is on Creative Commons 4.0 BY-NC License. It can be found here: https://creativecommons.org/licenses/by-nc/4.0/.
+
 <h1>Requirements</h1>
 
  * ffmpeg libs version 4 or higher (ffmpeg --version)
