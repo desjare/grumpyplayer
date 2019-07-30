@@ -294,6 +294,30 @@ namespace {
         } while( !success && !producer->quitting && !producer->seeking );
     }
 
+    void Seek(mediadecoder::Producer* producer )
+    {
+        for( auto it = producer->streams.begin(); it != producer->streams.end(); ++it)
+        {
+            mediadecoder::Stream* stream = *it;
+            const AVRational& timeBase = stream->stream->time_base;
+            const double timeInTimeBase = chrono::Seconds(producer->seekTime) * static_cast<double>(timeBase.den) / static_cast<double>(timeBase.num);
+            int outcome = av_seek_frame(producer->decoder->avFormatContext, stream->streamIndex, static_cast<int64_t>(timeInTimeBase), 0);
+            if(outcome < 0 )
+            {
+                std::string error = ErrorToString(outcome);
+                logger::Error("av_seek_frame error %s", error.c_str());
+                continue;
+            }
+        }
+
+        ::Release(producer, producer->videoQueue);
+        ::Release(producer, producer->audioQueue);
+        producer->videoQueueSize = 0;
+        producer->audioQueueSize = 0;
+
+        producer->seekTime = 0;
+        producer->seeking = false;
+    }
 }
 
 namespace mediadecoder
@@ -479,27 +503,7 @@ namespace mediadecoder
 
             if( producer->seeking )
             {
-                for( auto it = producer->streams.begin(); it != producer->streams.end(); ++it)
-                {
-                    Stream* stream = *it;
-                    const AVRational& timeBase = stream->stream->time_base;
-                    const double timeInTimeBase = chrono::Seconds(producer->seekTime) * static_cast<double>(timeBase.den) / static_cast<double>(timeBase.num);
-                    int outcome = av_seek_frame(producer->decoder->avFormatContext, stream->streamIndex, static_cast<int64_t>(timeInTimeBase), 0);
-                    if(outcome < 0 )
-                    {
-                        std::string error = ErrorToString(outcome);
-                        logger::Error("av_seek_frame error %s", error.c_str());
-                        continue;
-                    }
-                }
-
-                ::Release(producer, producer->videoQueue);
-                ::Release(producer, producer->audioQueue);
-                producer->videoQueueSize = 0;
-                producer->audioQueueSize = 0;
-
-                producer->seekTime = 0;
-                producer->seeking = false;
+                ::Seek(producer);
             }
 
             
