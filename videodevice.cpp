@@ -383,7 +383,7 @@ namespace videodevice
 
         adjustRatio = adjustWidth / adjustHeight;
 
-        if( !equals(tr, adjustRatio) )
+        if( !numeric::equals(tr, adjustRatio) )
         {
             logger::Debug("ratio differ");
             if( adjustRatio < 1.0f )
