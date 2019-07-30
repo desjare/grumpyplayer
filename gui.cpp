@@ -71,6 +71,15 @@ namespace {
             {
                 handle->mouseButtonPress = true;
                 handle->mouseButtonShift = mods & GLFW_MOD_SHIFT;
+
+                if( handle->mouseButtonShift )
+                {
+                    const double seekPercent 
+                                      = static_cast<double>(handle->posx) / static_cast<double>(handle->width);
+
+                    logger::Debug("Seeking %f %%", seekPercent);
+                    handle->seekCb(handle, seekPercent);
+                }
             }
             else if( action == GLFW_RELEASE ) 
             {
@@ -103,15 +112,6 @@ namespace {
 
         handle->posx = xpos;
         handle->posy = ypos;
-
-        if( handle->mouseButtonPress && handle->mouseButtonShift )
-        {
-            const double seekPercent 
-                              = xpos / static_cast<double>(handle->width);
-
-            logger::Debug("Seeking %f %%", seekPercent);
-            handle->seekCb(handle, seekPercent);
-        }
     }
 
     void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)

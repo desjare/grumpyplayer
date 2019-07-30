@@ -127,6 +127,7 @@ namespace mediadecoder
     void   Destroy(Producer*);
 
     void   Seek(Producer*,uint64_t timeUs);
+    bool   IsSeeking(Producer*);
     bool   Consume(Producer*, VideoFrame*& frame);
     bool   Consume(Producer*, AudioFrame*& frame);
 

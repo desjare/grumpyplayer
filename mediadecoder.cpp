@@ -120,36 +120,6 @@ namespace {
 
     }
 
-    bool PushFrame(mediadecoder::Producer* producer, mediadecoder::AudioFrame* audioFrame)
-    {
-        bool success = producer->audioQueue->push(audioFrame);
-        if( success )
-        {
-            producer->audioQueueSize++;
-        }
-        else
-        {
-            logger::Warn("AudioDecoderCallback queue full. Waiting.");
-            std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
-        }
-        return success;
-    }
-
-    bool PushFrame(mediadecoder::Producer* producer, mediadecoder::VideoFrame* videoFrame)
-    {
-        bool success = producer->videoQueue->push(videoFrame);
-        if( success )
-        {
-            producer->videoQueueSize++;
-        }
-        else
-        {
-            logger::Warn("AudioDecoderCallback queue full. Waiting.");
-            std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
-        }
-        return success;
-    }
-
     void Delete(mediadecoder::VideoFrame* frame)
     {
         delete frame->frame;
@@ -180,6 +150,47 @@ namespace {
         {
             mediadecoder::Release(producer,item);
         }
+    }
+
+
+    bool PushFrame(mediadecoder::Producer* producer, mediadecoder::AudioFrame* audioFrame)
+    {
+        bool success = producer->audioQueue->push(audioFrame);
+        if( success )
+        {
+            producer->audioQueueSize++;
+        }
+        else if( producer->seeking )
+        {
+            Delete(audioFrame);
+            success = false;
+        }
+        else
+        {
+            logger::Warn("AudioDecoderCallback queue full. Waiting.");
+            std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
+        }
+        return success;
+    }
+
+    bool PushFrame(mediadecoder::Producer* producer, mediadecoder::VideoFrame* videoFrame)
+    {
+        bool success = producer->videoQueue->push(videoFrame);
+        if( success )
+        {
+            producer->videoQueueSize++;
+        }
+        else if( producer->seeking )
+        {
+            Delete(videoFrame);
+            success = false;
+        }
+        else
+        {
+            logger::Warn("AudioDecoderCallback queue full. Waiting.");
+            std::this_thread::sleep_for(std::chrono::milliseconds(QUEUE_FULL_SLEEP_TIME_MS));
+        }
+        return success;
     }
 
     void PrintStream(mediadecoder::Stream& stream)
@@ -242,7 +253,7 @@ namespace {
         {
             success = PushFrame(producer, audioFrame);
 
-        } while( !success && !producer->quitting );
+        } while( !success && !producer->quitting && !producer->seeking );
     }
 
     void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame)
@@ -280,7 +291,7 @@ namespace {
         {
             success = PushFrame(producer, videoFrame);
 
-        } while( !success && !producer->quitting );
+        } while( !success && !producer->quitting && !producer->seeking );
     }
 
 }
@@ -477,13 +488,15 @@ namespace mediadecoder
                     if(outcome < 0 )
                     {
                         std::string error = ErrorToString(outcome);
-                        logger::Error("av_read_frame error %s", error.c_str());
+                        logger::Error("av_seek_frame error %s", error.c_str());
                         continue;
                     }
                 }
 
                 ::Release(producer, producer->videoQueue);
                 ::Release(producer, producer->audioQueue);
+                producer->videoQueueSize = 0;
+                producer->audioQueueSize = 0;
 
                 producer->seekTime = 0;
                 producer->seeking = false;
@@ -547,8 +560,8 @@ namespace mediadecoder
     Result Create(Producer*& producer, Decoder* decoder)
     {
         Result result;
-        const uint32_t videoQueueSize =  300u;
-        const uint32_t audioQueueSize = 300u;
+        const uint32_t videoQueueSize =  1000u;
+        const uint32_t audioQueueSize = 1000u;
 
         if( decoder->producer != NULL )
         {
@@ -598,6 +611,11 @@ namespace mediadecoder
     {
         producer->seekTime = timeUs;
         producer->seeking = true;
+    }
+
+    bool IsSeeking(Producer* producer)
+    {
+        return producer->seeking;
     }
 
     void Release(Producer* producer, VideoFrame* frame)

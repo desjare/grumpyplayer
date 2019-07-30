@@ -57,6 +57,14 @@ namespace {
         return true;
     }
 
+    void WaitSeekEnd(player::Player* player)
+    {
+        while( mediadecoder::IsSeeking(player->producer) )
+        {
+            std::this_thread::yield();
+        }
+    }
+
     void AudioPlaybackThread(player::Player* player)
     {
         mediadecoder::AudioFrame* audioFrame = NULL;
@@ -163,10 +171,30 @@ namespace player
 
     void Seek(Player* player, uint64_t timeUs)
     {
-        player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
+        if( mediadecoder::IsSeeking(player->producer) )
+        {
+            logger::Warn("Player seek failed. Already seeking.");
+            return;
+        }
 
+        logger::Info("Seek start at %f ms", chrono::Milliseconds(timeUs));
         mediadecoder::Seek(player->producer, timeUs);
+
+        // stop audio playback
+        player->play = false;
+        player->audioThread.join();
         audiodevice::Drop(player->audioDevice);
+
+        // wait for seek
+        WaitSeekEnd(player);
+
+        // start audio playback
+        player->play = true;
+        player->audioThread = std::thread(AudioPlaybackThread, player);
+
+        // reset playback start time
+        player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
+        logger::Info("Seek end");
     }
 
     uint64_t GetDuration(Player* player)

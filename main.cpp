@@ -38,7 +38,7 @@ namespace {
         const uint64_t duration = player::GetDuration(player);
         const double pos = static_cast<double>(duration) * percent;
 
-        logger::Info("Seeking duration %f s percent %f %% pos %f s" , chrono::Seconds(duration), percent, chrono::Seconds(static_cast<uint64_t>(pos)));
+        logger::Debug("SeekCallback duration %f s percent %f %% pos %f s" , chrono::Seconds(duration), percent, chrono::Seconds(static_cast<uint64_t>(pos)));
         player::Seek(player, static_cast<uint64_t>(pos));
     }
 }
