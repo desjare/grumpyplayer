@@ -25,7 +25,7 @@ namespace player
 
         uint64_t playbackStartTimeUs;
 
-        std::atomic<bool> play;
+        std::atomic<bool> queueAudio;
         std::thread audioThread;
     };
 

@@ -70,7 +70,7 @@ namespace {
         mediadecoder::AudioFrame* audioFrame = NULL;
         Result result;
   
-        while(player->play)
+        while(player->queueAudio)
         {
             if(!audioFrame)
             {
@@ -99,6 +99,22 @@ namespace {
             }
         }
     }
+
+    void StartAudio(player::Player* player)
+    {
+        player->queueAudio = true;
+        player->audioThread = std::thread(AudioPlaybackThread, player);
+    }
+
+    void StopAudio(player::Player* player, bool drop)
+    {
+        player->queueAudio = false;
+        player->audioThread.join();
+        if( drop )
+        {
+            audiodevice::Drop(player->audioDevice);
+        }
+    }
 }
 
 namespace player
@@ -119,6 +135,7 @@ namespace player
         player->audioDevice = audioDevice;
         player->videoDevice = videoDevice;
         player->playbackStartTimeUs = 0;
+        player->queueAudio = false;
 
         result = mediadecoder::Create(player->producer, decoder);
         if(!result)
@@ -133,8 +150,8 @@ namespace player
         mediadecoder::WaitForPlayback(player->producer);
 
         player->playbackStartTimeUs = chrono::Now();
-        player->play = true;
-        player->audioThread = std::thread(AudioPlaybackThread, player);
+
+        StartAudio(player);
     }
 
     Result Open(Player* player, const std::string& filename)
@@ -181,16 +198,13 @@ namespace player
         mediadecoder::Seek(player->producer, timeUs);
 
         // stop audio playback
-        player->play = false;
-        player->audioThread.join();
-        audiodevice::Drop(player->audioDevice);
+        StopAudio(player, true);
 
         // wait for seek
         WaitSeekEnd(player);
 
         // start audio playback
-        player->play = true;
-        player->audioThread = std::thread(AudioPlaybackThread, player);
+        StartAudio(player);
 
         // reset playback start time
         player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
@@ -246,17 +260,15 @@ namespace player
 
     void Close(Player* player)
     {
-        player->play = false;
+        StopAudio(player, true);
+
         player->playbackStartTimeUs = 0;
 
         mediadecoder::Destroy(player->producer);
         player->producer = NULL;
-        player->audioThread.join();
 
         mediadecoder::Destroy(player->decoder);
         player->decoder = NULL;
- 
-        audiodevice::Drop(player->audioDevice);
     }
 
     void Destroy(Player* player)
@@ -264,5 +276,4 @@ namespace player
         Close(player);
         delete player;
     }
-
 }
