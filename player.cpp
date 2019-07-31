@@ -190,6 +190,11 @@ namespace player
     void Play(Player* player)
     {
         logger::Info("Play");
+        if(player->playing)
+        {
+            return;
+        }
+
         mediadecoder::WaitForPlayback(player->producer);
 
         player->playbackStartTimeUs = chrono::Now() - player->currentTimeUs;
@@ -226,6 +231,10 @@ namespace player
     void Pause(Player* player)
     {
         logger::Info("Pause");
+        if(!player->playing)
+        {
+            return;
+        }
         player->playing = false;
         audiodevice::Pause(player->audioDevice);
     }
