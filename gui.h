@@ -16,6 +16,7 @@ namespace gui
     typedef boost::function<void (Handle*, uint32_t, uint32_t)> WindowSizeChangeCb;
     typedef boost::function<void (Handle*, const std::string&)> FileDropCb;
     typedef boost::function<void (Handle*, double)> SeekCb;
+    typedef boost::function<void (Handle*)> PauseCb;
 
     struct Handle
     {
@@ -24,6 +25,7 @@ namespace gui
         WindowSizeChangeCb sizeChangeCb;
         FileDropCb fileDropCb;
         SeekCb seekCb;
+        PauseCb pauseCb;
 
         int32_t posx;
         int32_t posy;
@@ -46,6 +48,7 @@ namespace gui
     void   SetWindowSizeChangeCallback(Handle*, WindowSizeChangeCb);
     void   SetFileDropCallback(Handle*, FileDropCb);
     void   SetSeekCallback(Handle*, SeekCb);
+    void   SetPauseCallback(Handle*, PauseCb);
 
 
     bool   IsFullScreen(Handle* handle);

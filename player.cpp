@@ -6,6 +6,7 @@
 
 namespace {
     const int64_t queueFullSleepTimeMs = 500;
+    const int64_t pauseSleepTimeMs = 500;
     player::SwapBufferCallback swapBufferCallback;
 }
 
@@ -102,8 +103,15 @@ namespace {
 
     void StartAudio(player::Player* player)
     {
-        player->queueAudio = true;
-        player->audioThread = std::thread(AudioPlaybackThread, player);
+        if(player->queueAudio == false)
+        {
+            player->queueAudio = true;
+            player->audioThread = std::thread(AudioPlaybackThread, player);
+        }
+        else
+        {
+            audiodevice::Resume(player->audioDevice);
+        }
     }
 
     void StopAudio(player::Player* player, bool drop)
@@ -135,6 +143,8 @@ namespace player
         player->audioDevice = audioDevice;
         player->videoDevice = videoDevice;
         player->playbackStartTimeUs = 0;
+        player->currentTimeUs = 0;
+        player->playing = false;
         player->queueAudio = false;
 
         result = mediadecoder::Create(player->producer, decoder);
@@ -143,15 +153,6 @@ namespace player
             return result;
         }
         return result;
-    }
-
-    void Play(Player* player)
-    {
-        mediadecoder::WaitForPlayback(player->producer);
-
-        player->playbackStartTimeUs = chrono::Now();
-
-        StartAudio(player);
     }
 
     Result Open(Player* player, const std::string& filename)
@@ -186,6 +187,17 @@ namespace player
         return result;
     }
 
+    void Play(Player* player)
+    {
+        logger::Info("Play");
+        mediadecoder::WaitForPlayback(player->producer);
+
+        player->playbackStartTimeUs = chrono::Now() - player->currentTimeUs;
+        player->playing = true;
+
+        StartAudio(player);
+    }
+
     void Seek(Player* player, uint64_t timeUs)
     {
         if( mediadecoder::IsSeeking(player->producer) )
@@ -211,6 +223,18 @@ namespace player
         logger::Info("Seek end");
     }
 
+    void Pause(Player* player)
+    {
+        logger::Info("Pause");
+        player->playing = false;
+        audiodevice::Pause(player->audioDevice);
+    }
+
+    bool IsPlaying(Player* player)
+    {
+        return player->playing;
+    }
+
     uint64_t GetDuration(Player* player)
     {
         if(!player || !player->decoder)
@@ -223,6 +247,12 @@ namespace player
 
     void Present(Player* player)
     {
+         if(!player->playing)
+         {
+             std::this_thread::sleep_for(std::chrono::milliseconds(pauseSleepTimeMs));
+             return;
+         }
+
          const uint32_t videoWidth = player->decoder->videoStream->width;
          const uint32_t videoHeight = player->decoder->videoStream->height;
 
@@ -233,6 +263,7 @@ namespace player
 
          if( player->videoFrame  )
          {
+             player->currentTimeUs = player->videoFrame->timeUs;
              const uint64_t waitThresholdUs = 25;
              const bool drawFrame 
                        = WaitForPlayback("video", player->playbackStartTimeUs, player->videoFrame->timeUs, waitThresholdUs);
@@ -263,6 +294,7 @@ namespace player
         StopAudio(player, true);
 
         player->playbackStartTimeUs = 0;
+        player->playing = false;
 
         mediadecoder::Destroy(player->producer);
         player->producer = NULL;

@@ -41,6 +41,18 @@ namespace {
         logger::Debug("SeekCallback duration %f s percent %f %% pos %f s" , chrono::Seconds(duration), percent, chrono::Seconds(static_cast<uint64_t>(pos)));
         player::Seek(player, static_cast<uint64_t>(pos));
     }
+
+    void PauseCallback(gui::Handle* handle, player::Player* player)
+    {
+        if( player::IsPlaying(player) )
+        {
+            player::Pause(player);
+        }
+        else
+        {
+            player::Play(player);
+        }
+    }
 }
 
 void Init()
@@ -242,9 +254,13 @@ int main(int argc, char** argv)
     gui::SeekCb seekCallback
                   = boost::bind(SeekCallback, _1, _2, player);
 
+    gui::PauseCb pauseCallback
+                  = boost::bind(PauseCallback, _1, player);
+
     gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
     gui::SetFileDropCallback(uiHandle, fileDropCallback);
     gui::SetSeekCallback(uiHandle, seekCallback);
+    gui::SetPauseCallback(uiHandle, pauseCallback);
 
 
     // start playback

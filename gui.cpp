@@ -118,12 +118,16 @@ namespace {
 
     void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
+        gui::Handle* handle = handles[window];
         if(action == GLFW_PRESS)
         {
             switch(key)
             {
                 case GLFW_KEY_F:
                     ToggleFullScreen(window);
+                    break;
+                case GLFW_KEY_SPACE:
+                    handle->pauseCb(handle);
                     break;
             }
         }
@@ -215,6 +219,11 @@ namespace gui
     void SetSeekCallback(Handle* handle, SeekCb seekCb)
     {
         handle->seekCb = seekCb;
+    }
+
+    void SetPauseCallback(Handle* handle, PauseCb pauseCb)
+    {
+        handle->pauseCb = pauseCb;
     }
 
     void SetWindowSize(Handle* handle, uint32_t width, uint32_t height)

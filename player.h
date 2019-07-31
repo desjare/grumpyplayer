@@ -24,20 +24,26 @@ namespace player
         SwapBufferCallback swapBufferCallback;
 
         uint64_t playbackStartTimeUs;
+        uint64_t currentTimeUs;
+        std::atomic<bool> playing;
 
         std::atomic<bool> queueAudio;
         std::thread audioThread;
     };
 
-    Result Init(SwapBufferCallback);
-
-    Result Create(Player*& player, mediadecoder::Decoder*, audiodevice::Device* audioDevice, videodevice::Device* videoDevice);
-    
-    void     Play(Player*);
+    Result   Init(SwapBufferCallback);
+    Result   Create(Player*& player, mediadecoder::Decoder*, audiodevice::Device* audioDevice, videodevice::Device* videoDevice);
     Result   Open(Player*, const std::string& filename);
+
+    void     Play(Player*);
     void     Seek(Player*, uint64_t timeUs);
+    void     Pause(Player*);
+
+    bool     IsPlaying(Player*);
     uint64_t GetDuration(Player*);
+    
     void     Present(Player*);
+    
     void     Close(Player*);
     void     Destroy(Player*);
 
