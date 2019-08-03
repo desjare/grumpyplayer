@@ -5,31 +5,33 @@
 #include <boost/function.hpp>
 #include <curl/curl.h>
 
+#include <deque>
 #include <string>
 #include <thread>
+#include <mutex>
+#include <atomic>
 
 #include "result.h"
 
 namespace curl
 {
-    struct Session;
-
-    typedef boost::function<size_t (Session*, char* ptr, size_t size)> WriteCallback;
-
     struct Session
     {
         CURL* curl;
 
-        WriteCallback writeCallback;
+        std::mutex mutex;
+        std::deque<uint8_t> buffer;
 
         std::atomic<bool> done;
+        CURLcode result;
         
         std::string url;
         std::thread thread;
     };
 
     // create a download session
-    Result Create(Session*& session, const std::string& url, WriteCallback& writeCallback);
+    Result Create(Session*& session, const std::string& url);
+    size_t Read(Session*, uint8_t* buf, uint32_t size);
     void   Destroy(Session*);
 
 

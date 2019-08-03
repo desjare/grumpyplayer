@@ -7,30 +7,52 @@ namespace {
     {
         CURLcode res = curl_easy_perform(session->curl);
         session->done = true;
+        session->result = res;
     }
 
     size_t WriteCallback(char *ptr, size_t size, size_t, void *userdata)
     {
         curl::Session* session = static_cast<curl::Session*>(userdata);
-        session->writeCallback(session,ptr,size);
+        uint8_t* data = reinterpret_cast<uint8_t*>(ptr);
+
+        std::lock_guard<std::mutex> guard(session->mutex);
+        std::deque<uint8_t>& buffer = session->buffer;
+        buffer.insert(buffer.end(), data, data + size); 
+        return size;
     }
  
 }
 
 namespace curl
 {
-    Result Create(Session*& session, const std::string& url, WriteCallback& writeCallback)
+    Result Create(Session*& session, const std::string& url)
     {
+        Result result;
         session = new Session;
-        session->writeCallback = writeCallback;
         session->url = url;
 
         session->curl = curl_easy_init();
         curl_easy_setopt(session->curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(session->curl, CURLOPT_WRITEFUNCTION, ::WriteCallback);
+        curl_easy_setopt(session->curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(session->curl, CURLOPT_WRITEDATA, session);
+        
+        session->done = false;
+        session->result = CURLE_OK;
+        session->thread = std::thread(DownloadThread, session);
 
-        session->thread = std::thread(session);
+        return result;
+    }
+
+    size_t Read(Session* session, uint8_t* readbuf, size_t size)
+    {
+        std::lock_guard<std::mutex> guard(session->mutex);
+
+        std::deque<uint8_t>& buffer = session->buffer;
+        size = std::min(size, buffer.size());
+        std::copy_n(buffer.begin(), size, readbuf);
+        buffer.erase(buffer.begin(), buffer.begin()+size);
+
+        return size;
     }
 
     void Destroy(Session* session)
