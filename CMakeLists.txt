@@ -13,6 +13,7 @@ find_library(AVUTIL_LIBRARY avutil.56 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(ASOUND_LIBRARY asound REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(GLFW_LIBRARY glfw.3 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(SWSCALE_LIBRARY swscale REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(CURL_LIBRARY curl REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 
 add_definitions( -D__AVX2__ )
 add_executable(grumpyplayer 
@@ -25,6 +26,7 @@ add_executable(grumpyplayer
     profiler
     logger
     icon 
+    curl
     3rdparty/lodepng/picopng)
 
 target_link_libraries(
@@ -35,6 +37,7 @@ target_link_libraries(
     ${ASOUND_LIBRARY}
     ${GLFW_LIBRARY}
     ${SWSCALE_LIBRARY}
+    ${CURL_LIBRARY}
     boost_program_options
     pthread
     GL)
