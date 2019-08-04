@@ -40,8 +40,16 @@ namespace {
         session->cancel = true;
         session->thread.join();
 
+        session->buffer.clear();
+        session->totalBytes = 0;
+        session->offset = 0;
+
         curl_easy_cleanup(session->curl);
-        session->curl = NULL;;
+        session->curl = NULL;
+        session->cancel = false;
+        session->done = false;
+        session->result = CURLE_OK;
+
     }
 
     void StartSession(curl::Session* session, uint64_t offset)
