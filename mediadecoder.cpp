@@ -341,44 +341,48 @@ namespace {
     int64_t SeekPacket(void *opaque, int64_t offset, int whence)
     {
         curl::Session* session = reinterpret_cast<curl::Session*>(opaque);
-
         switch(whence)
         {
             case SEEK_SET:
             {
-                //int64_t result 
-                //           = curl::Seek(session, offset);
+                int64_t position = curl::Seek(session, offset);
 
-                logger::Info("SeekPacket SEEK_SET %ld Curl offset %ld Buffer size %ld", offset, session->offset.load(), session->buffer.size());
+                logger::Info("SeekPacket SEEK_SET %ld Curl pos %ld Offset %ld Buffer size %ld", 
+                              offset, position, session->offset.load(), session->buffer.size());
 
-                if( offset > session->offset + session->buffer.size() )
-                {
-                    return -1;
-                }
-
-                return session->offset;
-
+                return position;
 
             } break;
 
             case SEEK_CUR:
                 logger::Info("SeekPacket SEEK_CUR %ld", offset);
-                return session->offset;
+                assert(0);
+                return 1;
             break;
 
             case SEEK_END:
             {
                 logger::Info("SeekPacket SEEK_END %ld Buffer size %d", offset, session->buffer.size());
-
-                return offset - session->offset + session->buffer.size();
+                if(offset < 0)
+                {
+                    return -1;
+                }
+                return offset + session->offset + session->buffer.size();
 
             } break;
 
             break;
 
             case AVSEEK_SIZE:
-                logger::Info("SeekPacket AVSEEK_SIZE %ld", session->totalBytes.load());
-                return session->totalBytes;
+                logger::Info("SeekPacket AVSEEK_SIZE %ld", session->buffer.size());
+                if( session->buffer.size() > 0 )
+                {
+                    return session->buffer.size();
+                }
+                else
+                {
+                    return -1;
+                }
             break;
         }
         return 1;
@@ -406,7 +410,6 @@ namespace mediadecoder
     {
         Result result;
         std::string path = filename;
-
         Uri::Uri uri = Uri::Parse(filename);
 
         if( !Uri::IsLocal( &uri) )
@@ -421,9 +424,9 @@ namespace mediadecoder
 
             data->curl = session;
             const uint32_t avioBufferSize = 32768;
-            AVIOContext* avio = avio_alloc_context(static_cast<uint8_t*>(av_malloc(avioBufferSize)), avioBufferSize, 0, session, ReadPacket, nullptr, nullptr);
+            AVIOContext* avio = avio_alloc_context(static_cast<uint8_t*>(av_malloc(avioBufferSize)), avioBufferSize, 0, session, ReadPacket, nullptr, SeekPacket);
             data->avFormatContext->pb = avio;
-            path = "dummy";
+            path = "curl";
         }
 
         int outcome = avformat_open_input(&data->avFormatContext, path.c_str(), NULL, NULL);

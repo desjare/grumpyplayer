@@ -95,32 +95,26 @@ namespace curl
 
     size_t Seek(Session* session, uint64_t offset)
     {
-        session->mutex.lock();
         std::deque<uint8_t>& buffer = session->buffer;
+        size_t position = 0;
 
-        if(offset > session->offset * buffer.size() )
-        {
-            session->mutex.unlock();
-            return session->offset * buffer.size();
-        }
-        
         // Can we continue the download session
-        if(offset >= session->offset )
+        if(offset >= session->offset &&  offset < session->offset + buffer.size()  )
         {
+            std::lock_guard<std::mutex> guard(session->mutex);
             logger::Info("Curl seek. Buffer already in memory. Size %d", buffer.size());
             size_t offsetBytes = offset - session->offset;
             buffer.erase(buffer.begin(), buffer.begin()+offsetBytes);
-            session->offset = offset;
-            session->mutex.unlock();
+            session->offset += offset;
+            position = session->offset;
         }
         else
         {
-            session->mutex.unlock();
             Cancel(session);
             StartSession(session,offset);
         }
 
-        return offset;
+        return position;
     }
 
     void Destroy(Session* session)
