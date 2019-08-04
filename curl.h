@@ -31,7 +31,7 @@ namespace curl
 
     // create a download session
     Result Create(Session*& session, const std::string& url);
-    size_t Read(Session*, uint8_t* buf, uint32_t size);
+    size_t Read(Session*, uint8_t* buf, size_t size);
     void   Destroy(Session*);
 
 

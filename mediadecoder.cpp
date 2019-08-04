@@ -6,6 +6,8 @@
 #include "chrono.h"
 #include "profiler.h"
 #include "logger.h"
+#include "curl.h"
+#include "uri.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -318,6 +320,15 @@ namespace {
         producer->seekTime = 0;
         producer->seeking = false;
     }
+
+    int ReadPacket(void *opaque, uint8_t *buf, int size)
+    {
+        curl::Session* session = reinterpret_cast<curl::Session*>(opaque);
+
+        size_t readBytes = curl::Read(session,buf, size);
+
+        return static_cast<int>(readBytes);
+    }
 }
 
 namespace mediadecoder
@@ -340,8 +351,27 @@ namespace mediadecoder
     Result Open(Decoder*& data, const std::string& filename)
     {
         Result result;
+        std::string path = filename;
 
-        int outcome = avformat_open_input(&data->avFormatContext, filename.c_str(), NULL, NULL);
+        Uri::Uri uri = Uri::Parse(filename);
+
+        if( !Uri::IsLocal( &uri) )
+        {
+            // network stream
+            curl::Session* session = NULL;
+            result = curl::Create(session, path);
+            if(!result)
+            {
+                return result;
+            }
+
+            const uint32_t avioBufferSize = 32768;
+            AVIOContext* avio = avio_alloc_context(static_cast<uint8_t*>(av_malloc(avioBufferSize)), avioBufferSize, 0, session, ReadPacket, nullptr, nullptr);
+            data->avFormatContext->pb = avio;
+            path = "dummy";
+        }
+
+        int outcome = avformat_open_input(&data->avFormatContext, path.c_str(), NULL, NULL);
         if(outcome != 0)
         {
             std::string error = ErrorToString(outcome);
