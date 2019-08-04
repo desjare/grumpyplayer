@@ -2,6 +2,7 @@
 #pragma once
 
 #include "mediaformat.h"
+#include "curl.h"
 #include "result.h"
 
 extern "C" {
@@ -86,6 +87,7 @@ namespace mediadecoder
         VideoStream* videoStream;
         AudioStream* audioStream;
         Producer* producer;
+        curl::Session* curl;
     };
 
     struct Producer

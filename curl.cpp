@@ -62,7 +62,14 @@ namespace curl
 
     void Destroy(Session* session)
     {
+        if(!session)
+        {
+            return;
+        }
+
         curl_easy_cleanup(session->curl);
+
+        session->thread.join();
         delete session;
     }
 

@@ -98,6 +98,10 @@ namespace {
                 mediadecoder::Release(player->producer, audioFrame);
                 audioFrame = NULL;
             }
+            else
+            {
+                logger::Error("No audio frame");
+            }
         }
     }
 

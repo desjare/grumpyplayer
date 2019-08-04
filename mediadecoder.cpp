@@ -374,6 +374,7 @@ namespace mediadecoder
                 return result;
             }
 
+            data->curl = session;
             const uint32_t avioBufferSize = 32768;
             AVIOContext* avio = avio_alloc_context(static_cast<uint8_t*>(av_malloc(avioBufferSize)), avioBufferSize, 0, session, ReadPacket, nullptr, nullptr);
             data->avFormatContext->pb = avio;
@@ -500,6 +501,7 @@ namespace mediadecoder
 
     void Destroy(Decoder* decoder)
     {  
+        curl::Destroy(decoder->curl);
         av_frame_free(&decoder->videoStream->frame);
         sws_freeContext(decoder->videoStream->swsContext);
 
