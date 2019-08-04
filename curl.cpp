@@ -20,7 +20,7 @@ namespace {
 
         std::lock_guard<std::mutex> guard(session->mutex);
         std::deque<uint8_t>& buffer = session->buffer;
-        buffer.insert(buffer.end(), data, data + nmemb); 
+        buffer.insert(buffer.end(), data, data + nmemb);
         return nmemb;
     }
 
@@ -33,19 +33,20 @@ namespace {
         }
         return 0;
     }
- 
-}
 
-namespace curl
-{
-    Result Create(Session*& session, const std::string& url, size_t offset)
+    void Cancel(curl::Session* session)
     {
-        Result result;
-        session = new Session;
-        session->url = url;
+        session->cancel = true;
+        session->thread.join();
 
+        curl_easy_cleanup(session->curl);
+        session->curl = NULL;;
+    }
+
+    void StartSession(curl::Session* session, uint64_t offset)
+    {
         session->curl = curl_easy_init();
-        curl_easy_setopt(session->curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(session->curl, CURLOPT_URL, session->url.c_str());
         curl_easy_setopt(session->curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(session->curl, CURLOPT_WRITEDATA, session);
         curl_easy_setopt(session->curl, CURLOPT_NOPROGRESS, 0);
@@ -53,12 +54,27 @@ namespace curl
         curl_easy_setopt(session->curl, CURLOPT_PROGRESSDATA, session);
         curl_easy_setopt(session->curl, CURLOPT_RESUME_FROM_LARGE, offset); 
 
-        logger::Info("Curl Session Started %s", url.c_str());
+        logger::Info("Curl Session Started %s offset %ld", session->url.c_str(), offset);
 
         session->cancel = false;
         session->done = false;
         session->result = CURLE_OK;
+        session->offset = 0;
+        session->resumeOffset = offset;
         session->thread = std::thread(DownloadThread, session);
+    }
+ 
+}
+
+namespace curl
+{
+    Result Create(Session*& session, const std::string& url, uint64_t offset)
+    {
+        Result result;
+        session = new Session;
+        session->url = url;
+        
+        StartSession(session, offset);
 
         return result;
     }
@@ -71,8 +87,39 @@ namespace curl
         size = std::min(size, buffer.size());
         std::copy_n(buffer.begin(), size, readbuf);
         buffer.erase(buffer.begin(), buffer.begin()+size);
+        session->offset += size;
 
         return size;
+    }
+
+    size_t Seek(Session* session, uint64_t offset)
+    {
+        if(session->resumeOffset == offset)
+        {
+            logger::Info("Curl seek no seek.");
+            return offset;
+        }
+
+        session->mutex.lock();
+        
+        // Can we continue the download session
+        std::deque<uint8_t>& buffer = session->buffer;
+        if(offset >= session->offset )
+        {
+            logger::Info("Curl seek. Buffer already in memory. Size %d", buffer.size());
+            size_t offsetBytes = offset - session->offset;
+            buffer.erase(buffer.begin(), buffer.begin()+offsetBytes);
+            session->offset = offset;
+            session->mutex.unlock();
+        }
+        else
+        {
+            session->mutex.unlock();
+            Cancel(session);
+            StartSession(session,offset);
+        }
+
+        return offset;
     }
 
     void Destroy(Session* session)
@@ -82,10 +129,7 @@ namespace curl
             return;
         }
 
-        session->cancel = true;
-        session->thread.join();
-
-        curl_easy_cleanup(session->curl);
+        Cancel(session);
         delete session;
     }
 

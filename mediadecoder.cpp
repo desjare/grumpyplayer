@@ -337,6 +337,26 @@ namespace {
 
         return static_cast<int>(readBytes);
     }
+
+    int64_t SeekPacket(void *opaque, int64_t offset, int whence)
+    {
+        logger::Info("SeekPacket %ld whence %d", offset, whence);
+
+        if( whence == AVSEEK_SIZE )
+        {
+            logger::Info("SeekPacket AVSEEK_SIZE");
+            return -1;
+        }
+
+        if(offset < 0)
+        {
+            return 0;
+        }
+
+        curl::Session* session = reinterpret_cast<curl::Session*>(opaque);
+        int64_t result = curl::Seek(session, offset);
+        return result;
+    }
 }
 
 namespace mediadecoder
