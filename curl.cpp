@@ -1,5 +1,6 @@
 
 #include "curl.h"
+#include "logger.h"
 
 namespace {
 
@@ -8,17 +9,19 @@ namespace {
         CURLcode res = curl_easy_perform(session->curl);
         session->done = true;
         session->result = res;
+
+        logger::Info("Curl Session Ended %s", curl_easy_strerror(res));
     }
 
-    size_t WriteCallback(char *ptr, size_t size, size_t, void *userdata)
+    size_t WriteCallback(char *ptr, size_t, size_t nmemb, void *userdata)
     {
         curl::Session* session = static_cast<curl::Session*>(userdata);
         uint8_t* data = reinterpret_cast<uint8_t*>(ptr);
 
         std::lock_guard<std::mutex> guard(session->mutex);
         std::deque<uint8_t>& buffer = session->buffer;
-        buffer.insert(buffer.end(), data, data + size); 
-        return size;
+        buffer.insert(buffer.end(), data, data + nmemb); 
+        return nmemb;
     }
  
 }
@@ -36,6 +39,8 @@ namespace curl
         curl_easy_setopt(session->curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(session->curl, CURLOPT_WRITEDATA, session);
         
+        logger::Info("Curl Session Started %s", url.c_str());
+
         session->done = false;
         session->result = CURLE_OK;
         session->thread = std::thread(DownloadThread, session);

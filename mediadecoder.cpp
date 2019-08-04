@@ -325,7 +325,16 @@ namespace {
     {
         curl::Session* session = reinterpret_cast<curl::Session*>(opaque);
 
-        size_t readBytes = curl::Read(session,buf, size);
+        size_t readBytes = 0;
+        do
+        {
+            readBytes = curl::Read(session,buf, size);
+            if( readBytes == 0 )
+            {
+                std::this_thread::yield();
+            }
+
+        } while( readBytes == 0 );
 
         return static_cast<int>(readBytes);
     }
