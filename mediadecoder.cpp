@@ -334,28 +334,54 @@ namespace {
             }
 
         } while( readBytes == 0 && !session->done && !session->cancel );
-
+ 
         return static_cast<int>(readBytes);
     }
 
     int64_t SeekPacket(void *opaque, int64_t offset, int whence)
     {
-        logger::Info("SeekPacket %ld whence %d", offset, whence);
-
-        if( whence == AVSEEK_SIZE )
-        {
-            logger::Info("SeekPacket AVSEEK_SIZE");
-            return -1;
-        }
-
-        if(offset < 0)
-        {
-            return 0;
-        }
-
         curl::Session* session = reinterpret_cast<curl::Session*>(opaque);
-        int64_t result = curl::Seek(session, offset);
-        return result;
+
+        switch(whence)
+        {
+            case SEEK_SET:
+            {
+                //int64_t result 
+                //           = curl::Seek(session, offset);
+
+                logger::Info("SeekPacket SEEK_SET %ld Curl offset %ld Buffer size %ld", offset, session->offset.load(), session->buffer.size());
+
+                if( offset > session->offset + session->buffer.size() )
+                {
+                    return -1;
+                }
+
+                return session->offset;
+
+
+            } break;
+
+            case SEEK_CUR:
+                logger::Info("SeekPacket SEEK_CUR %ld", offset);
+                return session->offset;
+            break;
+
+            case SEEK_END:
+            {
+                logger::Info("SeekPacket SEEK_END %ld Buffer size %d", offset, session->buffer.size());
+
+                return offset - session->offset + session->buffer.size();
+
+            } break;
+
+            break;
+
+            case AVSEEK_SIZE:
+                logger::Info("SeekPacket AVSEEK_SIZE %ld", session->totalBytes.load());
+                return session->totalBytes;
+            break;
+        }
+        return 1;
     }
 }
 

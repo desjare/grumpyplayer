@@ -21,8 +21,9 @@ namespace curl
 
         std::mutex mutex;
         std::deque<uint8_t> buffer;
-        uint64_t offset;
-        uint64_t resumeOffset;
+        std::atomic<uint64_t> offset;
+
+        std::atomic<uint64_t> totalBytes;
 
         std::atomic<bool> cancel;
         std::atomic<bool> done;

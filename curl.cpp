@@ -24,9 +24,10 @@ namespace {
         return nmemb;
     }
 
-    int ProgressCallback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+    int ProgressCallback(void *clientp, curl_off_t dlnow, curl_off_t dltotal, curl_off_t ultotal, curl_off_t ulnow)
     {
         curl::Session* session = static_cast<curl::Session*>(clientp);
+        session->totalBytes = static_cast<uint64_t>(dltotal);
         if(session->cancel)
         {
             return 1;
@@ -56,11 +57,11 @@ namespace {
 
         logger::Info("Curl Session Started %s offset %ld", session->url.c_str(), offset);
 
+        session->totalBytes = 0;
         session->cancel = false;
         session->done = false;
         session->result = CURLE_OK;
         session->offset = 0;
-        session->resumeOffset = offset;
         session->thread = std::thread(DownloadThread, session);
     }
  
@@ -87,23 +88,23 @@ namespace curl
         size = std::min(size, buffer.size());
         std::copy_n(buffer.begin(), size, readbuf);
         buffer.erase(buffer.begin(), buffer.begin()+size);
-        session->offset += size;
+        session->offset += static_cast<uint64_t>(size);
 
         return size;
     }
 
     size_t Seek(Session* session, uint64_t offset)
     {
-        if(session->resumeOffset == offset)
-        {
-            logger::Info("Curl seek no seek.");
-            return offset;
-        }
-
         session->mutex.lock();
+        std::deque<uint8_t>& buffer = session->buffer;
+
+        if(offset > session->offset * buffer.size() )
+        {
+            session->mutex.unlock();
+            return session->offset * buffer.size();
+        }
         
         // Can we continue the download session
-        std::deque<uint8_t>& buffer = session->buffer;
         if(offset >= session->offset )
         {
             logger::Info("Curl seek. Buffer already in memory. Size %d", buffer.size());
