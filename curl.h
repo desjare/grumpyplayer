@@ -22,7 +22,9 @@ namespace curl
         std::mutex mutex;
         std::deque<uint8_t> buffer;
 
+        std::atomic<bool> cancel;
         std::atomic<bool> done;
+
         CURLcode result;
         
         std::string url;
@@ -30,7 +32,7 @@ namespace curl
     };
 
     // create a download session
-    Result Create(Session*& session, const std::string& url);
+    Result Create(Session*& session, const std::string& url, size_t offset);
     size_t Read(Session*, uint8_t* buf, size_t size);
     void   Destroy(Session*);
 

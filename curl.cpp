@@ -23,12 +23,22 @@ namespace {
         buffer.insert(buffer.end(), data, data + nmemb); 
         return nmemb;
     }
+
+    int ProgressCallback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+    {
+        curl::Session* session = static_cast<curl::Session*>(clientp);
+        if(session->cancel)
+        {
+            return 1;
+        }
+        return 0;
+    }
  
 }
 
 namespace curl
 {
-    Result Create(Session*& session, const std::string& url)
+    Result Create(Session*& session, const std::string& url, size_t offset)
     {
         Result result;
         session = new Session;
@@ -38,9 +48,14 @@ namespace curl
         curl_easy_setopt(session->curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(session->curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(session->curl, CURLOPT_WRITEDATA, session);
-        
+        curl_easy_setopt(session->curl, CURLOPT_NOPROGRESS, 0);
+        curl_easy_setopt(session->curl, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
+        curl_easy_setopt(session->curl, CURLOPT_PROGRESSDATA, session);
+        curl_easy_setopt(session->curl, CURLOPT_RESUME_FROM_LARGE, offset); 
+
         logger::Info("Curl Session Started %s", url.c_str());
 
+        session->cancel = false;
         session->done = false;
         session->result = CURLE_OK;
         session->thread = std::thread(DownloadThread, session);
@@ -67,9 +82,10 @@ namespace curl
             return;
         }
 
-        curl_easy_cleanup(session->curl);
-
+        session->cancel = true;
         session->thread.join();
+
+        curl_easy_cleanup(session->curl);
         delete session;
     }
 

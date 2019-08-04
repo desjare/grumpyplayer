@@ -324,7 +324,6 @@ namespace {
     int ReadPacket(void *opaque, uint8_t *buf, int size)
     {
         curl::Session* session = reinterpret_cast<curl::Session*>(opaque);
-
         size_t readBytes = 0;
         do
         {
@@ -334,7 +333,7 @@ namespace {
                 std::this_thread::yield();
             }
 
-        } while( readBytes == 0 );
+        } while( readBytes == 0 && !session->done && !session->cancel );
 
         return static_cast<int>(readBytes);
     }
@@ -368,7 +367,7 @@ namespace mediadecoder
         {
             // network stream
             curl::Session* session = NULL;
-            result = curl::Create(session, path);
+            result = curl::Create(session, path, 0);
             if(!result)
             {
                 return result;
