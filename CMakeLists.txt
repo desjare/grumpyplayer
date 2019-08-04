@@ -39,5 +39,7 @@ target_link_libraries(
     ${SWSCALE_LIBRARY}
     ${CURL_LIBRARY}
     boost_program_options
+    boost_system
+    boost_filesystem
     pthread
     GL)

@@ -41,6 +41,7 @@ namespace player
 
     bool     IsPlaying(Player*);
     uint64_t GetDuration(Player*);
+    uint64_t GetCurrentTime(Player*);
     
     void     Present(Player*);
     

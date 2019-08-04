@@ -205,6 +205,11 @@ namespace gui
         return result;
     }
 
+    void SetTitle(Handle* handle, const char* title)
+    {
+        glfwSetWindowTitle(handle->window, title);
+    }
+
     void SetWindowSizeChangeCallback(Handle* handle, WindowSizeChangeCb cb)
     {
         handle->sizeChangeCb = cb;

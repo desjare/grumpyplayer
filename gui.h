@@ -44,6 +44,7 @@ namespace gui
     Result Init();
     Result Create(Handle*& handle);
     Result OpenWindow(Handle* handle, uint32_t width, uint32_t height);
+    void   SetTitle(Handle* handle, const char* title);
 
     void   SetWindowSizeChangeCallback(Handle*, WindowSizeChangeCb);
     void   SetFileDropCallback(Handle*, FileDropCb);

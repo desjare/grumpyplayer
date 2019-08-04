@@ -254,6 +254,16 @@ namespace player
         return mediadecoder::GetDuration(player->decoder);
     }
 
+    uint64_t GetCurrentTime(Player* player)
+    {
+        if(!player)
+        {
+            return 0;
+        }
+
+        return player->currentTimeUs;
+    }
+
     void Present(Player* player)
     {
          if(!player->playing)

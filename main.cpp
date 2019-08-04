@@ -1,4 +1,5 @@
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/bind.hpp>
 #include <string>
 #include <iostream>
@@ -52,6 +53,17 @@ namespace {
         {
             player::Play(player);
         }
+    }
+
+    void SetWindowTitle(gui::Handle* handle, uint64_t timeUs, uint64_t duration, const std::string& program, const std::string& filename)
+    {
+        boost::filesystem::path path(filename);
+
+        std::string title = program + std::string(" - ") + path.filename().string() + 
+                            std::string(" - ") + chrono::HoursMinutesSeconds(timeUs) + 
+                            "/" + chrono::HoursMinutesSeconds(duration);
+
+        gui::SetTitle( handle, title.c_str() );
     }
 }
 
@@ -135,6 +147,7 @@ void SetLogLevel(std::string level)
 
 int main(int argc, char** argv)
 {
+    std::string program = boost::filesystem::path(argv[0]).filename().string();
     std::string filename;
 
     Init();
@@ -273,6 +286,9 @@ int main(int argc, char** argv)
 
         // print profile point stats if enable
         profiler::Print();
+
+        SetWindowTitle(uiHandle, player::GetCurrentTime(player), 
+                       player::GetDuration(player), program, filename);
 
         // poll ui events
         gui::PollEvents();

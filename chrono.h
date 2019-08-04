@@ -44,4 +44,27 @@ namespace chrono
     {
         return static_cast<uint64_t>(seconds * 1000000.0);
     }
+
+    inline std::string HoursMinutesSeconds(uint64_t timeUs)
+    {
+        const int64_t secondsInHour = 3600;
+        const int64_t secondsInMinute = 60;
+
+        int64_t time = static_cast<int64_t>(Seconds(timeUs));
+        int64_t hour = 0;
+        int64_t min = 0;
+        int64_t sec = 0;
+
+        hour = time / secondsInHour;
+	    time = time % secondsInHour;
+
+	    min = time / secondsInMinute;
+    	time = time % secondsInMinute;
+    	sec = time;
+
+        char buf[BUFSIZ];
+        snprintf(buf, sizeof(buf), "%2.2ldh%2.2ldm%2.2lds", hour, min, sec);
+
+        return buf;
+    }
 }
