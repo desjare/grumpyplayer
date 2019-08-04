@@ -33,7 +33,7 @@ namespace {
     const uint32_t NB_SECONDS_READ_AHEAD = 5;
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
-    const uint32_t NB_BUFFER_FOR_PLAYBACK = 60;
+    const uint32_t NB_BUFFER_FOR_PLAYBACK = 50;
 
     SampleFormat AVFormatToSampleFormat(AVSampleFormat f)
     {
@@ -711,7 +711,7 @@ namespace mediadecoder
     void WaitForPlayback(Producer* producer)
     {
         bool haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
-        bool haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
+        bool haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK ;
 
         while( !(haveVideo && haveAudio) )
         {

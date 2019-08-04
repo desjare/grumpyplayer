@@ -7,7 +7,7 @@
 
 namespace audiodevice
 {
-    static const int64_t ENQUEUE_SAMPLES_US = 5000000;
+    static const int64_t ENQUEUE_SAMPLES_US = 10000000;
     struct Device
     {
         snd_pcm_t* playbackHandle;

@@ -121,6 +121,7 @@ namespace audiodevice
         snd_pcm_sframes_t written = snd_pcm_writei(device->playbackHandle, buf, frames);
         if( written < 0 )
         {
+            snd_pcm_prepare(device->playbackHandle);
             result = Result(false, "Audio write failed %s", snd_strerror(written));
         }
         return result;

@@ -5,7 +5,7 @@
 #include "logger.h"
 
 namespace {
-    const int64_t queueFullSleepTimeMs = 500;
+    const int64_t queueFullSleepTimeMs = 100;
     const int64_t pauseSleepTimeMs = 500;
     player::SwapBufferCallback swapBufferCallback;
 }
@@ -70,6 +70,7 @@ namespace {
     {
         mediadecoder::AudioFrame* audioFrame = NULL;
         Result result;
+        uint32_t nbNoFrame = 0;
   
         while(player->queueAudio)
         {
@@ -80,11 +81,14 @@ namespace {
 
             if( audioFrame )
             {
+                nbNoFrame = 0;
+
                 int64_t waitTime 
                            = chrono::Wait(player->playbackStartTimeUs, audioFrame->timeUs);
 
                 if( waitTime >= audiodevice::ENQUEUE_SAMPLES_US )
                 {
+                    logger::Debug("AudioPlayThread sleeping. Wait Time %f", chrono::Seconds(waitTime) );
                     std::this_thread::sleep_for(std::chrono::milliseconds(queueFullSleepTimeMs));
                     continue;
                 }
@@ -100,7 +104,8 @@ namespace {
             }
             else
             {
-                logger::Error("No audio frame");
+                nbNoFrame += 1;
+                logger::Debug("No audio frame count:%d", nbNoFrame);
             }
         }
     }
