@@ -25,6 +25,7 @@ The icon is from http://www.pngall.com/?p=23412 and is on Creative Commons 4.0 B
  * ALSA asound dev lib
  * swsscale lib
  * glfw3 lib
+ * curl lib
  * cmake
  
  <h2>Ubuntu 18.04</h2>
