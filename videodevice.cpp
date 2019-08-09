@@ -10,7 +10,7 @@
 
 #ifdef UNIX
 #include <GL/glx.h>
-#define GetProcAddress glxGetProcAddress
+#define GetProcAddress glXGetProcAddress
 #define PROCADDRNAMEPTR const GLubyte*
 #elif defined(WIN32)
 #include <gl/wglext.h>

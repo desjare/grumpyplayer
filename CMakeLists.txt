@@ -12,14 +12,17 @@ add_compile_options(-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g)
 add_compile_options(-Wall -Wno-deprecated -Wno-deprecated-declarations)
 add_compile_options(-I./3rdparty)
 
-find_library(AVFORMAT_LIBRARY avformat.58 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
-find_library(AVCODEC_LIBRARY avcodec.58 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
-find_library(AVUTIL_LIBRARY avutil.56 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(AVFORMAT_LIBRARY avformat REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(AVCODEC_LIBRARY avcodec REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(AVUTIL_LIBRARY avutil REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(SOUND_LIBRARY asound REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
-find_library(GLFW_LIBRARY glfw.3 REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(GLFW_LIBRARY glfw REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(SWSCALE_LIBRARY swscale REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(SWRESAMPLE_LIBRARY swresample REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
 find_library(CURL_LIBRARY curl REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(BOOST_PROGRAM_OPTION_LIBRARY boost_program_options REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(BOOST_FILESYSTEM_LIBRARY boost_filesystem REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
+find_library(BOOST_SYSTEM_LIBRARY boost_system REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
 
 set(THREAD_LIBRARY pthread)
 set(GL_LIBRARY GL)
@@ -90,9 +93,9 @@ target_link_libraries(
     ${SWSCALE_LIBRARY}
     ${SWRESAMPLE_LIBRARY}
     ${CURL_LIBRARY}
-    ${BOOST_PROGRAM_OPTION}
-    ${BOOST_SYSTEM_OPTION}
-    ${BOOST_FILESYSTEM_OPTION}
+    ${BOOST_PROGRAM_OPTION_LIBRARY}
+    ${BOOST_SYSTEM_LIBRARY}
+    ${BOOST_FILESYSTEM_LIBRARY}
     ${NET_LIBRARY}
     ${THREAD_LIBRARY}
     ${GL_LIBRARY})
