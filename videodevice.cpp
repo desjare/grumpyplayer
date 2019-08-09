@@ -379,11 +379,6 @@ namespace videodevice
         device->height = height;
 
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, device->frameTexture));
-        GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 
             0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
         GL_CHECK(glUniform1i(device->uniforms[Device::FRAME_TEX], 0));
