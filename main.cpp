@@ -105,11 +105,8 @@ Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& au
 {
     Result result;
 
-    mediadecoder::VideoStream* videoStream = decoder->videoStream;
     mediadecoder::AudioStream* audioStream = decoder->audioStream;
 
-    const uint32_t videoWidth = videoStream->width;
-    const uint32_t videoHeight = videoStream->height;
     const uint32_t channels = audioStream->channels;
     const uint32_t sampleRate = audioStream->sampleRate;
     const SampleFormat sampleFormat = audioStream->sampleFormat;
@@ -121,7 +118,7 @@ Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& au
         return result;
     }
 
-    result = videodevice::Create(videoDevice, videoWidth, videoHeight);
+    result = videodevice::Create(videoDevice);
     if(!result)
     {
         result = Result(false, result.getError());
@@ -240,6 +237,8 @@ int main(int argc, char** argv)
         logger::Error(result.getError().c_str());
         return 1;
     }
+
+    videodevice::SetVideoSize(videoDevice, videoWidth, videoHeight);
 
     // initialize the player
     player::SwapBufferCallback swapBufferCallback 

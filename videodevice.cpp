@@ -287,7 +287,7 @@ namespace videodevice
         return Result();
     }
 
-    Result Create(Device*& device, uint32_t width, uint32_t height)
+    Result Create(Device*& device)
     {
         Result result;
 
@@ -301,9 +301,6 @@ namespace videodevice
 
         currentDevice = device;
 
-        device->width = width;
-        device->height = height;
-
         result = BuildProgram(device);
         if(!result)
         {
@@ -312,47 +309,12 @@ namespace videodevice
 
         GL_CHECK(glUseProgram(device->program));
 
-        // initialize renderable
         GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 
-        // vertexArray
         GL_CHECK(glGenVertexArrays(1, &device->vertexArray));
-        GL_CHECK(glBindVertexArray(device->vertexArray));
-        
-        // vertexBuffer
         GL_CHECK(glGenBuffers(1, &device->vertexBuffer));
-        WriteVertexBuffer(device, 0, 0, width, height);
-
-        GL_CHECK(glVertexAttribPointer(device->attribs[Device::VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)NULL + (0))));
-        GL_CHECK(glEnableVertexAttribArray(device->attribs[Device::VERTICES]));
-
-        GL_CHECK(glVertexAttribPointer(device->attribs[Device::TEX_COORDS], 2, GL_FLOAT, GL_FALSE, 20,  ((char *)NULL + (12))));
-        GL_CHECK(glEnableVertexAttribArray(device->attribs[Device::TEX_COORDS]));  
-
         GL_CHECK(glGenBuffers(1, &device->elementBuffer));
-        GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, device->elementBuffer));
-        unsigned char elem[6] = {
-            0, 1, 2,
-            0, 2, 3
-        };
-        GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elem), elem, GL_STATIC_DRAW));
-        GL_CHECK(glBindVertexArray(0));
-
-#ifndef WIN32 // FIXME TBM_desjare
-        GL_CHECK(glActiveTexture(GL_TEXTURE0));
-#endif
         GL_CHECK(glGenTextures(1, &device->frameTexture));
-        GL_CHECK(glBindTexture(GL_TEXTURE_2D, device->frameTexture));
-        GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 
-            0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
-        GL_CHECK(glUniform1i(device->uniforms[Device::FRAME_TEX], 0));
-        
-        WriteMVPMatrix(device, width, height);
 
         return result;
     }
@@ -378,10 +340,40 @@ namespace videodevice
         device->width = width;
         device->height = height;
 
+        // vertexArray
+        GL_CHECK(glBindVertexArray(device->vertexArray));
+        
+        // vertexBuffer
+        WriteVertexBuffer(device, 0, 0, width, height);
+
+        GL_CHECK(glVertexAttribPointer(device->attribs[Device::VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)NULL + (0))));
+        GL_CHECK(glEnableVertexAttribArray(device->attribs[Device::VERTICES]));
+
+        GL_CHECK(glVertexAttribPointer(device->attribs[Device::TEX_COORDS], 2, GL_FLOAT, GL_FALSE, 20,  ((char *)NULL + (12))));
+        GL_CHECK(glEnableVertexAttribArray(device->attribs[Device::TEX_COORDS]));  
+
+        GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, device->elementBuffer));
+        unsigned char elem[6] = {
+            0, 1, 2,
+            0, 2, 3
+        };
+        GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elem), elem, GL_STATIC_DRAW));
+        GL_CHECK(glBindVertexArray(0));
+
+#ifndef WIN32 // FIXME TBM_desjare
+        GL_CHECK(glActiveTexture(GL_TEXTURE0));
+#endif
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, device->frameTexture));
+        GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
+        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 
             0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
         GL_CHECK(glUniform1i(device->uniforms[Device::FRAME_TEX], 0));
+        
+        WriteMVPMatrix(device, width, height);
 
         return result;
     }
