@@ -1,4 +1,4 @@
-
+#include "precomp.h"
 #include "gui.h"
 #include "logger.h"
 #include "chrono.h"

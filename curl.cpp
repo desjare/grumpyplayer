@@ -1,6 +1,10 @@
-
+#include "precomp.h"
 #include "curl.h"
 #include "logger.h"
+
+#ifdef WIN32
+#undef min
+#endif
 
 namespace {
 

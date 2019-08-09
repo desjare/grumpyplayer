@@ -5,3 +5,8 @@ cmake_install.cmake
 grumpyplayer
 Makefile
 *.swp
+*.vcxproj
+*.filters
+*.user
+*~
+*.sln

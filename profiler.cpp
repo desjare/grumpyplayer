@@ -1,9 +1,10 @@
-
+#include "precomp.h"
 #include "profiler.h"
 #include "chrono.h"
 
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 #include <string.h>
 
 

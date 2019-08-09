@@ -1,4 +1,4 @@
-
+#include "precomp.h"
 #include "logger.h"
 
 #include <stdarg.h>

@@ -1,4 +1,4 @@
-
+#include "precomp.h"
 #include "mediadecoder.h"
 
 #include "mediaformat.h"
@@ -23,10 +23,14 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <thread>
+#include <algorithm>
 
 #include <stdlib.h>
 #include <malloc.h>
 
+#ifdef WIN32
+#undef max
+#endif
 
 
 namespace {

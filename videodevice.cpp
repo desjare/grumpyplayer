@@ -1,7 +1,22 @@
+#include "precomp.h"
+#include "videodevice.h"
+#include "result.h"
+#include "numeric.h"
+#include "logger.h"
+
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+
+#ifdef UNIX
 #include <GL/glx.h>
+#define GetProcAddress glxGetProcAddress
+#define PROCADDRNAMEPTR const GLubyte*
+#elif defined(WIN32)
+#include <gl/wglext.h>
+#define GetProcAddress wglGetProcAddress
+#define PROCADDRNAMEPTR LPCSTR
+#endif
 
 #ifdef __AVX__
 #undef __AVX__
@@ -10,10 +25,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "videodevice.h"
-#include "result.h"
-#include "numeric.h"
-#include "logger.h"
+#include <algorithm>
 
 namespace {
     PFNGLCREATESHADERPROC glCreateShader;
@@ -44,29 +56,29 @@ namespace {
 
     void InitGLext()
     {
-        glCreateShader = (PFNGLCREATESHADERPROC) glXGetProcAddress((const GLubyte*) "glCreateShader");
-        glGetProgramiv = (PFNGLGETPROGRAMIVPROC) glXGetProcAddress((const GLubyte*) "glGetProgramiv");
-        glShaderSource = (PFNGLSHADERSOURCEPROC) glXGetProcAddress((const GLubyte*) "glShaderSource");
-        glCompileShader = (PFNGLCOMPILESHADERPROC) glXGetProcAddress((const GLubyte*) "glCompileShader");
-        glGetShaderiv = (PFNGLGETSHADERIVPROC) glXGetProcAddress((const GLubyte*) "glGetShaderiv");
-        glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC) glXGetProcAddress((const GLubyte*) "glGetShaderInfoLog");
-        glCreateProgram = (PFNGLCREATEPROGRAMPROC) glXGetProcAddress((const GLubyte*) "glCreateProgram");
-        glAttachShader = (PFNGLATTACHSHADERPROC) glXGetProcAddress((const GLubyte*) "glAttachShader");
-        glLinkProgram = (PFNGLLINKPROGRAMPROC) glXGetProcAddress((const GLubyte*) "glLinkProgram");
-        glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) glXGetProcAddress((const GLubyte*) "glGetUniformLocation");
-        glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC) glXGetProcAddress((const GLubyte*) "glGetAttribLocation");
-        glUseProgram = (PFNGLUSEPROGRAMPROC) glXGetProcAddress((const GLubyte*) "glUseProgram");
-        glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC) glXGetProcAddress((const GLubyte*) "glGenVertexArrays");
-        glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC) glXGetProcAddress((const GLubyte*) "glBindVertexArray");
-        glGenBuffers = (PFNGLGENBUFFERSPROC) glXGetProcAddress((const GLubyte*) "glGenBuffers");
-        glBindBuffer = (PFNGLBINDBUFFERPROC) glXGetProcAddress((const GLubyte*) "glBindBuffer");
-        glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC) glXGetProcAddress((const GLubyte*) "glVertexAttribPointer");
-        glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC) glXGetProcAddress((const GLubyte*) "glEnableVertexAttribArray");
-        glUniform1i = (PFNGLUNIFORM1IPROC) glXGetProcAddress((const GLubyte*) "glUniform1i");
-        glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC) glXGetProcAddress((const GLubyte*) "glUniformMatrix4fv");
-        glBufferData = (PFNGLBUFFERDATAPROC) glXGetProcAddress((const GLubyte*) "glBufferData");
-        glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC) glXGetProcAddress((const GLubyte*) "glDeleteVertexArrays");
-        glDeleteBuffers = (PFNGLDELETEBUFFERSPROC) glXGetProcAddress((const GLubyte*) "glDeleteBuffers");
+        glCreateShader = (PFNGLCREATESHADERPROC) GetProcAddress((PROCADDRNAMEPTR) "glCreateShader");
+        glGetProgramiv = (PFNGLGETPROGRAMIVPROC) GetProcAddress((PROCADDRNAMEPTR) "glGetProgramiv");
+        glShaderSource = (PFNGLSHADERSOURCEPROC) GetProcAddress((PROCADDRNAMEPTR) "glShaderSource");
+        glCompileShader = (PFNGLCOMPILESHADERPROC) GetProcAddress((PROCADDRNAMEPTR) "glCompileShader");
+        glGetShaderiv = (PFNGLGETSHADERIVPROC) GetProcAddress((PROCADDRNAMEPTR) "glGetShaderiv");
+        glGetShaderInfoLog = (PFNGLGETSHADERINFOLOGPROC) GetProcAddress((PROCADDRNAMEPTR) "glGetShaderInfoLog");
+        glCreateProgram = (PFNGLCREATEPROGRAMPROC) GetProcAddress((PROCADDRNAMEPTR) "glCreateProgram");
+        glAttachShader = (PFNGLATTACHSHADERPROC) GetProcAddress((PROCADDRNAMEPTR) "glAttachShader");
+        glLinkProgram = (PFNGLLINKPROGRAMPROC) GetProcAddress((PROCADDRNAMEPTR) "glLinkProgram");
+        glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) GetProcAddress((PROCADDRNAMEPTR) "glGetUniformLocation");
+        glGetAttribLocation = (PFNGLGETATTRIBLOCATIONPROC) GetProcAddress((PROCADDRNAMEPTR) "glGetAttribLocation");
+        glUseProgram = (PFNGLUSEPROGRAMPROC) GetProcAddress((PROCADDRNAMEPTR) "glUseProgram");
+        glGenVertexArrays = (PFNGLGENVERTEXARRAYSPROC) GetProcAddress((PROCADDRNAMEPTR) "glGenVertexArrays");
+        glBindVertexArray = (PFNGLBINDVERTEXARRAYPROC) GetProcAddress((PROCADDRNAMEPTR) "glBindVertexArray");
+        glGenBuffers = (PFNGLGENBUFFERSPROC) GetProcAddress((PROCADDRNAMEPTR) "glGenBuffers");
+        glBindBuffer = (PFNGLBINDBUFFERPROC) GetProcAddress((PROCADDRNAMEPTR) "glBindBuffer");
+        glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC) GetProcAddress((PROCADDRNAMEPTR) "glVertexAttribPointer");
+        glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC) GetProcAddress((PROCADDRNAMEPTR) "glEnableVertexAttribArray");
+        glUniform1i = (PFNGLUNIFORM1IPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniform1i");
+        glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniformMatrix4fv");
+        glBufferData = (PFNGLBUFFERDATAPROC) GetProcAddress((PROCADDRNAMEPTR) "glBufferData");
+        glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC) GetProcAddress((PROCADDRNAMEPTR) "glDeleteVertexArrays");
+        glDeleteBuffers = (PFNGLDELETEBUFFERSPROC) GetProcAddress((PROCADDRNAMEPTR) "glDeleteBuffers");
     }
 
     Result BuildShader(std::string const &shaderSource, GLuint &shader, GLenum type) {
@@ -283,7 +295,9 @@ namespace videodevice
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elem), elem, GL_STATIC_DRAW);
         glBindVertexArray(0);
 
+#ifndef WIN32 // FIXME TBM_desjare
         glActiveTexture(GL_TEXTURE0);
+#endif
         glGenTextures(1, &device->frameTexture);
         glBindTexture(GL_TEXTURE_2D, device->frameTexture);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

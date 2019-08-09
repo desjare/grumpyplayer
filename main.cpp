@@ -1,3 +1,5 @@
+#include "precomp.h"
+
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/bind.hpp>

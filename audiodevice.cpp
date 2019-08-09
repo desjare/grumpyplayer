@@ -1,8 +1,10 @@
 
-
+#include "precomp.h"
 #include "audiodevice.h"
 
 namespace {
+
+#ifdef HAVE_ALSA
     snd_pcm_format_t SampleFormatToASound(SampleFormat sf)
     {
     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -36,10 +38,13 @@ namespace {
         }
         return sndFormat;
     }
+#endif
+
 }
 
 namespace audiodevice
 {
+#ifdef HAVE_ALSA
     Result Create(Device*& device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
     {
         Result result;
@@ -176,6 +181,49 @@ namespace audiodevice
         delete device;
         
     }
+#endif
+
+#ifdef WIN32
+	Result Create(Device*& device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+	{
+		Result result;
+
+		device = new Device();
+
+		return result;
+	}
+
+	Result WriteInterleaved(Device* device, void* buf, uint32_t frames)
+	{
+		Result result;
+		return result;
+	}
+
+	Result Drop(Device* device)
+	{
+		Result result;
+		return result;
+	}
+
+	Result Pause(Device* device)
+	{
+		Result result;
+		return result;
+	}
+
+	Result Resume(Device* device)
+	{
+		Result result;
+
+		return result;
+	}
+
+	void Destroy(Device* device)
+	{
+		delete device;
+
+	}
+#endif
 
 }
 
