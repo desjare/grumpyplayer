@@ -3,6 +3,11 @@ project(grumpyplayer)
 
 set(CMAKE_CXX_STANDARD 17)
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("Debug Build")
+    add_definitions(-D_DEBUG)	
+endif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
 # Linux defs
 if (UNIX)
     add_definitions(-DHAVE_ALSA)	
@@ -24,7 +29,8 @@ if (UNIX)
     find_library(BOOST_SYSTEM_LIBRARY boost_system REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
 
     set(THREAD_LIBRARY pthread)
-    set(GL_LIBRARY GL)
+    set(GL_LIBRARY GL GLU)
+
     SET(NET_LIBRARY )
 endif (UNIX)
 
