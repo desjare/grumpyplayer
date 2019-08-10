@@ -89,7 +89,7 @@ namespace {
 
     Proc GetProcAddress(PROCADDRNAMEPTR n )
     {
-        Proc addr = vdGetProcAddress(n);
+        Proc addr = (Proc) vdGetProcAddress(n);
         if(!addr) 
         {
             logger::Error("GetProcAddress %s not found!", reinterpret_cast<const char*>(n));
@@ -128,7 +128,7 @@ namespace {
 
     Result BuildShader(std::string const &shaderSource, GLuint &shader, GLenum type) {
         Result result;
-        int32_t size = shaderSource.length();
+        int32_t size = static_cast<int32_t>(shaderSource.length());
         GL_CHECK(shader = glCreateShader(type));
         char const *cShaderSource = shaderSource.c_str();
         GL_CHECK(glShaderSource(shader, 1, (GLchar const **)&cShaderSource, &size));
@@ -344,7 +344,7 @@ namespace videodevice
         GL_CHECK(glBindVertexArray(device->vertexArray));
         
         // vertexBuffer
-        WriteVertexBuffer(device, 0, 0, width, height);
+        WriteVertexBuffer(device, 0, 0, static_cast<float>(width), static_cast<float>(height));
 
         GL_CHECK(glVertexAttribPointer(device->attribs[Device::VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)NULL + (0))));
         GL_CHECK(glEnableVertexAttribArray(device->attribs[Device::VERTICES]));

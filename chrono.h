@@ -63,7 +63,7 @@ namespace chrono
     	sec = time;
 
         char buf[BUFSIZ];
-        snprintf(buf, sizeof(buf), "%2.2ldh%2.2ldm%2.2lds", hour, min, sec);
+        snprintf(buf, sizeof(buf), "%lldh%lldm%llds", hour, min, sec);
 
         return buf;
     }

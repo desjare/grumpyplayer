@@ -57,7 +57,7 @@ if (WIN32)
 
     set(SOUND_LIBRARY )
     set(THREAD_LIBRARY )
-    set(GL_LIBRARY opengl32)
+    set(GL_LIBRARY opengl32 Glu32)
     SET(NET_LIBRARY Ws2_32 Secur32 Bcrypt)
 
     add_compile_options(-I${3RDPARTY})

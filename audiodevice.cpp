@@ -226,13 +226,19 @@ namespace audiodevice
 #endif
 
 #ifdef WIN32
-	Result Create(Device*& device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+	Result Create(Device*& device)
 	{
 		Result result;
 
 		device = new Device();
         memset(device, 0, sizeof(Device));
 
+		return result;
+	}
+
+	Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+	{
+		Result result;
 		return result;
 	}
 
@@ -261,9 +267,10 @@ namespace audiodevice
 		return result;
 	}
 
-	void Destroy(Device* device)
+	void Destroy(Device*& device)
 	{
 		delete device;
+		device = NULL;
 
 	}
 #endif

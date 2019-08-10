@@ -109,7 +109,8 @@ namespace profiler
             GetPointName(static_cast<Point>(i), name);
 
             double currentTime = chrono::Milliseconds(p.currentTime);
-            double averageTime = chrono::Milliseconds(Average(p.totalTime, p.count));
+			double averageTimeUs = Average(p.totalTime, p.count);
+            double averageTime = chrono::Milliseconds(static_cast<uint64_t>(averageTimeUs));
 
             out << name << " (" << currentTime << "," << averageTime << ") ";
         }

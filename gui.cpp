@@ -112,8 +112,8 @@ namespace {
     {
         gui::Handle* handle = handles[window];
 
-        handle->posx = xpos;
-        handle->posy = ypos;
+        handle->posx = static_cast<int32_t>(xpos);
+        handle->posy = static_cast<int32_t>(ypos);
     }
 
     void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
