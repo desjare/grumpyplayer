@@ -3,6 +3,7 @@
 #include <chrono>
 #include <thread>
 #include <stdio.h>
+#include <inttypes.h>
 
 namespace chrono
 {
@@ -63,7 +64,7 @@ namespace chrono
     	sec = time;
 
         char buf[BUFSIZ];
-        snprintf(buf, sizeof(buf), "%lldh%lldm%llds", hour, min, sec);
+        snprintf(buf, sizeof(buf), "%" PRId64 "h%" PRId64 "m%" PRId64 "s", hour, min, sec);
 
         return buf;
     }
