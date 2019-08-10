@@ -551,8 +551,13 @@ namespace mediadecoder
         return decoder->avFormatContext->duration;
     }
 
-    void Destroy(Decoder* decoder)
+    void Destroy(Decoder*& decoder)
     {  
+        if(!decoder)
+        {
+            return;
+        }
+
         curl::Destroy(decoder->curl);
         av_frame_free(&decoder->videoStream->frame);
         sws_freeContext(decoder->videoStream->swsContext);
@@ -564,6 +569,7 @@ namespace mediadecoder
         avformat_free_context(decoder->avFormatContext);
 
         delete decoder;
+        decoder = NULL;
     }
 
     bool ContinueDecoding(Producer* producer)
@@ -686,8 +692,13 @@ namespace mediadecoder
         return result;
     }
 
-    void Destroy(Producer* producer)
+    void Destroy(Producer*& producer)
     {
+        if(!producer)
+        {
+            return;
+        }
+
         producer->quitting = true;
         producer->thread.join();
 
@@ -702,6 +713,7 @@ namespace mediadecoder
         delete producer->audioFramePool;
  
         delete producer;
+        producer = NULL;
     }
 
     void Seek(Producer* producer, uint64_t timeUs)

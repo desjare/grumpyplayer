@@ -21,7 +21,6 @@ namespace player
 
         audiodevice::Device* audioDevice;
         videodevice::Device* videoDevice;
-        SwapBufferCallback swapBufferCallback;
 
         uint64_t playbackStartTimeUs;
         uint64_t currentTimeUs;
@@ -32,7 +31,7 @@ namespace player
     };
 
     Result   Init(SwapBufferCallback);
-    Result   Create(Player*& player, mediadecoder::Decoder*, audiodevice::Device* audioDevice, videodevice::Device* videoDevice);
+    Result   Create(Player*& player);
     Result   Open(Player*, const std::string& filename);
 
     void     Play(Player*);
@@ -46,7 +45,7 @@ namespace player
     void     Present(Player*);
     
     void     Close(Player*);
-    void     Destroy(Player*);
+    void     Destroy(Player*&);
 
 
 };

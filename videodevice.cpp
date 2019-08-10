@@ -453,13 +453,14 @@ namespace videodevice
         return result;
     }
 
-    void Destroy(Device* device)
+    void Destroy(Device*& device)
     {
         GL_CHECK(glDeleteVertexArrays(1, &device->vertexArray));
      	GL_CHECK(glDeleteBuffers(1, &device->vertexBuffer));
     	GL_CHECK(glDeleteBuffers(1, &device->elementBuffer));
 	    GL_CHECK(glDeleteTextures(1, &device->frameTexture));
         delete device;
+        device = NULL;
         currentDevice = NULL;
     }
 

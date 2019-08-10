@@ -123,10 +123,10 @@ namespace mediadecoder
     Result   Create(Decoder*& decoder);
     Result   Open(Decoder*& decoder, const std::string& filename);
     uint64_t GetDuration(Decoder* decoder);
-    void     Destroy(Decoder*);
+    void     Destroy(Decoder*&);
 
     Result Create(Producer*& producer, Decoder*);
-    void   Destroy(Producer*);
+    void   Destroy(Producer*&);
 
     void   Seek(Producer*,uint64_t timeUs);
     bool   IsSeeking(Producer*);

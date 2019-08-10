@@ -126,7 +126,12 @@ namespace {
     void StopAudio(player::Player* player, bool drop)
     {
         player->queueAudio = false;
-        player->audioThread.join();
+
+        if( player->audioThread.joinable() )
+        {
+            player->audioThread.join();
+        }
+
         if( drop )
         {
             audiodevice::Drop(player->audioDevice);
@@ -143,24 +148,34 @@ namespace player
         return result;
     }
 
-    Result Create(Player*& player, mediadecoder::Decoder* decoder, audiodevice::Device* audioDevice, videodevice::Device* videoDevice)
+    Result Create(Player*& player)
     {
         Result result;
         player = new Player();
-        player->decoder = decoder;
+        player->decoder = NULL;
+        player->producer = NULL;
         player->videoFrame = NULL;
-        player->audioDevice = audioDevice;
-        player->videoDevice = videoDevice;
+        player->audioDevice = NULL;
+        player->videoDevice = NULL ;
         player->playbackStartTimeUs = 0;
         player->currentTimeUs = 0;
         player->playing = false;
         player->queueAudio = false;
 
-        result = mediadecoder::Create(player->producer, decoder);
+        result = audiodevice::Create(player->audioDevice);
         if(!result)
         {
+            result = Result(false, result.getError());
             return result;
         }
+
+        result = videodevice::Create(player->videoDevice);
+        if(!result)
+        {
+            result = Result(false, result.getError());
+            return result;
+        }
+
         return result;
     }
 
@@ -190,6 +205,18 @@ namespace player
         {
             return result;
         }
+
+        mediadecoder::AudioStream* audioStream = player->decoder->audioStream;
+        const uint32_t channels = audioStream->channels;
+        const uint32_t sampleRate = audioStream->sampleRate;
+        const SampleFormat sampleFormat = audioStream->sampleFormat;
+
+        result = audiodevice::SetInputFormat(player->audioDevice,channels,sampleRate,sampleFormat);
+        if(!result)
+        {
+            return result;
+        }
+
 
         Play(player); 
 
@@ -325,15 +352,17 @@ namespace player
         player->playing = false;
 
         mediadecoder::Destroy(player->producer);
-        player->producer = NULL;
-
         mediadecoder::Destroy(player->decoder);
-        player->decoder = NULL;
     }
 
-    void Destroy(Player* player)
+    void Destroy(Player*& player)
     {
         Close(player);
+
+        audiodevice::Destroy(player->audioDevice);
+        videodevice::Destroy(player->videoDevice);
+
         delete player;
+        player = NULL;
     }
 }

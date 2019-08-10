@@ -101,39 +101,6 @@ Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
     return result;
 }
 
-Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& audioDevice, mediadecoder::Decoder* decoder)
-{
-    Result result;
-
-    mediadecoder::AudioStream* audioStream = decoder->audioStream;
-
-    const uint32_t channels = audioStream->channels;
-    const uint32_t sampleRate = audioStream->sampleRate;
-    const SampleFormat sampleFormat = audioStream->sampleFormat;
-
-    result = audiodevice::Create(audioDevice);
-    if(!result)
-    {
-        result = Result(false, result.getError());
-        return result;
-    }
-
-    result = audiodevice::SetInputFormat(audioDevice, channels, sampleRate, sampleFormat);
-    if(!result)
-    {
-        result = Result(false, result.getError());
-        return result;
-    }
-
-    result = videodevice::Create(videoDevice);
-    if(!result)
-    {
-        result = Result(false, result.getError());
-        return result;
-    }
-    return result;
-}
-
 void EnableProfiler(bool enable)
 {
     profiler::Enable(enable);
@@ -201,51 +168,16 @@ int main(int argc, char** argv)
     // gui 
     gui::Handle* uiHandle = NULL;
 
-    // devices
-    audiodevice::Device* audioDevice = NULL;
-    videodevice::Device* videoDevice = NULL;
-
-    // decoder
-    mediadecoder::Decoder* decoder = NULL;
-
     // player
     player::Player* player = NULL;
 
-    // create decoder and open media
-    Result result = mediadecoder::Create(decoder);
+    // Create windowsw
+    Result result = CreateWindows(uiHandle, 400, 400);
     if(!result)
     {
         logger::Error(result.getError().c_str());
         return 1;
     }
-    result = mediadecoder::Open(decoder, filename);
-    if(!result)
-    {
-        logger::Error(result.getError().c_str());
-        return 1;
-    }
-
-    // create windows 
-    mediadecoder::VideoStream* videoStream = decoder->videoStream;
-    const uint32_t videoWidth = videoStream->width;
-    const uint32_t videoHeight = videoStream->height;
-
-    result = CreateWindows(uiHandle, videoWidth, videoHeight);
-    if(!result)
-    {
-        logger::Error(result.getError().c_str());
-        return 1;
-    }
-
-    // create audio and video devices
-    result = CreateDevices(videoDevice, audioDevice, decoder);
-    if(!result)
-    {
-        logger::Error(result.getError().c_str());
-        return 1;
-    }
-
-    videodevice::SetVideoSize(videoDevice, videoWidth, videoHeight);
 
     // initialize the player
     player::SwapBufferCallback swapBufferCallback 
@@ -258,16 +190,26 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    result = player::Create(player, decoder, audioDevice, videoDevice);
+    result = player::Create(player);
     if(!result)
     {
         logger::Error(result.getError().c_str());
         return 1;
     }
 
+    // open media
+    result = player::Open(player, filename);
+    if(!result)
+    {
+        logger::Error("Unable to open %s: %s", filename.c_str(), result.getError().c_str());
+        return 1;
+    }
+
     // initialize gui callbacks
+    gui::SetWindowSize(uiHandle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+
     gui::WindowSizeChangeCb windowSizeChangeCallback 
-                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, videoDevice );
+                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, player->videoDevice );
 
     gui::FileDropCb fileDropCallback
                   = boost::bind(FileDropCallback, _1, _2, player);
@@ -282,7 +224,6 @@ int main(int argc, char** argv)
     gui::SetFileDropCallback(uiHandle, fileDropCallback);
     gui::SetSeekCallback(uiHandle, seekCallback);
     gui::SetPauseCallback(uiHandle, pauseCallback);
-
 
     // start playback
     player::Play(player);
@@ -303,10 +244,6 @@ int main(int argc, char** argv)
     }
 
     player::Destroy(player);
-
-    videodevice::Destroy(videoDevice);
-    audiodevice::Destroy(audioDevice);
-
     gui::Destroy();
 
     return 0;
