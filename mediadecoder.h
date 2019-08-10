@@ -117,6 +117,9 @@ namespace mediadecoder
         // seeking
         std::atomic<bool> seeking;
         uint64_t seekTime;
+
+        // eof
+        std::atomic<bool> done;
     };
 
     Result   Init();

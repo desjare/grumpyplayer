@@ -7,6 +7,7 @@
 namespace {
     const int64_t queueFullSleepTimeMs = 100;
     const int64_t pauseSleepTimeMs = 500;
+    const int64_t doneSleepTimeMs = 2000;
     player::SwapBufferCallback swapBufferCallback;
 }
 
@@ -333,15 +334,19 @@ namespace player
                  mediadecoder::Release(player->producer, player->videoFrame);
                  player->videoFrame = NULL;
              }
-             else if( !player->videoFrame )
-             {
-                 logger::Warn( "Player: No video frame" );
-             } 
              else 
              {
                  logger::Warn( "Player: No draw frame" );
              }
          }
+         else if(player->producer->done)
+         {
+             std::this_thread::sleep_for(std::chrono::milliseconds(doneSleepTimeMs));
+         }
+         else 
+         {
+             logger::Warn( "Player: No video frame" );
+         } 
     }
 
     void Close(Player* player)

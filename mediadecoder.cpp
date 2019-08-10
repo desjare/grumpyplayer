@@ -614,9 +614,19 @@ namespace mediadecoder
             int32_t outcome = av_read_frame(producer->decoder->avFormatContext, packet);
             if(outcome < 0 )
             {
-                std::string error = ErrorToString(outcome);
-                logger::Error("av_read_frame error %s", error.c_str());
-                continue;
+                if(outcome == AVERROR_EOF)
+                {
+                    producer->done = true;
+                    av_packet_free(&packet);
+                    av_frame_free(&frame);
+                    return;
+                }
+                else
+                {
+                    std::string error = ErrorToString(outcome);
+                    logger::Error("av_read_frame error %s", error.c_str());
+                    continue;
+                }
             }
 
             Stream* stream = producer->streams[packet->stream_index];
