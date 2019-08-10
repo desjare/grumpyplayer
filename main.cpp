@@ -121,21 +121,24 @@ void SetLogLevel(std::string level)
 int main(int argc, char** argv)
 {
     std::string program = boost::filesystem::path(argv[0]).filename().string();
-    std::string filename;
+    std::string path;
 
     Init();
 
     try{
-		boost::program_options::options_description desc{"Options"};
-		desc.add_options()
-		  ("help,h", "Print program options.")
-		  ("filename", boost::program_options::value<std::string>(), "Path the the media file.")
-		  ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler), "Enable profiling.")
-		  ("loglevel", boost::program_options::value<std::string>(), "Specify log level: debug, info, warning or error.");
+        boost::program_options::positional_options_description p;
+        p.add("path", -1);
 
-		boost::program_options::variables_map vm;
-		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-		boost::program_options::notify(vm);
+        boost::program_options::options_description desc{"Options"};
+        desc.add_options()
+          ("help,h", "Print program options.")
+          ("path", boost::program_options::value<std::string>(), "Path the the media file.")
+          ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler), "Enable profiling.")
+          ("loglevel", boost::program_options::value<std::string>(), "Specify log level: debug, info, warning or error.");
+
+        boost::program_options::variables_map vm;
+        boost::program_options::store(boost::program_options::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+        boost::program_options::notify(vm);
         
         if( vm.count("help" ) )
         {
@@ -143,9 +146,9 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        if( vm.count("filename") )
+        if( vm.count("path") )
         {
-            filename = vm["filename"].as<std::string>();
+            path = vm["path"].as<std::string>();
         }
         else
         {
@@ -198,10 +201,10 @@ int main(int argc, char** argv)
     }
 
     // open media
-    result = player::Open(player, filename);
+    result = player::Open(player, path);
     if(!result)
     {
-        logger::Error("Unable to open %s: %s", filename.c_str(), result.getError().c_str());
+        logger::Error("Unable to open %s: %s", path.c_str(), result.getError().c_str());
         return 1;
     }
 
@@ -237,7 +240,7 @@ int main(int argc, char** argv)
         profiler::Print();
 
         SetWindowTitle(uiHandle, player::GetCurrentTime(player), 
-                       player::GetDuration(player), program, filename);
+                       player::GetDuration(player), program, path);
 
         // poll ui events
         gui::PollEvents();
