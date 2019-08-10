@@ -32,5 +32,11 @@ The png library used is lodepng. It can be found here: https://lodev.org/lodepng
 
 <h1>Build</h1>
 
-  * cmake CMakeLists.txt
-  * make
+* cmake CMakeLists.txt
+* make
+
+<h1>Bugs</h1>
+
+* The player pre-buffer a lot of frames and is consuming a lot of memory.
+* When streaming video, it will buffer the entire file and release bytes as they are read.
+* The player windows implementation is incomplete. It has no sound. It is also possibly buggy and untested.
