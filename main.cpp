@@ -111,7 +111,14 @@ Result CreateDevices(videodevice::Device*& videoDevice, audiodevice::Device*& au
     const uint32_t sampleRate = audioStream->sampleRate;
     const SampleFormat sampleFormat = audioStream->sampleFormat;
 
-    result = audiodevice::Create(audioDevice, channels, sampleRate, sampleFormat );
+    result = audiodevice::Create(audioDevice);
+    if(!result)
+    {
+        result = Result(false, result.getError());
+        return result;
+    }
+
+    result = audiodevice::SetInputFormat(audioDevice, channels, sampleRate, sampleFormat);
     if(!result)
     {
         result = Result(false, result.getError());

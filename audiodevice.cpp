@@ -45,10 +45,9 @@ namespace {
 namespace audiodevice
 {
 #ifdef HAVE_ALSA
-    Result Create(Device*& device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+    Result Create(Device*& device)
     {
         Result result;
-        snd_pcm_hw_params_t* hwParams = NULL;
 
         device = new Device();
 
@@ -58,8 +57,28 @@ namespace audiodevice
             result = Result(false, "Cannot open audio device %s", snd_strerror(err));
             return result;
         }
+        return result;
+    }
 
-        err = snd_pcm_hw_params_malloc(&hwParams);
+    void Destroy(Device*& device)
+    {
+        snd_pcm_close(device->playbackHandle);
+        delete device;
+        device = NULL;
+    }
+
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+    {
+        Result result;
+
+        assert(device);
+        if(!device)
+        {
+            result = Result(false, "Invalid audiodevice");
+        }
+
+        snd_pcm_hw_params_t* hwParams = NULL;
+        int err = snd_pcm_hw_params_malloc(&hwParams);
         if( err < 0 )
         {
             result = Result(false, "Cannot allocate hardware parameter structure %s", snd_strerror(err));
@@ -118,11 +137,19 @@ namespace audiodevice
         }
 
         return result;
+
     }
 
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames)
     {
         Result result;
+
+        assert(device);
+        if(!device)
+        {
+            return Result(false, "Invalid audiodevice");
+        }
+
         snd_pcm_sframes_t written = snd_pcm_writei(device->playbackHandle, buf, frames);
         if( written < 0 )
         {
@@ -135,6 +162,13 @@ namespace audiodevice
     Result Drop(Device* device)
     {
         Result result;
+
+        assert(device);
+        if(!device)
+        {
+            result = Result(false, "Invalid audiodevice");
+        }
+
         int err = snd_pcm_drop(device->playbackHandle);
         if( err < 0 )
         {
@@ -154,6 +188,13 @@ namespace audiodevice
     Result Pause(Device* device)
     {
         Result result;
+
+        assert(device);
+        if(!device)
+        {
+            result = Result(false, "Invalid audiodevice");
+        }
+
         int err = snd_pcm_pause(device->playbackHandle,1);
         if( err < 0 )
         {
@@ -166,6 +207,13 @@ namespace audiodevice
     Result Resume(Device* device)
     {
         Result result;
+
+        assert(device);
+        if(!device)
+        {
+            result = Result(false, "Invalid audiodevice");
+        }
+
         int err = snd_pcm_pause(device->playbackHandle,0);
         if( err < 0 )
         {
@@ -175,12 +223,6 @@ namespace audiodevice
         return result;
     }
 
-    void Destroy(Device* device)
-    {
-        snd_pcm_close(device->playbackHandle);
-        delete device;
-        
-    }
 #endif
 
 #ifdef WIN32
@@ -189,6 +231,7 @@ namespace audiodevice
 		Result result;
 
 		device = new Device();
+        memset(device, 0, sizeof(Device));
 
 		return result;
 	}
