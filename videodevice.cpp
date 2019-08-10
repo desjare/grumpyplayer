@@ -283,7 +283,7 @@ namespace videodevice
 {
     Result Init()
     {
-        InitGLext();
+
         return Result();
     }
 
@@ -295,6 +295,9 @@ namespace videodevice
         {
             return Result(false, "Video device already exist. Cannot create more than one device.");
         }
+
+		// must be done after context creation on windows
+		InitGLext();
 
         device = new Device();
         memset(device, 0, sizeof(Device));
