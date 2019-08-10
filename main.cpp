@@ -175,7 +175,7 @@ int main(int argc, char** argv)
     player::Player* player = NULL;
 
     // Create windowsw
-    Result result = CreateWindows(uiHandle, 400, 400);
+    Result result = CreateWindows(uiHandle, 640, 480);
     if(!result)
     {
         logger::Error(result.getError().c_str());
@@ -208,9 +208,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // initialize gui callbacks
+    // resize window to media size
     gui::SetWindowSize(uiHandle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+    gui::ShowWindow(uiHandle);
 
+    // initialize gui callbacks
     gui::WindowSizeChangeCb windowSizeChangeCallback 
                   = boost::bind(WindowSizeChangeCallback, _1, _2, _3, player->videoDevice );
 

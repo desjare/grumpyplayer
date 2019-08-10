@@ -56,6 +56,9 @@ namespace gui
     void   SetWindowSize(Handle*, uint32_t width, uint32_t height);
     void   SwapBuffers(Handle* handle);
     
+    void   ShowWindow(Handle* handle);
+    void   HideWindow(Handle* handle);
+
     bool   ShouldClose(Handle* handle);
     void   PollEvents();
     
