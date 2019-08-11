@@ -26,13 +26,17 @@ namespace {
     void FileDropCallback(gui::Handle* handle, const std::string& filename, player::Player* player)
     {
         Result result = player::Open(player, filename);
-        if(!result)
+        if(result)
         {
-            logger::Error("Unable to open %s: %s", filename.c_str(), result.getError().c_str());
+            if( !gui::IsFullScreen(handle) )
+            {
+                gui::SetWindowSize(handle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+            }
+            player::Play(player);
         }
         else
         {
-            gui::SetWindowSize(handle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+            logger::Error("Unable to open %s: %s", filename.c_str(), result.getError().c_str());
         }
     }
 
@@ -175,7 +179,7 @@ int main(int argc, char** argv)
     player::Player* player = NULL;
 
     // Create windowsw
-    Result result = CreateWindows(uiHandle, 400, 400);
+    Result result = CreateWindows(uiHandle, 640, 480);
     if(!result)
     {
         logger::Error(result.getError().c_str());
@@ -208,9 +212,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // initialize gui callbacks
+    // resize window to media size
     gui::SetWindowSize(uiHandle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+    gui::ShowWindow(uiHandle);
 
+    // initialize gui callbacks
     gui::WindowSizeChangeCb windowSizeChangeCallback 
                   = boost::bind(WindowSizeChangeCallback, _1, _2, _3, player->videoDevice );
 
@@ -240,7 +246,7 @@ int main(int argc, char** argv)
         profiler::Print();
 
         SetWindowTitle(uiHandle, player::GetCurrentTime(player), 
-                       player::GetDuration(player), program, path);
+                       player::GetDuration(player), program, player::GetPath(player));
 
         // poll ui events
         gui::PollEvents();

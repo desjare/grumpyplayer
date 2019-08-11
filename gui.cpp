@@ -167,6 +167,7 @@ namespace gui
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
         handle->window = glfwCreateWindow(width, height, "grumpy", NULL, NULL);
         if(!handle->window)
@@ -244,6 +245,16 @@ namespace gui
     void SwapBuffers(Handle* handle)
     {
         glfwSwapBuffers(handle->window);
+    }
+
+    void ShowWindow(Handle* handle)
+    {
+        glfwShowWindow(handle->window);
+    }
+
+    void Hideindow(Handle* handle)
+    {
+        glfwHideWindow(handle->window);
     }
 
     bool ShouldClose(Handle* handle)

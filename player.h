@@ -14,6 +14,8 @@ namespace player
 
     struct Player
     {
+        std::string path;
+
         mediadecoder::Decoder* decoder;
         
         mediadecoder::Producer* producer;
@@ -41,6 +43,7 @@ namespace player
     bool     IsPlaying(Player*);
     uint64_t GetDuration(Player*);
     uint64_t GetCurrentTime(Player*);
+    const std::string& GetPath(Player*);
     
     void     Present(Player*);
     

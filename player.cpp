@@ -195,6 +195,8 @@ namespace player
             return result;
         }
 
+        player->path = filename;
+
         result = mediadecoder::Create(player->producer, player->decoder);
         if(!result)
         {
@@ -217,9 +219,6 @@ namespace player
         {
             return result;
         }
-
-
-        Play(player); 
 
         return result;
     }
@@ -301,6 +300,11 @@ namespace player
         return player->currentTimeUs;
     }
 
+    const std::string& GetPath(Player* player)
+    {
+        return player->path;
+    }
+
     void Present(Player* player)
     {
          if(!player->playing)
@@ -354,6 +358,7 @@ namespace player
         StopAudio(player, true);
 
         player->playbackStartTimeUs = 0;
+        player->currentTimeUs = 0;
         player->playing = false;
 
         mediadecoder::Destroy(player->producer);
