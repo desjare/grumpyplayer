@@ -117,6 +117,8 @@ namespace {
         {
             player->queueAudio = true;
             player->audioThread = std::thread(AudioPlaybackThread, player);
+
+			audiodevice::Start(player->audioDevice);
         }
         else
         {
@@ -219,6 +221,8 @@ namespace player
         {
             return result;
         }
+
+		audiodevice::Resume(player->audioDevice);
 
         return result;
     }
