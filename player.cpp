@@ -220,8 +220,6 @@ namespace player
             return result;
         }
 
-        audiodevice::Resume(player->audioDevice);
-
         return result;
     }
 
