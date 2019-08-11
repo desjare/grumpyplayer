@@ -4,8 +4,13 @@
 #include <alsa/asoundlib.h>
 #endif
 
+#ifdef WIN32
+#include <xaudio2.h>
+#endif
+
 #include "result.h"
 #include "mediaformat.h"
+
 
 namespace audiodevice
 {
@@ -15,6 +20,11 @@ namespace audiodevice
     {
 #ifdef HAVE_ALSA
         snd_pcm_t* playbackHandle;
+#endif
+
+#ifdef WIN32
+		IXAudio2* xaudioHandle;
+		IXAudio2MasteringVoice* masterVoice;
 #endif
     };
 

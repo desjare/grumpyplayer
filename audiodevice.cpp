@@ -2,6 +2,8 @@
 #include "precomp.h"
 #include "audiodevice.h"
 
+#include <system_error>
+
 namespace {
 
 #ifdef HAVE_ALSA
@@ -230,8 +232,17 @@ namespace audiodevice
 	{
 		Result result;
 
+		CoInitialize(NULL);
+
 		device = new Device();
         memset(device, 0, sizeof(Device));
+
+		HRESULT hr;
+		if (FAILED(hr = XAudio2Create(&device->xaudioHandle, 0, XAUDIO2_DEFAULT_PROCESSOR)))
+		{
+			return Result(false, "XAudio2Create failed. Error: %s", std::system_category().message(hr).c_str());
+		}
+
 
 		return result;
 	}
@@ -239,6 +250,14 @@ namespace audiodevice
 	Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
 	{
 		Result result;
+
+		HRESULT hr;
+		if (FAILED(hr = device->xaudioHandle->CreateMasteringVoice(&device->masterVoice, channels, sampleRate, 0, 0, 0)))
+		{
+			return Result(false, "CreateMasteringVoice failed. Error: %s", std::system_category().message(hr).c_str());
+		}
+
+
 		return result;
 	}
 
@@ -269,8 +288,14 @@ namespace audiodevice
 
 	void Destroy(Device*& device)
 	{
-		delete device;
-		device = NULL;
+		if (device)
+		{
+			device->xaudioHandle->Release();
+
+			delete device;
+			device = NULL;
+		}
+
 
 	}
 #endif
