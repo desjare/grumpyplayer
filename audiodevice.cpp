@@ -247,7 +247,6 @@ namespace audiodevice
 			return Result(false, "XAudio2Create failed. Error: %s", std::system_category().message(hr).c_str());
 		}
 
-
 		return result;
 	}
 
@@ -261,7 +260,7 @@ namespace audiodevice
 			return Result(false, "CreateMasteringVoice failed. Error: %s", std::system_category().message(hr).c_str());
 		}
 
-		WAVEFORMATEX wfx;
+		WAVEFORMATEX& wfx = device->wfx;
 		wfx.nChannels = channels;
 		wfx.nSamplesPerSec = sampleRate;
 
@@ -303,13 +302,15 @@ namespace audiodevice
 		return result;
 	}
 
-	Result WriteInterleaved(Device* device, void* buf, uint32_t frames)
+	Result WriteInterleaved(Device* device, void* buf, uint32_t nbSamples)
 	{
 		Result result;
+		
+		const WAVEFORMATEX& wfx = device->wfx;
 		XAUDIO2_BUFFER buffer;
 		memset(&buffer, 0, sizeof(XAUDIO2_BUFFER));
 
-		buffer.AudioBytes = frames;
+		buffer.AudioBytes = nbSamples * wfx.nChannels * wfx.wBitsPerSample / 8;
 		buffer.pAudioData = reinterpret_cast<BYTE*>(buf);
 
 		HRESULT hr;
@@ -329,6 +330,7 @@ namespace audiodevice
 		{
 			return Result(false, "Start failed. Error: %s", std::system_category().message(hr).c_str());
 		}
+		
 		return result;
 	}
 

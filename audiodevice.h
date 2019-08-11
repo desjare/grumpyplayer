@@ -26,6 +26,7 @@ namespace audiodevice
 		IXAudio2* xaudioHandle;
 		IXAudio2MasteringVoice* masterVoice;
 		IXAudio2SourceVoice* sourceVoice;
+		WAVEFORMATEX wfx;
 #endif
     };
 

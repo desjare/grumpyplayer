@@ -8,8 +8,6 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libavdevice/avdevice.h>
-#include <libswresample/swresample.h>
 #include <libswscale/swscale.h>
 }
 
