@@ -23,10 +23,10 @@ namespace audiodevice
 #endif
 
 #ifdef WIN32
-		IXAudio2* xaudioHandle;
-		IXAudio2MasteringVoice* masterVoice;
-		IXAudio2SourceVoice* sourceVoice;
-		WAVEFORMATEX wfx;
+        IXAudio2* xaudioHandle;
+        IXAudio2MasteringVoice* masterVoice;
+        IXAudio2SourceVoice* sourceVoice;
+        WAVEFORMATEX wfx;
 #endif
     };
 
@@ -37,12 +37,12 @@ namespace audiodevice
     
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames);
     
-	Result Start(Device*);
+    Result Start(Device*);
 
     Result Pause(Device*);
     Result Resume(Device*);
-	
-	Result Drop(Device*);
+    
+    Result Drop(Device*);
 
 }
 

@@ -228,161 +228,161 @@ namespace audiodevice
 #endif
 
 #ifdef WIN32
-	Result Create(Device*& device)
-	{
-		Result result;
+    Result Create(Device*& device)
+    {
+        Result result;
 
-		HRESULT hr;
-		if (FAILED(hr = CoInitialize(NULL)))
-		{
-			return Result(false, "CoInitialize failed. Error: %s", std::system_category().message(hr).c_str());
-		}
+        HRESULT hr;
+        if (FAILED(hr = CoInitialize(NULL)))
+        {
+            return Result(false, "CoInitialize failed. Error: %s", std::system_category().message(hr).c_str());
+        }
 
-		device = new Device();
+        device = new Device();
         memset(device, 0, sizeof(Device));
 
 
-		if (FAILED(hr = XAudio2Create(&device->xaudioHandle, 0, XAUDIO2_DEFAULT_PROCESSOR)))
-		{
-			return Result(false, "XAudio2Create failed. Error: %s", std::system_category().message(hr).c_str());
-		}
+        if (FAILED(hr = XAudio2Create(&device->xaudioHandle, 0, XAUDIO2_DEFAULT_PROCESSOR)))
+        {
+            return Result(false, "XAudio2Create failed. Error: %s", std::system_category().message(hr).c_str());
+        }
 
-		return result;
-	}
+        return result;
+    }
 
-	Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
-	{
-		Result result;
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+    {
+        Result result;
 
-		HRESULT hr;
-		if (FAILED(hr = device->xaudioHandle->CreateMasteringVoice(&device->masterVoice, channels, sampleRate, 0, 0, 0)))
-		{
-			return Result(false, "CreateMasteringVoice failed. Error: %s", std::system_category().message(hr).c_str());
-		}
+        HRESULT hr;
+        if (FAILED(hr = device->xaudioHandle->CreateMasteringVoice(&device->masterVoice, channels, sampleRate, 0, 0, 0)))
+        {
+            return Result(false, "CreateMasteringVoice failed. Error: %s", std::system_category().message(hr).c_str());
+        }
 
-		WAVEFORMATEX& wfx = device->wfx;
-		wfx.nChannels = channels;
-		wfx.nSamplesPerSec = sampleRate;
+        WAVEFORMATEX& wfx = device->wfx;
+        wfx.nChannels = channels;
+        wfx.nSamplesPerSec = sampleRate;
 
-		switch (sampleFormat)
-		{
-		case SF_FMT_U8:
-			wfx.wBitsPerSample = 8;
-			wfx.wFormatTag = WAVE_FORMAT_PCM;
-			break;
-		case SF_FMT_S16:
-			wfx.wBitsPerSample = 16;
-			wfx.wFormatTag = WAVE_FORMAT_PCM;
-			break;
-		case SF_FMT_S32:
-			wfx.wBitsPerSample = 32;
-			wfx.wFormatTag = WAVE_FORMAT_PCM;
-			break;
-		case SF_FMT_FLOAT:
-			wfx.wBitsPerSample = 32;
-			wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-			break;
-		case SF_FMT_DOUBLE:
-			wfx.wBitsPerSample = 64;		
-			wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-			break;
-		case SF_FMT_INVALID:
-			return Result(false, "Invalid Sample Format.");
-		}
+        switch (sampleFormat)
+        {
+        case SF_FMT_U8:
+            wfx.wBitsPerSample = 8;
+            wfx.wFormatTag = WAVE_FORMAT_PCM;
+            break;
+        case SF_FMT_S16:
+            wfx.wBitsPerSample = 16;
+            wfx.wFormatTag = WAVE_FORMAT_PCM;
+            break;
+        case SF_FMT_S32:
+            wfx.wBitsPerSample = 32;
+            wfx.wFormatTag = WAVE_FORMAT_PCM;
+            break;
+        case SF_FMT_FLOAT:
+            wfx.wBitsPerSample = 32;
+            wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+            break;
+        case SF_FMT_DOUBLE:
+            wfx.wBitsPerSample = 64;        
+            wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+            break;
+        case SF_FMT_INVALID:
+            return Result(false, "Invalid Sample Format.");
+        }
 
-		wfx.nBlockAlign = wfx.nChannels * (wfx.wBitsPerSample / 8);
-		wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
-		wfx.cbSize = 0;
+        wfx.nBlockAlign = wfx.nChannels * (wfx.wBitsPerSample / 8);
+        wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+        wfx.cbSize = 0;
 
-		if (FAILED(hr = device->xaudioHandle->CreateSourceVoice(&device->sourceVoice, (WAVEFORMATEX*)&wfx)))
-		{
-			return Result(false, "CreateSourceVoice failed. Error: %s", std::system_category().message(hr).c_str());
-		}
+        if (FAILED(hr = device->xaudioHandle->CreateSourceVoice(&device->sourceVoice, (WAVEFORMATEX*)&wfx)))
+        {
+            return Result(false, "CreateSourceVoice failed. Error: %s", std::system_category().message(hr).c_str());
+        }
 
-		return result;
-	}
+        return result;
+    }
 
-	Result WriteInterleaved(Device* device, void* buf, uint32_t nbSamples)
-	{
-		Result result;
-		
-		const WAVEFORMATEX& wfx = device->wfx;
-		XAUDIO2_BUFFER buffer;
-		memset(&buffer, 0, sizeof(XAUDIO2_BUFFER));
+    Result WriteInterleaved(Device* device, void* buf, uint32_t nbSamples)
+    {
+        Result result;
+        
+        const WAVEFORMATEX& wfx = device->wfx;
+        XAUDIO2_BUFFER buffer;
+        memset(&buffer, 0, sizeof(XAUDIO2_BUFFER));
 
-		buffer.AudioBytes = nbSamples * wfx.nChannels * wfx.wBitsPerSample / 8;
-		buffer.pAudioData = reinterpret_cast<BYTE*>(buf);
+        buffer.AudioBytes = nbSamples * wfx.nChannels * wfx.wBitsPerSample / 8;
+        buffer.pAudioData = reinterpret_cast<BYTE*>(buf);
 
-		HRESULT hr;
+        HRESULT hr;
 
-		if (FAILED(hr = device->sourceVoice->SubmitSourceBuffer(&buffer)))
-		{
-			return Result(false, "SubmitSourceBuffer failed. Error: %s", std::system_category().message(hr).c_str());
-		}
-		return result;
-	}
+        if (FAILED(hr = device->sourceVoice->SubmitSourceBuffer(&buffer)))
+        {
+            return Result(false, "SubmitSourceBuffer failed. Error: %s", std::system_category().message(hr).c_str());
+        }
+        return result;
+    }
 
-	Result Start(Device* device)
-	{
-		Result result;
-		HRESULT hr;
-		if (FAILED(hr = device->sourceVoice->Start()))
-		{
-			return Result(false, "Start failed. Error: %s", std::system_category().message(hr).c_str());
-		}
-		
-		return result;
-	}
+    Result Start(Device* device)
+    {
+        Result result;
+        HRESULT hr;
+        if (FAILED(hr = device->sourceVoice->Start()))
+        {
+            return Result(false, "Start failed. Error: %s", std::system_category().message(hr).c_str());
+        }
+        
+        return result;
+    }
 
-	Result Pause(Device* device)
-	{
-		Result result;
-		HRESULT hr;
-		if (FAILED(hr = device->sourceVoice->Stop()))
-		{
-			return Result(false, "Stop failed. Error: %s", std::system_category().message(hr).c_str());
-		}
-		return result;
-	}
+    Result Pause(Device* device)
+    {
+        Result result;
+        HRESULT hr;
+        if (FAILED(hr = device->sourceVoice->Stop()))
+        {
+            return Result(false, "Stop failed. Error: %s", std::system_category().message(hr).c_str());
+        }
+        return result;
+    }
 
-	Result Resume(Device* device)
-	{
-		Result result;
-		HRESULT hr;
-		if (FAILED(hr = device->sourceVoice->Start()))
-		{
-			return Result(false, "Start failed. Error: %s", std::system_category().message(hr).c_str());
-		}
-		return result;
-	}
+    Result Resume(Device* device)
+    {
+        Result result;
+        HRESULT hr;
+        if (FAILED(hr = device->sourceVoice->Start()))
+        {
+            return Result(false, "Start failed. Error: %s", std::system_category().message(hr).c_str());
+        }
+        return result;
+    }
 
-	Result Drop(Device* device)
-	{
-		if (!device->sourceVoice)
-		{
-			return Result(false, "audiodevice::Drop Cannot drop sinnce audio is not configure yet.");
-		}
+    Result Drop(Device* device)
+    {
+        if (!device->sourceVoice)
+        {
+            return Result(false, "audiodevice::Drop Cannot drop sinnce audio is not configure yet.");
+        }
 
-		Result result;
-		HRESULT hr;
-		if (FAILED(hr = device->sourceVoice->FlushSourceBuffers()))
-		{
-			return Result(false, "FlushSourceBuffers failed. Error: %s", std::system_category().message(hr).c_str());
-		}
+        Result result;
+        HRESULT hr;
+        if (FAILED(hr = device->sourceVoice->FlushSourceBuffers()))
+        {
+            return Result(false, "FlushSourceBuffers failed. Error: %s", std::system_category().message(hr).c_str());
+        }
 
-		return result;
-	}
+        return result;
+    }
 
-	void Destroy(Device*& device)
-	{
-		if (device)
-		{
-			device->xaudioHandle->Release();
+    void Destroy(Device*& device)
+    {
+        if (device)
+        {
+            device->xaudioHandle->Release();
 
-			delete device;
-			device = NULL;
-		}
-	}
+            delete device;
+            device = NULL;
+        }
+    }
 #endif
 
 }

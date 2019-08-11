@@ -220,7 +220,7 @@ namespace player
             return result;
         }
 
-		audiodevice::Resume(player->audioDevice);
+        audiodevice::Resume(player->audioDevice);
 
         return result;
     }
