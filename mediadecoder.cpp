@@ -34,7 +34,6 @@ extern "C" {
 
 
 namespace {
-    const uint32_t NB_SECONDS_READ_AHEAD = 5;
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
     const uint32_t NB_BUFFER_FOR_PLAYBACK = 50;

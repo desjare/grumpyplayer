@@ -87,7 +87,7 @@ namespace {
                 int64_t waitTime 
                            = chrono::Wait(player->playbackStartTimeUs, audioFrame->timeUs);
 
-                if( waitTime >= audiodevice::ENQUEUE_SAMPLES_US )
+                if( !player->buffering && waitTime >= audiodevice::ENQUEUE_SAMPLES_US)
                 {
                     logger::Debug("AudioPlayThread sleeping. Wait Time %f", chrono::Seconds(waitTime) );
                     std::this_thread::sleep_for(std::chrono::milliseconds(queueFullSleepTimeMs));
@@ -135,7 +135,7 @@ namespace {
 
         if( drop )
         {
-            audiodevice::Drop(player->audioDevice);
+            audiodevice::Flush(player->audioDevice);
         }
     }
 }
@@ -161,6 +161,7 @@ namespace player
         player->playbackStartTimeUs = 0;
         player->currentTimeUs = 0;
         player->playing = false;
+        player->buffering = false;
         player->queueAudio = false;
 
         result = audiodevice::Create(player->audioDevice);
@@ -231,12 +232,27 @@ namespace player
             return;
         }
 
+        // start buffering
+        assert(!player->buffering);
+        player->buffering = true;
+
         mediadecoder::WaitForPlayback(player->producer);
 
+        StartAudio(player);
+
+        while( !audiodevice::IsReadyToPlay(player->audioDevice) )
+        {
+            std::this_thread::yield();
+        }
+
+        // buffering done
+        player->buffering = false;
+
+        // start playback
         player->playbackStartTimeUs = chrono::Now() - player->currentTimeUs;
         player->playing = true;
 
-        StartAudio(player);
+        audiodevice::Start(player->audioDevice);
     }
 
     void Seek(Player* player, uint64_t timeUs)
@@ -256,11 +272,27 @@ namespace player
         // wait for seek
         WaitSeekEnd(player);
 
+        // start buffering
+        assert(!player->buffering);
+        player->buffering = true;
+
         // start audio playback
         StartAudio(player);
 
+        while( !audiodevice::IsReadyToPlay(player->audioDevice) )
+        {
+            std::this_thread::yield();
+        }
+
+        // buffering done
+        player->buffering = false;
+
         // reset playback start time
         player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
+
+        // start playback
+        audiodevice::Start(player->audioDevice);
+        
         logger::Info("Seek end");
     }
 

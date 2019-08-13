@@ -34,15 +34,15 @@ namespace audiodevice
     void   Destroy(Device*& device);
 
     Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat);
-    
+
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames);
     
-    Result Start(Device*);
+    bool   IsReadyToPlay(Device* device);
 
+    Result Start(Device*);
     Result Pause(Device*);
     Result Resume(Device*);
-    
-    Result Drop(Device*);
+    Result Flush(Device*);
 
 }
 

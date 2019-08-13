@@ -142,6 +142,11 @@ namespace audiodevice
 
     }
 
+    bool IsReadyToPlay(Device* device)
+    {
+        return snd_pcm_state(device->playbackHandle) == SND_PCM_STATE_RUNNING;
+    }
+
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames)
     {
         Result result;
@@ -161,7 +166,14 @@ namespace audiodevice
         return result;
     }
 
-    Result Drop(Device* device)
+    Result Start(Device*)
+    {
+        // playback start automatically when ready to play
+        Result result;
+        return result;
+    }
+
+    Result Flush(Device* device)
     {
         Result result;
 
@@ -356,7 +368,7 @@ namespace audiodevice
         return result;
     }
 
-    Result Drop(Device* device)
+    Result Flush(Device* device)
     {
         if (!device->sourceVoice)
         {
