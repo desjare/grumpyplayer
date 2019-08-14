@@ -14,6 +14,10 @@
 
 namespace audiodevice
 {
+#ifdef WIN32
+	class Audio2VoiceCallback;
+#endif
+
     static const int64_t ENQUEUE_SAMPLES_US = 10000000;
 
     struct Device
@@ -27,6 +31,7 @@ namespace audiodevice
         IXAudio2MasteringVoice* masterVoice;
         IXAudio2SourceVoice* sourceVoice;
         WAVEFORMATEX wfx;
+		Audio2VoiceCallback* voiceCallbacks;
 #endif
     };
 
