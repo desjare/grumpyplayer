@@ -9,14 +9,6 @@
 #include "curl.h"
 #include "uri.h"
 
-extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavdevice/avdevice.h>
-#include <libswresample/swresample.h>
-#include <libswscale/swscale.h>
-}
-
 #include <boost/lockfree/queue.hpp>
 #include <boost/function.hpp>
 

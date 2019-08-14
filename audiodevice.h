@@ -37,9 +37,8 @@ namespace audiodevice
 
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames);
     
-    bool   IsReadyToPlay(Device* device);
+    Result StartWhenReady(Device* device);
 
-    Result Start(Device*);
     Result Pause(Device*);
     Result Resume(Device*);
     Result Flush(Device*);

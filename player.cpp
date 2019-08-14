@@ -3,11 +3,13 @@
 #include "chrono.h"
 #include "profiler.h"
 #include "logger.h"
+#include "scopeguard.h"
 
 namespace {
     const int64_t queueFullSleepTimeMs = 100;
     const int64_t pauseSleepTimeMs = 500;
     const int64_t doneSleepTimeMs = 2000;
+
     player::SwapBufferCallback swapBufferCallback;
 }
 
@@ -111,17 +113,26 @@ namespace {
         }
     }
 
-    void StartAudio(player::Player* player)
+    void StartAudioThread(player::Player* player)
     {
         if(player->queueAudio == false)
         {
             player->queueAudio = true;
             player->audioThread = std::thread(AudioPlaybackThread, player);
         }
-        else
+    }
+
+    Result StartAudioPlayback(player::Player* player)
+    {
+        StartAudioThread(player);
+
+        Result result = audiodevice::StartWhenReady(player->audioDevice);
+        if(!result)
         {
-            audiodevice::Resume(player->audioDevice);
+            return result;
         }
+
+        return result;
     }
 
     void StopAudio(player::Player* player, bool drop)
@@ -161,6 +172,7 @@ namespace player
         player->playbackStartTimeUs = 0;
         player->currentTimeUs = 0;
         player->playing = false;
+        player->pause = false;
         player->buffering = false;
         player->queueAudio = false;
 
@@ -227,32 +239,38 @@ namespace player
     void Play(Player* player)
     {
         logger::Info("Play");
+
         if(player->playing)
         {
+            logger::Warn("Player Play called while playing");
             return;
         }
 
         // start buffering
         assert(!player->buffering);
-        player->buffering = true;
+
+        scopeguard::SetValue bufferingGuard(player->buffering, true, false);
 
         mediadecoder::WaitForPlayback(player->producer);
 
-        StartAudio(player);
-
-        while( !audiodevice::IsReadyToPlay(player->audioDevice) )
+        if(!player->pause)
         {
-            std::this_thread::yield();
+            Result result = StartAudioPlayback(player);
+            if(!result)
+            {
+                logger::Error("Cannot start audio %s", result.getError().c_str());
+                return;
+            }
         }
-
-        // buffering done
-        player->buffering = false;
+        else
+        {
+            audiodevice::Resume(player->audioDevice);
+            player->pause = false;
+        }
 
         // start playback
         player->playbackStartTimeUs = chrono::Now() - player->currentTimeUs;
         player->playing = true;
-
-        audiodevice::Start(player->audioDevice);
     }
 
     void Seek(Player* player, uint64_t timeUs)
@@ -274,24 +292,17 @@ namespace player
 
         // start buffering
         assert(!player->buffering);
-        player->buffering = true;
+        scopeguard::SetValue bufferingGuard(player->buffering, true, false);
 
-        // start audio playback
-        StartAudio(player);
-
-        while( !audiodevice::IsReadyToPlay(player->audioDevice) )
+        Result result = StartAudioPlayback(player);
+        if(!result)
         {
-            std::this_thread::yield();
+            logger::Error("Cannot start audio %s", result.getError().c_str());
+            return;
         }
-
-        // buffering done
-        player->buffering = false;
 
         // reset playback start time
         player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
-
-        // start playback
-        audiodevice::Start(player->audioDevice);
         
         logger::Info("Seek end");
     }
@@ -304,6 +315,7 @@ namespace player
             return;
         }
         player->playing = false;
+        player->pause = true;
         audiodevice::Pause(player->audioDevice);
     }
 
@@ -392,6 +404,7 @@ namespace player
         player->playbackStartTimeUs = 0;
         player->currentTimeUs = 0;
         player->playing = false;
+        player->pause = false;
 
         mediadecoder::Destroy(player->producer);
         mediadecoder::Destroy(player->decoder);

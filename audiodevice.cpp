@@ -3,6 +3,7 @@
 #include "audiodevice.h"
 
 #include <system_error>
+#include <thread>
 
 namespace {
 
@@ -142,9 +143,14 @@ namespace audiodevice
 
     }
 
-    bool IsReadyToPlay(Device* device)
+    Result StartWhenReady(Device* device)
     {
-        return snd_pcm_state(device->playbackHandle) == SND_PCM_STATE_RUNNING;
+        Result result;
+        while( snd_pcm_state(device->playbackHandle) != SND_PCM_STATE_RUNNING )
+        {
+            std::this_thread::yield();
+        }
+        return result;
     }
 
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames)
@@ -163,13 +169,6 @@ namespace audiodevice
             snd_pcm_prepare(device->playbackHandle);
             result = Result(false, "Audio write failed %s", snd_strerror(written));
         }
-        return result;
-    }
-
-    Result Start(Device*)
-    {
-        // playback start automatically when ready to play
-        Result result;
         return result;
     }
 
