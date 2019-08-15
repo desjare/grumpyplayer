@@ -24,7 +24,7 @@ namespace {
 
         if( waitTime <= 0 )
         {
-            logger::Warn("WaitForPlayback. %s Late Playback. %f\n", name, chrono::Seconds(waitTime));
+            logger::Warn("WaitForPlayback. %s Late Playback. %f seconds", name, chrono::Seconds(waitTime));
             return true;
         }
         else
