@@ -239,27 +239,27 @@ namespace audiodevice
 #endif
 
 #ifdef WIN32
-	class Audio2VoiceCallback : public IXAudio2VoiceCallback
-	{
-	public:
-		Audio2VoiceCallback() {}
-		~Audio2VoiceCallback() {}
+    class Audio2VoiceCallback : public IXAudio2VoiceCallback
+    {
+    public:
+        Audio2VoiceCallback() {}
+        ~Audio2VoiceCallback() {}
 
-		//Called when the voice has just finished playing a contiguous audio stream.
-		void OnStreamEnd() { }
-		void OnVoiceProcessingPassEnd() { }
-		void OnVoiceProcessingPassStart(UINT32 SamplesRequired) { }
-		
-		void OnBufferEnd(void* pBufferContext) 
-		{
-			BYTE* buffer = reinterpret_cast<BYTE*>(pBufferContext);
-			delete[] buffer;
-		}
+        //Called when the voice has just finished playing a contiguous audio stream.
+        void OnStreamEnd() { }
+        void OnVoiceProcessingPassEnd() { }
+        void OnVoiceProcessingPassStart(UINT32 SamplesRequired) { }
+        
+        void OnBufferEnd(void* pBufferContext) 
+        {
+            BYTE* buffer = reinterpret_cast<BYTE*>(pBufferContext);
+            delete[] buffer;
+        }
 
-		void OnBufferStart(void* pBufferContext) {    }
-		void OnLoopEnd(void* pBufferContext) {    }
-		void OnVoiceError(void* pBufferContext, HRESULT Error) { }
-	};
+        void OnBufferStart(void* pBufferContext) {    }
+        void OnLoopEnd(void* pBufferContext) {    }
+        void OnVoiceError(void* pBufferContext, HRESULT Error) { }
+    };
 
     Result Create(Device*& device)
     {
@@ -326,7 +326,7 @@ namespace audiodevice
         wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
         wfx.cbSize = 0;
 
-		device->voiceCallbacks = new Audio2VoiceCallback();
+        device->voiceCallbacks = new Audio2VoiceCallback();
 
         if (FAILED(hr = device->xaudioHandle->CreateSourceVoice(&device->sourceVoice, (WAVEFORMATEX*)&wfx, 0, 2.0f, device->voiceCallbacks)))
         {
@@ -343,43 +343,43 @@ namespace audiodevice
         const WAVEFORMATEX& wfx = device->wfx;
         XAUDIO2_BUFFER buffer;
         memset(&buffer, 0, sizeof(XAUDIO2_BUFFER));
-		
+        
         buffer.AudioBytes = nbSamples * wfx.nChannels * wfx.wBitsPerSample / 8;
 
-		BYTE* audioData = new BYTE[buffer.AudioBytes];
-		memcpy(audioData, buf, buffer.AudioBytes);
+        BYTE* audioData = new BYTE[buffer.AudioBytes];
+        memcpy(audioData, buf, buffer.AudioBytes);
         buffer.pAudioData = audioData;
-		buffer.pContext = audioData;
+        buffer.pContext = audioData;
 
         HRESULT hr;
 
-		do
-		{
-			if (FAILED(hr = device->sourceVoice->SubmitSourceBuffer(&buffer)) && hr != XAUDIO2_E_INVALID_CALL)
-			{
-				return Result(false, "SubmitSourceBuffer failed. Error: %s", std::system_category().message(hr).c_str());
-			}
-		} while (hr == XAUDIO2_E_INVALID_CALL);
+        do
+        {
+            if (FAILED(hr = device->sourceVoice->SubmitSourceBuffer(&buffer)) && hr != XAUDIO2_E_INVALID_CALL)
+            {
+                return Result(false, "SubmitSourceBuffer failed. Error: %s", std::system_category().message(hr).c_str());
+            }
+        } while (hr == XAUDIO2_E_INVALID_CALL);
 
 
         return result;
     }
 
-	Result StartWhenReady(Device* device)
+    Result StartWhenReady(Device* device)
     {
-		const uint32_t REQUIRED_BUFFERS = 5;
+        const uint32_t REQUIRED_BUFFERS = 5;
         Result result;
 
-		HRESULT hr;
-		
-		XAUDIO2_VOICE_STATE state;
+        HRESULT hr;
+        
+        XAUDIO2_VOICE_STATE state;
 
-		do
-		{
-			device->sourceVoice->GetState(&state, 0);
+        do
+        {
+            device->sourceVoice->GetState(&state, 0);
 
-		} while (state.BuffersQueued < REQUIRED_BUFFERS);
-	
+        } while (state.BuffersQueued < REQUIRED_BUFFERS);
+    
 
         if (FAILED(hr = device->sourceVoice->Start()))
         {
@@ -433,7 +433,7 @@ namespace audiodevice
         if (device)
         {
             device->xaudioHandle->Release();
-			delete device->voiceCallbacks;
+            delete device->voiceCallbacks;
 
             delete device;
             device = NULL;
