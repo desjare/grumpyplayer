@@ -20,11 +20,6 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-#ifdef WIN32
-#undef max
-#endif
-
-
 namespace {
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
@@ -204,6 +199,38 @@ namespace {
             logger::Info("Audio Codec: %d channels, sample rate %d", stream.codecParameters->channels,
                          stream.codecParameters->sample_rate);
         }
+    }
+
+    uint32_t GetStreamFrameRate(AVStream* st)
+    {
+        double frameRate = 30.0;
+
+        if ( st->codec->codec_id == AV_CODEC_ID_H264 )//mp4
+        {
+            frameRate = st->avg_frame_rate.num / static_cast<double>(st->avg_frame_rate.den);
+        }
+        else if ( st->codec->codec_id == AV_CODEC_ID_MJPEG )
+        {
+            frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
+        }
+        else if ( st->codec->codec_id == AV_CODEC_ID_FLV1 )
+        {
+            frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
+        }
+        else if ( st->codec->codec_id == AV_CODEC_ID_WMV3 )
+        {
+            frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
+        }
+        else if ( st->codec->codec_id == AV_CODEC_ID_MPEG4 )//3gp
+        {
+            frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
+        }
+        else
+        {
+            frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
+        }
+
+        return static_cast<uint32_t>(ceil(frameRate));
     }
 
     void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame)
@@ -485,9 +512,7 @@ namespace mediadecoder
             data->videoStream->processCallback = VideoDecoderCallback;
             data->videoStream->width = codecContext->width;
             data->videoStream->height = codecContext->height;
-            const AVRational& timeBase = stream->time_base;
-            data->videoStream->framesPerSecond 
-                            = static_cast<uint32_t>(1.0 / ( static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den)));
+            data->videoStream->framesPerSecond = GetStreamFrameRate(stream);
 
             PrintStream(*data->videoStream);
         }
@@ -677,7 +702,7 @@ namespace mediadecoder
     {
         Result result;
 
-        const uint32_t nbSecondsPreBuffer = 60;
+        const uint32_t nbSecondsPreBuffer = 10;
 
         const uint32_t videoQueueSize =  nbSecondsPreBuffer * GetFramesPerSecond(decoder);
         const uint32_t audioQueueSize = 32768u;
