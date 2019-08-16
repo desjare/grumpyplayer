@@ -28,7 +28,6 @@
 namespace {
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
-    const uint32_t NB_BUFFER_FOR_PLAYBACK = 50;
 
     SampleFormat AVFormatToSampleFormat(AVSampleFormat f)
     {
@@ -486,6 +485,10 @@ namespace mediadecoder
             data->videoStream->processCallback = VideoDecoderCallback;
             data->videoStream->width = codecContext->width;
             data->videoStream->height = codecContext->height;
+            const AVRational& timeBase = stream->time_base;
+            data->videoStream->framesPerSecond 
+                            = static_cast<uint32_t>(1.0 / ( static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den)));
+
             PrintStream(*data->videoStream);
         }
         else
@@ -540,6 +543,15 @@ namespace mediadecoder
             return 0;
         }
         return decoder->avFormatContext->duration;
+    }
+
+    uint32_t GetFramesPerSecond(Decoder* decoder)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return 0;
+        }
+        return decoder->videoStream->framesPerSecond;
     }
 
     void Destroy(Decoder*& decoder)
@@ -664,8 +676,14 @@ namespace mediadecoder
     Result Create(Producer*& producer, Decoder* decoder)
     {
         Result result;
-        const uint32_t videoQueueSize =  1000u;
-        const uint32_t audioQueueSize = 1000u;
+
+        const uint32_t nbSecondsPreBuffer = 60;
+
+        const uint32_t videoQueueSize =  nbSecondsPreBuffer * GetFramesPerSecond(decoder);
+        const uint32_t audioQueueSize = 1024u;
+
+        assert(videoQueueSize > 0);
+        assert(!decoder->producer);
 
         if( decoder->producer != NULL )
         {
@@ -775,15 +793,13 @@ namespace mediadecoder
 
     void WaitForPlayback(Producer* producer)
     {
-        bool haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
-        bool haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK ;
+        const uint32_t nbBufferForPlayback = GetFramesPerSecond(producer->decoder) / 2;
+        bool haveVideo = producer->videoQueueSize > nbBufferForPlayback;
 
-        while( !(haveVideo && haveAudio) )
+        while( !haveVideo )
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PLAYBACK_SLEEP_TIME_MS));
-            
-            haveVideo = producer->videoQueueSize > NB_BUFFER_FOR_PLAYBACK;
-            haveAudio = producer->audioQueueSize > NB_BUFFER_FOR_PLAYBACK;
+            haveVideo = producer->videoQueueSize > nbBufferForPlayback;
         }
     }
 }

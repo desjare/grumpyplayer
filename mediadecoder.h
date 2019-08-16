@@ -49,6 +49,8 @@ namespace mediadecoder
 
         uint32_t width;
         uint32_t height;
+
+        uint32_t framesPerSecond;
     };
 
     struct AudioStream : public Stream
@@ -124,6 +126,7 @@ namespace mediadecoder
     Result   Create(Decoder*& decoder);
     Result   Open(Decoder*& decoder, const std::string& filename);
     uint64_t GetDuration(Decoder* decoder);
+    uint32_t GetFramesPerSecond(Decoder* decoder);
     void     Destroy(Decoder*&);
 
     Result Create(Producer*& producer, Decoder*);
