@@ -339,6 +339,7 @@ namespace audiodevice
 
     Result WriteInterleaved(Device* device, void* buf, uint32_t nbSamples, std::atomic<bool>& bufferInUse)
     {
+        const uint32_t sleepTimeOnErrorMMS = 100;
         Result result;
         
         const WAVEFORMATEX& wfx = device->wfx;
@@ -362,7 +363,7 @@ namespace audiodevice
 
             if (FAILED(hr))
             {
-                std::this_thread::yield();
+                std::this_thread::sleep_for(std::chrono::milliseconds(sleepTimeOnErrorMMS));
             }
 
         } while (hr == XAUDIO2_E_INVALID_CALL);
