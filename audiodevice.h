@@ -11,6 +11,8 @@
 #include "result.h"
 #include "mediaformat.h"
 
+#include <atomic>
+
 
 namespace audiodevice
 {
@@ -40,7 +42,7 @@ namespace audiodevice
 
     Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat);
 
-    Result WriteInterleaved(Device* device, void* buf, uint32_t frames);
+    Result WriteInterleaved(Device* device, void* buf, uint32_t frames, std::atomic<bool>& bufferInUse);
     
     Result StartWhenReady(Device* device);
 

@@ -74,6 +74,7 @@ namespace mediadecoder
         uint32_t nbSamples;
         uint32_t channels;
         uint64_t timeUs;
+        std::atomic<bool> inUse;
     };
 
     template<typename T>

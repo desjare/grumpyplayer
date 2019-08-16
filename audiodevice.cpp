@@ -153,7 +153,7 @@ namespace audiodevice
         return result;
     }
 
-    Result WriteInterleaved(Device* device, void* buf, uint32_t frames)
+    Result WriteInterleaved(Device* device, void* buf, uint32_t frames, std::atomic<bool>& bufferInUse)
     {
         Result result;
 
@@ -162,6 +162,7 @@ namespace audiodevice
         {
             return Result(false, "Invalid audiodevice");
         }
+        bufferInUse = false;
 
         snd_pcm_sframes_t written = snd_pcm_writei(device->playbackHandle, buf, frames);
         if( written < 0 )
@@ -252,8 +253,8 @@ namespace audiodevice
         
         void OnBufferEnd(void* pBufferContext) 
         {
-            BYTE* buffer = reinterpret_cast<BYTE*>(pBufferContext);
-            delete[] buffer;
+            std::atomic<bool>* bufferInUse = reinterpret_cast<std::atomic<bool>*>(pBufferContext);
+            *bufferInUse = false;
         }
 
         void OnBufferStart(void* pBufferContext) {    }
@@ -336,7 +337,7 @@ namespace audiodevice
         return result;
     }
 
-    Result WriteInterleaved(Device* device, void* buf, uint32_t nbSamples)
+    Result WriteInterleaved(Device* device, void* buf, uint32_t nbSamples, std::atomic<bool>& bufferInUse)
     {
         Result result;
         
@@ -345,11 +346,10 @@ namespace audiodevice
         memset(&buffer, 0, sizeof(XAUDIO2_BUFFER));
         
         buffer.AudioBytes = nbSamples * wfx.nChannels * wfx.wBitsPerSample / 8;
+        buffer.pAudioData = reinterpret_cast<BYTE*>(buf);
+        buffer.pContext = &bufferInUse;
 
-        BYTE* audioData = new BYTE[buffer.AudioBytes];
-        memcpy(audioData, buf, buffer.AudioBytes);
-        buffer.pAudioData = audioData;
-        buffer.pContext = audioData;
+        bufferInUse = true;
 
         HRESULT hr;
 

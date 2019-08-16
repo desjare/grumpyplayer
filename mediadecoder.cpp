@@ -87,7 +87,9 @@ namespace {
         const uint32_t requestedBufferSize = nbSamples * sampleSize * channels;
         Result result;
 
-        if( producer->audioFramePool->pop(frame) )
+        const bool haveFrame = producer->audioFramePool->pop(frame);
+
+        if( haveFrame && !frame->inUse )
         {
             const uint32_t frameBufferSize = frame->nbSamples * frame->sampleSize * frame->channels;
             if(requestedBufferSize > frameBufferSize)
@@ -101,11 +103,21 @@ namespace {
         }
         else
         {
+            // frame is in use
+            if (haveFrame)
+            {
+                const bool outcome 
+                          = producer->audioFramePool->push(frame);
+                // out buffer queue is too small
+                assert(outcome);
+            }
+
             frame = new mediadecoder::AudioFrame();
             frame->samples = new uint8_t[requestedBufferSize];
             frame->sampleSize = sampleSize;
             frame->nbSamples = nbSamples;
             frame->channels = channels;
+            frame->inUse = false;
         }
         return result;
 

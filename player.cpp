@@ -97,7 +97,7 @@ namespace {
                 }
                
                 profiler::ScopeProfiler profiler(profiler::PROFILER_AUDIO_WRITE);
-                result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples );
+                result = audiodevice::WriteInterleaved( player->audioDevice, audioFrame->samples, audioFrame->nbSamples, audioFrame->inUse );
                 if(!result)
                 {
                     logger::Error("AudioDeviceWriteInterleaved failed %s", result.getError().c_str());
