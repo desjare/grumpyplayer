@@ -122,9 +122,48 @@ void SetLogLevel(std::string level)
     logger::SetLevel(logLevel);
 }
 
+#ifdef WIN32
+
+#include <shellapi.h>
+
+char* WCharToUTF8(LPWSTR pWSTR)
+{ 
+    size_t wsize = wcslen(pWSTR);
+    size_t sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, pWSTR, static_cast<int>(wsize), NULL, 0, NULL, NULL);
+    char* str = new char[sizeNeeded+1];
+    memset(str, 0, sizeNeeded + 1);
+    WideCharToMultiByte(CP_UTF8, 0, pWSTR, static_cast<int>(wsize), str, static_cast<int>(sizeNeeded+1), NULL, NULL);
+    return str;
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+    const size_t cmdLineSize = strlen(lpCmdLine);
+
+    int32_t argc = 0;
+    size_t convertedSize = 0;
+    wchar_t cmdLineW[BUFSIZ];
+
+    // convert command line to wide string
+    mbstowcs_s(&convertedSize, cmdLineW, cmdLineSize +1, lpCmdLine, _TRUNCATE);
+
+    // convert windows command line to main style command line
+    LPWSTR* argwv = CommandLineToArgvW(cmdLineW, &argc);
+
+    // argv[0] is used for command line name
+    char** argv = new char*[++argc];
+    argv[0] = "grumpyplayer";
+
+    for (int32_t i = 1; i < argc; i++)
+    {
+        argv[i] = WCharToUTF8(argwv[i-1]);
+    }
+
+#else
 int main(int argc, char** argv)
 {
-    std::string program = boost::filesystem::path(argv[0]).filename().string();
+#endif
+    std::string program = "grumpyplayer";
     std::string path;
 
     Init();

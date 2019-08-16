@@ -68,6 +68,9 @@ if (WIN32)
     add_compile_options(-I${3RDPARTY}/glm/include)
 
     add_definitions(-DCURL_STATICLIB)
+
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+
 endif (WIN32)
 
 add_definitions( -D__AVX2__ )
