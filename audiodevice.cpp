@@ -359,6 +359,12 @@ namespace audiodevice
             {
                 return Result(false, "SubmitSourceBuffer failed. Error: %s", std::system_category().message(hr).c_str());
             }
+
+            if (FAILED(hr))
+            {
+                std::this_thread::yield();
+            }
+
         } while (hr == XAUDIO2_E_INVALID_CALL);
 
 
