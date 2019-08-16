@@ -246,6 +246,12 @@ namespace player
             return;
         }
 
+        if(!player->decoder || !player->producer)
+        {
+            logger::Warn("Player Play called without media");
+            return;
+        }
+
         // start buffering
         assert(!player->buffering);
 

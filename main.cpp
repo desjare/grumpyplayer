@@ -193,12 +193,6 @@ int main(int argc, char** argv)
         {
             path = vm["path"].as<std::string>();
         }
-        else
-        {
-            logger::Error("No filename spacified.");
-            std::cerr << desc;
-            return 1;
-        }
 
         if( vm.count("loglevel") )
         {
@@ -244,15 +238,25 @@ int main(int argc, char** argv)
     }
 
     // open media
-    result = player::Open(player, path);
-    if(!result)
+    if(!path.empty())
     {
-        logger::Error("Unable to open %s: %s", path.c_str(), result.getError().c_str());
-        return 1;
+        result = player::Open(player, path);
+        if(!result)
+        {
+            logger::Error("Unable to open %s: %s", path.c_str(), result.getError().c_str());
+            return 1;
+        }
+
+        // resize window to media size
+        gui::SetWindowSize(uiHandle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+    }
+    else
+    {
+        const uint32_t defaultWidth = 640;
+        const uint32_t defaultHeight = 480;
+        gui::SetWindowSize(uiHandle, defaultWidth, defaultHeight);
     }
 
-    // resize window to media size
-    gui::SetWindowSize(uiHandle, player->decoder->videoStream->width, player->decoder->videoStream->height);
     gui::ShowWindow(uiHandle);
 
     // initialize gui callbacks
