@@ -680,7 +680,7 @@ namespace mediadecoder
         const uint32_t nbSecondsPreBuffer = 60;
 
         const uint32_t videoQueueSize =  nbSecondsPreBuffer * GetFramesPerSecond(decoder);
-        const uint32_t audioQueueSize = 1024u;
+        const uint32_t audioQueueSize = 32768u;
 
         assert(videoQueueSize > 0);
         assert(!decoder->producer);
