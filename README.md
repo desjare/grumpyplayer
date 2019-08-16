@@ -39,4 +39,3 @@ The png library used is lodepng. It can be found here: https://lodev.org/lodepng
 
 * The player pre-buffer a lot of frames and is consuming a lot of memory.
 * When streaming video, it will buffer the entire file and release bytes as they are read.
-* The player on windows consume more cpu than on linux.
