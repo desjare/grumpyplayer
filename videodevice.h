@@ -10,32 +10,38 @@
 
 namespace videodevice
 {
+    static const uint32_t NUM_FRAME_DATA_POINTERS = 3;
+    struct Device;
+
+    struct FrameBuffer
+    {
+        uint8_t* frameData[NUM_FRAME_DATA_POINTERS];
+        uint32_t lineSize[NUM_FRAME_DATA_POINTERS];
+        uint32_t width;
+        uint32_t height;
+    };
+
+    struct Renderer
+    {
+        virtual ~Renderer(){}
+
+        virtual Result Create() = 0;
+        virtual Result Draw(FrameBuffer*) = 0;
+        virtual Result SetVideoSize(uint32_t width, uint32_t height) = 0;
+        virtual Result SetWindowSize(uint32_t width, uint32_t height) = 0;
+    };
+
     struct Device
     {
-        enum Attribs {
-            VERTICES = 0,
-            TEX_COORDS,
-            NB_ATTRIBS
-        };
-
-        enum Uniforms {
-            MVP_MATRIX = 0,
-            FRAME_TEX,
-            NB_UNIFORMS
-        };
-
         // texture size
         GLuint width;
         GLuint height;
 
-        // rendering
-        GLuint vertexArray;
-        GLuint vertexBuffer;
-        GLuint elementBuffer;
-        GLuint frameTexture;
-        GLuint program;
-        GLuint attribs[NB_ATTRIBS];
-        GLuint uniforms[NB_UNIFORMS];
+        // video size
+        GLuint windowWidth;
+        GLuint windowHeight;
+
+        Renderer* renderer;
     };
 
     Result Init();

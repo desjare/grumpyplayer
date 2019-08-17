@@ -10,3 +10,9 @@ enum SampleFormat
     SF_FMT_DOUBLE,
     SF_FMT_INVALID
 };
+
+enum VideoFormat
+{
+    VF_RGB24,
+    VF_YUV420P
+};
