@@ -431,10 +431,11 @@ namespace {
             float y2 = y1 + adjustHeight;
 
             logger::Debug("w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
-            GL_CHECK(glViewport(0,0, textureWidth, textureHeight));
 
-            WriteVertexBuffer( x1, y1, x2, y2);
-            WriteMVPMatrix(textureWidth, textureHeight);
+            GL_CHECK(glViewport(0,0, windowWidth, windowHeight));
+
+            WriteVertexBuffer(x1, y1, x2, y2);
+            WriteMVPMatrix(windowWidth, windowHeight);
 
             return result;
         }
