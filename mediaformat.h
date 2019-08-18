@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include<vector>
+
 enum SampleFormat
 {
     SF_FMT_U8,
@@ -17,3 +19,5 @@ enum VideoFormat
     VF_YUV420P,
     VF_INVALID
 };
+
+typedef std::vector<VideoFormat> VideoFormatList;
