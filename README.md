@@ -2,7 +2,7 @@
 
 Experimental linux & windows video player video player based on glfw, OpenGL, ALSA, XAudio2, ffmpeg, boost and curl. It supports full screen mode (double click), drag & drop and bicubic gpu resizing. It is also possible to launch it with a URL and the video will be streamed.
 
-This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. While the implementation uses encapsulation & structure, data definitions are public and accessible. It relies heavily on C++ standard library or boost but it uses a more a C style design approach in the implementation. PEP-20 states that explicit is better than implicit and beautiful is better than ugly. These principles should apply to C++ as well. The player was written with that in mind.
+This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. While the implementation uses encapsulation & structure, data definitions are public and accessible. It relies heavily on C++ standard library or boost but it uses a more a C style design approach in the implementation and APIs. PEP-20 states that explicit is better than implicit and beautiful is better than ugly. These principles should apply to C++ as well and I often see complicated class hirarchies that were difficult to maintain. The player was written with that in mind.
 
 The player uses a consumer and producer pattern to play and decode and fetch the media. It is multithreaded and uses lock free queue as IPC. It has no locks.
 
