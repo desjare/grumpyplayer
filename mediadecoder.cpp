@@ -553,11 +553,7 @@ namespace mediadecoder
             data->videoStream->codecContext = codecContext;
             data->videoStream->stream = stream;
             data->videoStream->streamIndex = index;
-#ifdef ENABLE_YUV420P
             data->videoStream->outputFormat = codecContext->pix_fmt == AV_PIX_FMT_YUV420P ? VF_YUV420P : VF_RGB24;
-#endif
-
-            data->videoStream->outputFormat = VF_RGB24;
 
             if( data->videoStream->outputFormat == VF_RGB24 && codecContext->pix_fmt != AV_PIX_FMT_RGB24)
             {

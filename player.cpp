@@ -216,7 +216,7 @@ namespace player
             return result;
         }
 
-        result = videodevice::SetVideoSize(player->videoDevice, player->decoder->videoStream->width, player->decoder->videoStream->height);
+        result = videodevice::SetTextureSize(player->videoDevice, player->decoder->videoStream->width, player->decoder->videoStream->height);
         if(!result)
         {
             return result;

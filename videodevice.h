@@ -28,7 +28,7 @@ namespace videodevice
 
         virtual Result Create() = 0;
         virtual Result Draw(FrameBuffer*) = 0;
-        virtual Result SetVideoSize(uint32_t width, uint32_t height) = 0;
+        virtual Result SetTextureSize(uint32_t width, uint32_t height) = 0;
         virtual Result SetWindowSize(uint32_t width, uint32_t height) = 0;
     };
 
@@ -48,7 +48,7 @@ namespace videodevice
     Result Init();
     Result Create(Device*& device, VideoFormat outputFormat);
     Result DrawFrame(Device* device, FrameBuffer*);
-    Result SetVideoSize(Device* device, uint32_t width, uint32_t height);
+    Result SetTextureSize(Device* device, uint32_t width, uint32_t height);
     Result SetWindowSize(Device* device, uint32_t width, uint32_t height);
     void   Destroy(Device*& device);
 }

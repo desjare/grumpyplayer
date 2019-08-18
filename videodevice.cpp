@@ -191,6 +191,70 @@ namespace {
         return result;
     }
 
+    void GetImageCoord(uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth, uint32_t textureHeight, float& x1, float& x2, float& y1, float& y2)
+    {
+        const float ww = static_cast<float>(windowWidth);
+        const float wh = static_cast<float>(windowHeight);
+        const float tw = static_cast<float>(textureWidth);
+        const float th = static_cast<float>(textureHeight);
+        const float tr = tw / th;
+
+        const float maxw = std::max(ww,tw);
+        const float maxh = std::max(wh,th);
+
+        float adjustWidth = ww;
+        float adjustHeight = wh;
+        float adjustRatio = 0.0f;
+
+        if( maxw > maxh )
+        {
+            float w = maxw;
+            float h = w / tr;
+
+            if( h > maxh )
+            {
+                h = maxh;
+                w = h * tr;
+            }
+
+            adjustWidth = w;
+            adjustHeight = h;
+        }
+        else
+        {
+            float h = maxh;
+            float w = h * tr;
+
+            if( w > maxw )
+            {
+                w = maxw;
+                h = h * tr;
+            }
+
+            adjustWidth = w;
+            adjustHeight = h;
+        }
+
+        adjustRatio = adjustWidth / adjustHeight;
+
+        if( !numeric::equals(tr, adjustRatio) )
+        {
+            logger::Debug("ratio differ");
+            if( adjustRatio < 1.0f )
+            {
+                adjustWidth = ww;
+                adjustHeight = adjustWidth / tr;
+            }
+        }
+
+        x1 = ww / 2.0f - adjustWidth / 2.0f;
+        x2 = x1 + adjustWidth;
+        y1 = wh / 2.0f - adjustHeight / 2.0f;
+        y2 = y1 + adjustHeight;
+
+        logger::Debug("w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
+    }
+
     class Rgb24Renderer : public videodevice::Renderer
     {
     public:
@@ -283,7 +347,6 @@ namespace {
             "   fragColor = textureBicubic(frameTex, texCoord);\n"
             "}\n";
 
-
             result = BuildProgram(vertexShaderSource, fragmentShaderSource, program);
             if(!result)
             {
@@ -320,7 +383,7 @@ namespace {
             return result;
         }
 
-        virtual Result SetVideoSize(uint32_t width, uint32_t height)
+        virtual Result SetTextureSize(uint32_t width, uint32_t height)
         {
             Result result;
 
@@ -347,9 +410,7 @@ namespace {
             GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elem), elem, GL_STATIC_DRAW));
             GL_CHECK(glBindVertexArray(0));
 
-    #ifndef WIN32 // FIXME TBM_desjare
             GL_CHECK(glActiveTexture(GL_TEXTURE0));
-    #endif
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, frameTexture));
             GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
             GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
@@ -369,66 +430,8 @@ namespace {
         {
             Result result;
 
-            const float ww = static_cast<float>(windowWidth);
-            const float wh = static_cast<float>(windowHeight);
-            const float tw = static_cast<float>(textureWidth);
-            const float th = static_cast<float>(textureHeight);
-            const float tr = tw / th;
-
-            const float maxw = std::max(ww,tw);
-            const float maxh = std::max(wh,th);
-
-            float adjustWidth = ww;
-            float adjustHeight = wh;
-            float adjustRatio = 0.0f;
-
-            if( maxw > maxh )
-            {
-                float w = maxw;
-                float h = w / tr;
-
-                if( h > maxh )
-                {
-                    h = maxh;
-                    w = h * tr;
-                }
-
-                adjustWidth = w;
-                adjustHeight = h;
-            }
-            else
-            {
-                float h = maxh;
-                float w = h * tr;
-
-                if( w > maxw )
-                {
-                    w = maxw;
-                    h = h * tr;
-                }
-
-                adjustWidth = w;
-                adjustHeight = h;
-            }
-
-            adjustRatio = adjustWidth / adjustHeight;
-
-            if( !numeric::equals(tr, adjustRatio) )
-            {
-                logger::Debug("ratio differ");
-                if( adjustRatio < 1.0f )
-                {
-                    adjustWidth = ww;
-                    adjustHeight = adjustWidth / tr;
-                }
-            }
-
-            float x1 = ww / 2.0f - adjustWidth / 2.0f;
-            float x2 = x1 + adjustWidth;
-            float y1 = wh / 2.0f - adjustHeight / 2.0f;
-            float y2 = y1 + adjustHeight;
-
-            logger::Debug("w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
+            float x1, x2, y1, y2;
+            GetImageCoord(windowWidth, windowHeight, textureWidth, textureHeight, x1, x2, y1, y2);
 
             GL_CHECK(glViewport(0,0, windowWidth, windowHeight));
 
@@ -494,21 +497,40 @@ namespace {
     {
     public:
         Yuv420pRenderer()
+        : textureWidth(0),
+          textureHeight(0),
+          windowWidth(0),
+          windowHeight(0),
+          x1(0.0f),
+          x2(0.0f),
+          y1(0.0f),
+          y2(0.0f),
+          vertexArray(0),
+          yTexture(0),
+          uTexture(0),
+          vTexture(0),
+          prog(0),
+          pos(0)
         {
         }
 
         virtual ~Yuv420pRenderer()
         {
+            GL_CHECK(glDeleteVertexArrays(1, &vertexArray));
+            GL_CHECK(glDeleteTextures(1, &yTexture));
+            GL_CHECK(glDeleteTextures(1, &uTexture));
+            GL_CHECK(glDeleteTextures(1, &vTexture));
         }
         
         virtual Result Create()
         {
             Result result;
+
             const std::string vertexShaderSource = "" 
             "#version 330\n"
             ""
-            "uniform mat4 u_pm;"
-            "uniform vec4 draw_pos;"
+            "uniform mat4 mvpMatrix;"
+            "uniform vec4 pos;"
             ""
             "const vec2 verts[4] = vec2[] ("
             "  vec2(-0.5,  0.5), "
@@ -524,24 +546,24 @@ namespace {
             "  vec2(1.0, 0.0)  "
             "); "
             ""
-            "out vec2 v_coord; "
+            "out vec2 vcoord; "
             ""
             "void main() {"
             "   vec2 vert = verts[gl_VertexID];"
-            "   vec4 p = vec4((0.5 * draw_pos.z) + draw_pos.x + (vert.x * draw_pos.z), "
-            "                 (0.5 * draw_pos.w) + draw_pos.y + (vert.y * draw_pos.w), "
+            "   vec4 p = vec4((0.5 * pos.z) + pos.x + (vert.x * pos.z), "
+            "                 (0.5 * pos.w) + pos.y + (vert.y * pos.w), "
             "                 0, 1);"
-            "   gl_Position = u_pm * p;"
-            "   v_coord = texcoords[gl_VertexID];" 
+            "   gl_Position = mvpMatrix * p;"
+            "   vcoord = texcoords[gl_VertexID];" 
             "}"
             "";
 
             const std::string fragmentShaderSource = ""
             "#version 330\n"
-            "uniform sampler2D y_tex;"
-            "uniform sampler2D u_tex;"
-            "uniform sampler2D v_tex;"
-            "in vec2 v_coord;"
+            "uniform sampler2D yTexture;"
+            "uniform sampler2D uTexture;"
+            "uniform sampler2D vTexture;"
+            "in vec2 vcoord;"
             "layout( location = 0 ) out vec4 fragcolor;"
             ""
             "const vec3 R_cf = vec3(1.164383,  0.000000,  1.596027);"
@@ -550,9 +572,9 @@ namespace {
             "const vec3 offset = vec3(-0.0625, -0.5, -0.5);"
             ""
             "void main() {"
-            "  float y = texture(y_tex, v_coord).r;"
-            "  float u = texture(u_tex, v_coord).r;"
-            "  float v = texture(v_tex, v_coord).r;"
+            "  float y = texture(yTexture, vcoord).r;"
+            "  float u = texture(uTexture, vcoord).r;"
+            "  float v = texture(vTexture, vcoord).r;"
             "  vec3 yuv = vec3(y,u,v);"
             "  yuv += offset;"
             "  fragcolor = vec4(0.0, 0.0, 0.0, 1.0);"
@@ -569,15 +591,17 @@ namespace {
             }
 
             glUseProgram(prog);
-            glUniform1i(glGetUniformLocation(prog, "y_tex"), 0);
-            glUniform1i(glGetUniformLocation(prog, "u_tex"), 1);
-            glUniform1i(glGetUniformLocation(prog, "v_tex"), 2);
-            u_pos = glGetUniformLocation(prog, "draw_pos");
 
-            glGenTextures(1, &y_tex);
-            glGenTextures(1, &v_tex);
-            glGenTextures(1, &u_tex);
-            glGenVertexArrays(1, &vao);
+            glUniform1i(glGetUniformLocation(prog, "yTexture"), 0);
+            glUniform1i(glGetUniformLocation(prog, "uTexture"), 1);
+            glUniform1i(glGetUniformLocation(prog, "vTexture"), 2);
+
+            pos = glGetUniformLocation(prog, "pos");
+
+            glGenTextures(1, &yTexture);
+            glGenTextures(1, &vTexture);
+            glGenTextures(1, &uTexture);
+            glGenVertexArrays(1, &vertexArray);
 
             return result;
         }
@@ -586,54 +610,53 @@ namespace {
         {
             Result result;
 
-            glBindTexture(GL_TEXTURE_2D, y_tex);
+            GL_CHECK(glClear(GL_COLOR_BUFFER_BIT)); 
+
+            glBindTexture(GL_TEXTURE_2D, yTexture);
             glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[0]);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width, f->height, GL_RED, GL_UNSIGNED_BYTE, f->frameData[0]);
 
-            glBindTexture(GL_TEXTURE_2D, u_tex);
+            glBindTexture(GL_TEXTURE_2D, uTexture);
             glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[1]);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width/2, f->height/2, GL_RED, GL_UNSIGNED_BYTE, f->frameData[1]);
 
-            glBindTexture(GL_TEXTURE_2D, v_tex);
+            glBindTexture(GL_TEXTURE_2D, vTexture);
             glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[2]);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width/2, f->height/2, GL_RED, GL_UNSIGNED_BYTE, f->frameData[2]);
 
-            glBindVertexArray(vao);
-            glUseProgram(prog);
-
-            glUniform4f(u_pos, x1, y1, x2, y2);
+            glBindVertexArray(vertexArray);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, y_tex);
+            glBindTexture(GL_TEXTURE_2D, yTexture);
 
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, u_tex);
+            glBindTexture(GL_TEXTURE_2D, uTexture);
 
             glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, v_tex);
+            glBindTexture(GL_TEXTURE_2D, vTexture);
 
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             return result;
         }
 
-        virtual Result SetVideoSize(uint32_t width, uint32_t height)
+        virtual Result SetTextureSize(uint32_t width, uint32_t height)
         {
             Result result;
 
             textureWidth = width;
             textureHeight = height;
 
-            glBindTexture(GL_TEXTURE_2D, y_tex);
+            glBindTexture(GL_TEXTURE_2D, yTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL); // y_pixels);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            glBindTexture(GL_TEXTURE_2D, u_tex);
+            glBindTexture(GL_TEXTURE_2D, uTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            glBindTexture(GL_TEXTURE_2D, v_tex);
+            glBindTexture(GL_TEXTURE_2D, vTexture);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -641,85 +664,27 @@ namespace {
             return result;
         }
 
-        virtual Result SetWindowSize(uint32_t wWidth, uint32_t wHeight)
+        virtual Result SetWindowSize(uint32_t w, uint32_t h)
         {
             Result result;
 
-            windowWidth = wWidth;
-            windowHeight = wHeight;
+            windowWidth = w;
+            windowHeight = h;
 
-            const float ww = static_cast<float>(windowWidth);
-            const float wh = static_cast<float>(windowHeight);
-            const float tw = static_cast<float>(textureWidth);
-            const float th = static_cast<float>(textureHeight);
-            const float tr = tw / th;
+            GetImageCoord(windowWidth, windowHeight, textureWidth, textureHeight, x1, x2, y1, y2);
+            glUniform4f(pos, x1, y1, x2-x1, y2-y1);
 
-            const float maxw = std::max(ww,tw);
-            const float maxh = std::max(wh,th);
-
-            float adjustWidth = ww;
-            float adjustHeight = wh;
-            float adjustRatio = 0.0f;
-
-            if( maxw > maxh )
-            {
-                float w = maxw;
-                float h = w / tr;
-
-                if( h > maxh )
-                {
-                    h = maxh;
-                    w = h * tr;
-                }
-
-                adjustWidth = w;
-                adjustHeight = h;
-            }
-            else
-            {
-                float h = maxh;
-                float w = h * tr;
-
-                if( w > maxw )
-                {
-                    w = maxw;
-                    h = h * tr;
-                }
-
-                adjustWidth = w;
-                adjustHeight = h;
-            }
-
-            adjustRatio = adjustWidth / adjustHeight;
-
-            if( !numeric::equals(tr, adjustRatio) )
-            {
-                logger::Debug("ratio differ");
-                if( adjustRatio < 1.0f )
-                {
-                    adjustWidth = ww;
-                    adjustHeight = adjustWidth / tr;
-                }
-            }
-
-            x1 = ww / 2.0f - adjustWidth / 2.0f;
-            x2 = x1 + adjustWidth;
-            y1 = wh / 2.0f - adjustHeight / 2.0f;
-            y2 = y1 + adjustHeight;
-
-            logger::Debug("w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
             GL_CHECK(glViewport(0,0, windowWidth, windowHeight));
             WriteMVPMatrix(windowWidth, windowHeight);
 
             return result;
         }
 
-
    private:
         void WriteMVPMatrix(uint32_t width, uint32_t height)
         {
             glm::mat4 mvp = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
-            GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(prog, "u_pm"), 1, GL_FALSE, glm::value_ptr(mvp)));
+            GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(prog, "mvpMatrix"), 1, GL_FALSE, glm::value_ptr(mvp)));
         }
 
         // texture size
@@ -737,18 +702,20 @@ namespace {
         float y2;
 
         // rendering
-        GLuint vao;
-        GLuint y_tex;
-        GLuint u_tex;
-        GLuint v_tex;
-        GLuint vert;
-        GLuint frag;
+        GLuint vertexArray;
+
+        // yuv textures
+        GLuint yTexture;
+        GLuint uTexture;
+        GLuint vTexture;
+
+        // shader
         GLuint prog;
-        GLint u_pos;
+
+        // draw position
+        GLint  pos;
     };
-
-
-
+    // Yuv420pRenderer End
 }
 
 namespace videodevice
@@ -808,14 +775,14 @@ namespace videodevice
         return device->renderer->Draw(fb);
     }
 
-    Result SetVideoSize(Device* device, uint32_t width, uint32_t height)
+    Result SetTextureSize(Device* device, uint32_t width, uint32_t height)
     {
         Result result;
 
         device->width = width;
         device->height = height;
 
-        result = device->renderer->SetVideoSize(width,height);
+        result = device->renderer->SetTextureSize(width,height);
 
         return result;
     }
