@@ -14,5 +14,6 @@ enum SampleFormat
 enum VideoFormat
 {
     VF_RGB24,
-    VF_YUV420P
+    VF_YUV420P,
+    VF_INVALID
 };

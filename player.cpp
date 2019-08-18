@@ -183,13 +183,6 @@ namespace player
             return result;
         }
 
-        result = videodevice::Create(player->videoDevice);
-        if(!result)
-        {
-            result = Result(false, result.getError());
-            return result;
-        }
-
         return result;
     }
 
@@ -205,6 +198,13 @@ namespace player
         result = mediadecoder::Open(player->decoder, filename);
         if(!result)
         {
+            return result;
+        }
+
+        result = videodevice::Create(player->videoDevice, mediadecoder::GetOutputFormat(player->decoder));
+        if(!result)
+        {
+            result = Result(false, result.getError());
             return result;
         }
 
@@ -363,9 +363,6 @@ namespace player
              return;
          }
 
-         const uint32_t videoWidth = player->decoder->videoStream->width;
-         const uint32_t videoHeight = player->decoder->videoStream->height;
-
          if(!player->videoFrame)
          {
              mediadecoder::Consume(player->producer, player->videoFrame);
@@ -382,7 +379,18 @@ namespace player
              {
                  profiler::ScopeProfiler profiler(profiler::PROFILER_VIDEO_DRAW);
 
-                 videodevice::DrawFrame(player->videoDevice, player->videoFrame->frame, videoWidth, videoHeight);
+                 videodevice::FrameBuffer fb;
+
+                 fb.width = player->videoFrame->width;
+                 fb.height = player->videoFrame->height;
+
+                 for(uint32_t i = 0; i < videodevice::NUM_FRAME_DATA_POINTERS; i++)
+                 {
+                     fb.frameData[i] = player->videoFrame->buffers[i];
+                     fb.lineSize[i] = player->videoFrame->lineSize[i];
+                 }
+
+                 videodevice::DrawFrame(player->videoDevice, &fb);
                  swapBufferCallback();
 
                  mediadecoder::Release(player->producer, player->videoFrame);
@@ -414,6 +422,8 @@ namespace player
 
         mediadecoder::Destroy(player->producer);
         mediadecoder::Destroy(player->decoder);
+
+        videodevice::Destroy(player->videoDevice);
     }
 
     void Destroy(Player*& player)
@@ -421,7 +431,6 @@ namespace player
         Close(player);
 
         audiodevice::Destroy(player->audioDevice);
-        videodevice::Destroy(player->videoDevice);
 
         delete player;
         player = NULL;

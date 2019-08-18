@@ -20,6 +20,8 @@ extern "C" {
 
 namespace mediadecoder
 {
+    static const uint32_t NUM_FRAME_DATA_POINTERS = 3;
+    
     // forward declaration
     struct Stream;
     struct Producer;
@@ -41,6 +43,8 @@ namespace mediadecoder
 
     struct VideoStream : public Stream
     {
+        VideoFormat outputFormat;
+
         SwsContext* swsContext;
         // RGB 24 bytes frame
         AVFrame* frame;
@@ -62,8 +66,10 @@ namespace mediadecoder
 
     struct VideoFrame
     {
-        uint8_t* frame;
-        uint32_t bufferSize;
+        uint8_t* buffers[NUM_FRAME_DATA_POINTERS];
+        uint32_t lineSize[NUM_FRAME_DATA_POINTERS];
+        uint32_t width;
+        uint32_t height;
         uint64_t timeUs;
     };
 
@@ -124,12 +130,18 @@ namespace mediadecoder
     };
 
     Result   Init();
+
+    // decoder
     Result   Create(Decoder*& decoder);
     Result   Open(Decoder*& decoder, const std::string& filename);
-    uint64_t GetDuration(Decoder* decoder);
-    uint32_t GetFramesPerSecond(Decoder* decoder);
+
+    VideoFormat GetOutputFormat(Decoder*);
+    uint64_t    GetDuration(Decoder* decoder);
+    uint32_t    GetFramesPerSecond(Decoder* decoder);
+
     void     Destroy(Decoder*&);
 
+    // producer / consumer
     Result Create(Producer*& producer, Decoder*);
     void   Destroy(Producer*&);
 

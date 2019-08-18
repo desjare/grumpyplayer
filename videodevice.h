@@ -6,6 +6,7 @@
 
 #include <GL/gl.h>
 #include "result.h"
+#include "mediaformat.h"
 
 
 namespace videodevice
@@ -45,8 +46,8 @@ namespace videodevice
     };
 
     Result Init();
-    Result Create(Device*& device);
-    Result DrawFrame(Device* device, uint8_t* frameBuffer, uint32_t width, uint32_t height);
+    Result Create(Device*& device, VideoFormat outputFormat);
+    Result DrawFrame(Device* device, FrameBuffer*);
     Result SetVideoSize(Device* device, uint32_t width, uint32_t height);
     Result SetWindowSize(Device* device, uint32_t width, uint32_t height);
     void   Destroy(Device*& device);

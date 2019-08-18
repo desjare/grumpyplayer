@@ -61,23 +61,39 @@ namespace {
         return std::string(buf);
     }
 
-    Result Create(mediadecoder::Producer* producer, mediadecoder::VideoFrame*& frame, uint32_t size)
+    Result Create(mediadecoder::Producer* producer, mediadecoder::VideoFrame*& frame, uint32_t width, uint32_t height, uint8_t** data, int32_t* linesize)
     {
         Result result;
-        if( producer->videoFramePool->pop(frame) )
-        {
-            if(frame->bufferSize < size)
-            {
-                delete [] frame->frame;
-                frame->frame = new uint8_t[size];
-                frame->bufferSize = size;
-            }
-        }
-        else
+        if( !producer->videoFramePool->pop(frame) )
         {
             frame = new mediadecoder::VideoFrame();
-            frame->frame = new uint8_t[size];
-            frame->bufferSize = size;
+            memset(frame,0, sizeof(mediadecoder::VideoFrame));
+
+            for(uint32_t i = 0; i < mediadecoder::NUM_FRAME_DATA_POINTERS; i++)
+            {
+                if(data[i] != NULL && linesize[i] != 0)
+                {
+                    frame->buffers[i] = new uint8_t[linesize[i] * height];
+                    frame->lineSize[i] = linesize[i];
+                }
+            }
+            frame->width = width;
+            frame->height = height;
+        }
+        return result;
+    }
+
+    Result Create(mediadecoder::Producer* producer, mediadecoder::VideoFrame*& frame, uint32_t width, uint32_t height, uint32_t bufferSize)
+    {
+        Result result;
+        if( !producer->videoFramePool->pop(frame) )
+        {
+            frame = new mediadecoder::VideoFrame();
+            memset(frame,0, sizeof(mediadecoder::VideoFrame));
+
+            frame->buffers[0] = new uint8_t[bufferSize];
+            frame->width = width;
+            frame->height = height;
         }
         return result;
     }
@@ -125,7 +141,13 @@ namespace {
 
     void Delete(mediadecoder::VideoFrame* frame)
     {
-        delete frame->frame;
+        for(uint32_t i = 0; i < mediadecoder::NUM_FRAME_DATA_POINTERS; i++)
+        {
+            if(frame->buffers[i])
+            {
+                delete [] frame->buffers[i];
+            }
+        }
         delete frame;
     }
 
@@ -300,13 +322,15 @@ namespace {
 
         const AVRational& timeBase = stream->stream->time_base;
         const uint32_t bufferSize = videoStream->bufferSize;
+        const bool convertFrame = videoStream->swsContext != NULL;
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
         const uint64_t timeUs = chrono::Microseconds(timeSeconds);
 
         mediadecoder::VideoFrame* videoFrame;
         Result result;
 
-        result = Create(producer, videoFrame, bufferSize);
+        result = convertFrame ? Create(producer, videoFrame, frame->width, frame->height, bufferSize)
+                              : Create(producer, videoFrame, frame->width, frame->height, frame->data, frame->linesize);
         assert(result);
         if(!result)
         {
@@ -316,10 +340,26 @@ namespace {
 
         videoFrame->timeUs = timeUs;
 
-        sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
-                  videoStream->frame->data, videoStream->frame->linesize );
+        // Convert the video frame to output formate using sws_scale
+        if(videoStream->swsContext && videoStream->frame)
+        {
+            sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
+                      videoStream->frame->data, videoStream->frame->linesize );
 
-        memcpy(videoFrame->frame, videoStream->frame->data[0], bufferSize);
+            memcpy(videoFrame->buffers[0], videoStream->frame->data[0], bufferSize);
+        }
+        else
+        {
+            // copy channels in frame buffers
+            for(uint32_t i = 0; i < mediadecoder::NUM_FRAME_DATA_POINTERS; i++)
+            {
+                if(videoFrame->buffers[i])
+                {
+                    memcpy(videoFrame->buffers[i], frame->data[i], frame->linesize[i] * frame->height);
+                }
+            }
+        }
+
 
         bool success = false;
         do
@@ -507,19 +547,29 @@ namespace mediadecoder
             codecContext->thread_type = FF_THREAD_FRAME;
             
             data->videoStream = new VideoStream();
+            memset(data->videoStream, 0, sizeof(VideoStream));
             data->videoStream->codecParameters = codecParameters;
             data->videoStream->codec = codec;
             data->videoStream->codecContext = codecContext;
             data->videoStream->stream = stream;
             data->videoStream->streamIndex = index;
-            data->videoStream->frame = av_frame_alloc();
-            data->videoStream->bufferSize = avpicture_get_size(AV_PIX_FMT_RGB24, codecContext->width, codecContext->height);
-            data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
-                                                          codecContext->pix_fmt, codecContext->width, codecContext->height,
-                                                          AV_PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);
+#ifdef ENABLE_YUV420P
+            data->videoStream->outputFormat = codecContext->pix_fmt == AV_PIX_FMT_YUV420P ? VF_YUV420P : VF_RGB24;
+#endif
 
-            uint8_t *buffer = static_cast<uint8_t *>(av_malloc(data->videoStream->bufferSize * sizeof(uint8_t)));
-            avpicture_fill((AVPicture *)data->videoStream->frame, buffer, AV_PIX_FMT_RGB24, codecContext->width, codecContext->height);
+            data->videoStream->outputFormat = VF_RGB24;
+
+            if( data->videoStream->outputFormat == VF_RGB24 && codecContext->pix_fmt != AV_PIX_FMT_RGB24)
+            {
+                data->videoStream->frame = av_frame_alloc();
+                data->videoStream->bufferSize = avpicture_get_size(AV_PIX_FMT_RGB24, codecContext->width, codecContext->height);
+                data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
+                                                              codecContext->pix_fmt, codecContext->width, codecContext->height,
+                                                              AV_PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);
+
+                uint8_t *buffer = static_cast<uint8_t *>(av_malloc(data->videoStream->bufferSize * sizeof(uint8_t)));
+                avpicture_fill((AVPicture *)data->videoStream->frame, buffer, AV_PIX_FMT_RGB24, codecContext->width, codecContext->height);
+            }
 
             data->videoStream->processCallback = VideoDecoderCallback;
             data->videoStream->width = codecContext->width;
@@ -571,6 +621,16 @@ namespace mediadecoder
         }
 
         return result;
+    }
+
+    VideoFormat GetOutputFormat(Decoder* decoder)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return VF_INVALID;
+        }
+        return decoder->videoStream->outputFormat;
+
     }
 
     uint64_t GetDuration(Decoder* decoder)
@@ -790,8 +850,7 @@ namespace mediadecoder
 
         if(!outcome)
         {
-            delete frame->frame;
-            delete frame;
+            Delete(frame);
         }
     }
 

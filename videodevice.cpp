@@ -759,7 +759,7 @@ namespace videodevice
         return Result();
     }
 
-    Result Create(Device*& device)
+    Result Create(Device*& device, VideoFormat outputFormat)
     {
         Result result;
 
@@ -778,7 +778,19 @@ namespace videodevice
         currentDevice = device;
 
         // initialize renderer
-        device->renderer = new Rgb24Renderer();
+        switch(outputFormat)
+        {
+            case VF_RGB24:
+                device->renderer = new Rgb24Renderer();
+                break;
+
+            case VF_YUV420P:
+               device->renderer = new Yuv420pRenderer();
+               break;
+
+            default:
+                return Result(false, "Unsupported output format %d", outputFormat);
+        }
 
         result = device->renderer->Create();
         if(!result)
@@ -789,14 +801,9 @@ namespace videodevice
         return result;
     }
 
-    Result DrawFrame(Device* device, uint8_t* f, uint32_t width, uint32_t height)
+    Result DrawFrame(Device* device, FrameBuffer* fb)
     {
-        FrameBuffer fb;
-        fb.frameData[0] = f;
-        fb.width = width;
-        fb.height = height;
-        
-        return device->renderer->Draw(&fb);
+        return device->renderer->Draw(fb);
     }
 
     Result SetVideoSize(Device* device, uint32_t width, uint32_t height)
@@ -825,10 +832,13 @@ namespace videodevice
 
     void Destroy(Device*& device)
     {
-        delete device->renderer;
-        delete device;
-        device = NULL;
-        currentDevice = NULL;
+        if(device)
+        {
+            delete device->renderer;
+            delete device;
+            device = NULL;
+            currentDevice = NULL;
+        }
     }
 
 }
