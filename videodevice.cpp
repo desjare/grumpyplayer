@@ -285,6 +285,8 @@ namespace {
         {
             Result result;
 
+            logger::Info("Creating RGB24 Renderer");
+
             const std::string vertexShaderSource = 
             "#version 150\n"
             "in vec3 vertex;\n"
@@ -526,6 +528,8 @@ namespace {
         {
             Result result;
 
+            logger::Info("Creating YUV420P Renderer");
+
             const std::string vertexShaderSource = "" 
             "#version 330\n"
             ""
@@ -726,6 +730,12 @@ namespace videodevice
     {
 
         return Result();
+    }
+
+    void GetSupportedFormat(VideoFormatList& l)
+    {
+        l.push_back(VF_RGB24);
+        l.push_back(VF_YUV420P);
     }
 
     Result Create(Device*& device, VideoFormat outputFormat)

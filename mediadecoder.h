@@ -43,8 +43,10 @@ namespace mediadecoder
 
     struct VideoStream : public Stream
     {
+        // video stream output format
         VideoFormat outputFormat;
 
+        // sws_scale context
         SwsContext* swsContext;
         // RGB 24 bytes frame
         AVFrame* frame;
@@ -130,6 +132,7 @@ namespace mediadecoder
     };
 
     Result   Init();
+    void     SetOutputFormat(const VideoFormatList&);
 
     // decoder
     Result   Create(Decoder*& decoder);

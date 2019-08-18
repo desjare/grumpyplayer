@@ -236,6 +236,15 @@ namespace player
         return result;
     }
 
+    void SetWindowSize(Player* player, uint32_t w, uint32_t h)
+    {
+        assert(player && player->videoDevice);
+        if(player && player->videoDevice)
+        {
+            videodevice::SetWindowSize(player->videoDevice, w, h);
+        }
+    }
+
     void Play(Player* player)
     {
         logger::Info("Play");
@@ -352,6 +361,7 @@ namespace player
 
     const std::string& GetPath(Player* player)
     {
+        assert(player);
         return player->path;
     }
 

@@ -38,15 +38,19 @@ namespace player
     Result   Init(SwapBufferCallback);
     Result   Create(Player*& player);
     Result   Open(Player*, const std::string& filename);
+    void     SetWindowSize(Player*,uint32_t, uint32_t);
 
     void     Play(Player*);
     void     Seek(Player*, uint64_t timeUs);
     void     Pause(Player*);
 
     bool     IsPlaying(Player*);
+
     uint64_t GetDuration(Player*);
     uint64_t GetCurrentTime(Player*);
+
     const std::string& GetPath(Player*);
+
     
     void     Present(Player*);
     

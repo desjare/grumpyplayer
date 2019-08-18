@@ -464,10 +464,46 @@ namespace {
 
 namespace mediadecoder
 {
+    VideoFormatList outputFormats;
+
+    VideoFormat GetOutputFormat(AVPixelFormat inputFormat, AVPixelFormat& outputPixelFormat)
+    {
+        VideoFormat f = VF_INVALID;
+        AVPixelFormat p;
+        switch(inputFormat)
+        {
+            case AV_PIX_FMT_YUV420P:
+                f = VF_YUV420P;
+                p = AV_PIX_FMT_YUV420P;
+                break;
+            case AV_PIX_FMT_RGB24:
+                f = VF_RGB24;
+                p = AV_PIX_FMT_RGB24;
+                break;
+            default:
+                break;
+        }
+
+        auto it = std::find(outputFormats.begin(), outputFormats.end(), f);
+        if( it != outputFormats.end() )
+        {
+            outputPixelFormat = p;
+            return f;
+        }
+
+        outputPixelFormat = AV_PIX_FMT_RGB24;
+        return VF_RGB24;
+    }
+
     Result Init()
     {
         Result result;
         return result;
+    }
+
+    void SetOutputFormat(const VideoFormatList& l)
+    {
+        outputFormats = l;
     }
 
     Result Create(Decoder*& decoder)
@@ -553,18 +589,20 @@ namespace mediadecoder
             data->videoStream->codecContext = codecContext;
             data->videoStream->stream = stream;
             data->videoStream->streamIndex = index;
-            data->videoStream->outputFormat = codecContext->pix_fmt == AV_PIX_FMT_YUV420P ? VF_YUV420P : VF_RGB24;
 
-            if( data->videoStream->outputFormat == VF_RGB24 && codecContext->pix_fmt != AV_PIX_FMT_RGB24)
+            AVPixelFormat outputPixelFormat;
+            data->videoStream->outputFormat = GetOutputFormat(codecContext->pix_fmt, outputPixelFormat);
+
+            if(codecContext->pix_fmt != outputPixelFormat)
             {
                 data->videoStream->frame = av_frame_alloc();
-                data->videoStream->bufferSize = avpicture_get_size(AV_PIX_FMT_RGB24, codecContext->width, codecContext->height);
+                data->videoStream->bufferSize = avpicture_get_size(outputPixelFormat, codecContext->width, codecContext->height);
                 data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
                                                               codecContext->pix_fmt, codecContext->width, codecContext->height,
-                                                              AV_PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);
+                                                              outputPixelFormat, SWS_BICUBIC, NULL, NULL, NULL);
 
                 uint8_t *buffer = static_cast<uint8_t *>(av_malloc(data->videoStream->bufferSize * sizeof(uint8_t)));
-                avpicture_fill((AVPicture *)data->videoStream->frame, buffer, AV_PIX_FMT_RGB24, codecContext->width, codecContext->height);
+                avpicture_fill((AVPicture *)data->videoStream->frame, buffer, outputPixelFormat, codecContext->width, codecContext->height);
             }
 
             data->videoStream->processCallback = VideoDecoderCallback;

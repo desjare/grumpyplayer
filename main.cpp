@@ -18,9 +18,9 @@
 #include "result.h"
 
 namespace {
-    void WindowSizeChangeCallback(gui::Handle* handle, uint32_t w, uint32_t h, videodevice::Device* device)
+    void WindowSizeChangeCallback(gui::Handle* handle, uint32_t w, uint32_t h, player::Player* player)
     {
-        videodevice::SetWindowSize(device, w,h);
+        player::SetWindowSize(player, w,h);
     }
 
     void FileDropCallback(gui::Handle* handle, const std::string& filename, player::Player* player)
@@ -79,6 +79,11 @@ void Init()
 
     mediadecoder::Init();
     videodevice::Init();
+
+    VideoFormatList supportedFormat;
+
+    videodevice::GetSupportedFormat(supportedFormat);
+    mediadecoder::SetOutputFormat(supportedFormat);
 }
 
 Result CreateWindows(gui::Handle*& ui, int videoWidth, int videoHeight)
@@ -261,7 +266,7 @@ int main(int argc, char** argv)
 
     // initialize gui callbacks
     gui::WindowSizeChangeCb windowSizeChangeCallback 
-                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, player->videoDevice );
+                  = boost::bind(WindowSizeChangeCallback, _1, _2, _3, player );
 
     gui::FileDropCb fileDropCallback
                   = boost::bind(FileDropCallback, _1, _2, player);
