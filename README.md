@@ -14,6 +14,8 @@ Main modules are:
 * gui (glfw3)
 * streamer (curl)
 
+Overall I think it is a good example of how to use ffmpeg to decode a video from file or stream and use the viddeo and audio media for playback.
+
 <h2>Credits</h2>
 
 I used and inspired myself of several projects writing the player so here are some credits. Sometimes I took things as his but most of the time I modified them to add some features or rewritten them partially. Licensing of all those projects are sometimes unclear.
