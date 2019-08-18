@@ -423,8 +423,6 @@ namespace {
                 }
             }
 
-
-
             float x1 = ww / 2.0f - adjustWidth / 2.0f;
             float x2 = x1 + adjustWidth;
             float y1 = wh / 2.0f - adjustHeight / 2.0f;
@@ -643,9 +641,12 @@ namespace {
             return result;
         }
 
-        virtual Result SetWindowSize(uint32_t windowWidth, uint32_t windowHeight)
+        virtual Result SetWindowSize(uint32_t wWidth, uint32_t wHeight)
         {
             Result result;
+
+            windowWidth = wWidth;
+            windowHeight = wHeight;
 
             const float ww = static_cast<float>(windowWidth);
             const float wh = static_cast<float>(windowHeight);
@@ -717,7 +718,7 @@ namespace {
    private:
         void WriteMVPMatrix(uint32_t width, uint32_t height)
         {
-            glm::mat4 mvp = glm::ortho(0.0f, static_cast<float>(width), 0.0f, static_cast<float>(height), -1.0f, 1.0f);
+            glm::mat4 mvp = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f, -1.0f, 1.0f);
             GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(prog, "u_pm"), 1, GL_FALSE, glm::value_ptr(mvp)));
         }
 
