@@ -55,6 +55,7 @@ namespace {
     PFNGLBUFFERDATAPROC glBufferData;
     PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
     PFNGLDELETEBUFFERSPROC glDeleteBuffers;
+    PFNGLACTIVETEXTUREPROC glActiveTexture;
 
     videodevice::Device* currentDevice = NULL;
 
@@ -126,6 +127,7 @@ namespace {
         glBufferData = (PFNGLBUFFERDATAPROC) GetProcAddress((PROCADDRNAMEPTR) "glBufferData");
         glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC) GetProcAddress((PROCADDRNAMEPTR) "glDeleteVertexArrays");
         glDeleteBuffers = (PFNGLDELETEBUFFERSPROC) GetProcAddress((PROCADDRNAMEPTR) "glDeleteBuffers");
+        glActiveTexture = (PFNGLACTIVETEXTUREPROC)GetProcAddress((PROCADDRNAMEPTR) "glActiveTexture");
     }
 
     Result BuildShader(std::string const &shaderSource, GLuint &shader, GLenum type) {
