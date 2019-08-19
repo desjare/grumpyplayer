@@ -618,6 +618,8 @@ namespace {
 
             GL_CHECK(glClear(GL_COLOR_BUFFER_BIT)); 
 
+            glUseProgram(prog);
+
             glBindTexture(GL_TEXTURE_2D, yTexture);
             glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[0]);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width, f->height, GL_RED, GL_UNSIGNED_BYTE, f->frameData[0]);

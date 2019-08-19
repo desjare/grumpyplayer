@@ -222,6 +222,8 @@ namespace player
             return result;
         }
 
+        SetWindowSize(player, player->decoder->videoStream->width, player->decoder->videoStream->height);
+
         mediadecoder::AudioStream* audioStream = player->decoder->audioStream;
         const uint32_t channels = audioStream->channels;
         const uint32_t sampleRate = audioStream->sampleRate;
