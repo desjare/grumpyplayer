@@ -739,7 +739,9 @@ namespace videodevice
     void GetSupportedFormat(VideoFormatList& l)
     {
         l.push_back(VF_RGB24);
+#ifndef WIN32 
         l.push_back(VF_YUV420P);
+#endif
     }
 
     Result Create(Device*& device, VideoFormat outputFormat)
