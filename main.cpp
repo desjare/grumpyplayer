@@ -66,11 +66,28 @@ namespace {
     {
         boost::filesystem::path path(filename);
 
-        std::string title = program + std::string(" - ") + path.filename().string() + 
-                            std::string(" - ") + chrono::HoursMinutesSeconds(timeUs) + 
-                            "/" + chrono::HoursMinutesSeconds(duration);
+        static int64_t hours = 0;
+        static int64_t min = 0;
+        static int64_t sec = 0;
 
-        gui::SetTitle( handle, title.c_str() );
+        int64_t currentHours = 0;
+        int64_t currentMin = 0;
+        int64_t currentSec = 0;
+
+        chrono::HoursMinutesSeconds(timeUs, currentHours, currentMin, currentSec);
+
+        if (hours != currentHours || min != currentMin || sec != currentSec)
+        {
+            hours = currentHours;
+            min = currentMin;
+            currentSec = sec;
+
+            std::string title = program + std::string(" - ") + path.filename().string() +
+                std::string(" - ") + chrono::HoursMinutesSeconds(timeUs) +
+                "/" + chrono::HoursMinutesSeconds(duration);
+
+            gui::SetTitle(handle, title.c_str());
+        }
     }
 }
 
@@ -172,7 +189,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     else
     {
-        argv[0] = "grumpyplayer.exe";
+        argv[0] = "grumpyplayer";
         argc++;
     }
 

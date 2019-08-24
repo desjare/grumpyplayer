@@ -48,26 +48,42 @@ namespace chrono
         return static_cast<uint64_t>(seconds * 1000000.0);
     }
 
-    inline std::string HoursMinutesSeconds(uint64_t timeUs)
+    inline void HoursMinutesSeconds(uint64_t timeUs, int64_t& hour, int64_t& min, int64_t& sec)
     {
         const int64_t secondsInHour = 3600;
         const int64_t secondsInMinute = 60;
 
         int64_t time = static_cast<int64_t>(Seconds(timeUs));
+
+        hour = time / secondsInHour;
+        time = time % secondsInHour;
+
+        min = time / secondsInMinute;
+        time = time % secondsInMinute;
+        sec = time;
+    }
+
+    inline std::string HoursMinutesSeconds(uint64_t timeUs)
+    {
         int64_t hour = 0;
         int64_t min = 0;
         int64_t sec = 0;
 
-        hour = time / secondsInHour;
-	    time = time % secondsInHour;
-
-	    min = time / secondsInMinute;
-    	time = time % secondsInMinute;
-    	sec = time;
+        HoursMinutesSeconds(timeUs, hour, min, sec);
 
         char buf[BUFSIZ];
-        snprintf(buf, sizeof(buf), "%" PRId64 "h%" PRId64 "m%" PRId64 "s", hour, min, sec);
-
+        if (hour != 0)
+        {
+            snprintf(buf, sizeof(buf), "%" PRId64 "h%" PRId64 "m%" PRId64 "s", hour, min, sec);
+        }
+        else if (min != 0)
+        {
+            snprintf(buf, sizeof(buf), "%" PRId64 "m%" PRId64 "s", min, sec);
+        } 
+        else
+        {
+            snprintf(buf, sizeof(buf), "%" PRId64 "s", sec);
+        }
         return buf;
     }
 }
