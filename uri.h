@@ -10,7 +10,7 @@ namespace Uri
         std::string path;
         std::string protocol;
         std::string host;
-        uint16_t port;
+        uint16_t port = 0;
     };
 
     inline Uri Parse(const std::string &uri)

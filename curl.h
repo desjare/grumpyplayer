@@ -1,8 +1,16 @@
 
 #pragma once
 
-
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#endif
 #include <boost/function.hpp>
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
+
+
 #include <curl/curl.h>
 
 #include <deque>
@@ -17,7 +25,7 @@ namespace curl
 {
     struct Session
     {
-        CURL* curl;
+        CURL* curl = NULL;
 
         std::mutex mutex;
         std::deque<uint8_t> buffer;
@@ -28,7 +36,7 @@ namespace curl
         std::atomic<bool> cancel;
         std::atomic<bool> done;
 
-        CURLcode result;
+        CURLcode result = CURLE_OK;
         
         std::string url;
         std::thread thread;

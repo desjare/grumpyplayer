@@ -1,7 +1,14 @@
 
 #pragma once
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#endif
 #include <boost/function.hpp>
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
 
 #define GLFW_INCLUDE_GL3
 #define GLFW_NO_GLU

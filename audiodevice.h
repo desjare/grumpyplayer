@@ -46,9 +46,9 @@ namespace audiodevice
     
     Result StartWhenReady(Device* device);
 
-    Result Pause(Device*);
-    Result Resume(Device*);
-    Result Flush(Device*);
+    Result Pause(Device* device);
+    Result Resume(Device* device);
+    Result Flush(Device* device);
 
 }
 

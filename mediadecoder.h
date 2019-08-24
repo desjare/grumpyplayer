@@ -11,8 +11,18 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
+
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#endif
+
 #include <boost/lockfree/queue.hpp>
 #include <boost/function.hpp>
+
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
 
 #include <string>
 #include <vector>
@@ -20,7 +30,7 @@ extern "C" {
 
 namespace mediadecoder
 {
-    static const uint32_t NUM_FRAME_DATA_POINTERS = 3;
+    static const uint32_t NUM_FRAME_DATA_POINTERS = 4;
     
     // forward declaration
     struct Stream;
@@ -31,11 +41,11 @@ namespace mediadecoder
 
     struct Stream
     {
-        AVCodecParameters* codecParameters;
-        AVCodec* codec;
-        AVCodecContext* codecContext;
-        AVStream* stream;
-        int32_t streamIndex;
+        AVCodecParameters* codecParameters = NULL;
+        AVCodec* codec = NULL;
+        AVCodecContext* codecContext = NULL;
+        AVStream* stream = NULL;
+        int32_t streamIndex = -1;
 
         // processing
         DecoderCallback processCallback;
@@ -44,35 +54,35 @@ namespace mediadecoder
     struct VideoStream : public Stream
     {
         // video stream output format
-        VideoFormat outputFormat;
+        VideoFormat outputFormat = VF_INVALID;
 
         // sws_scale context
-        SwsContext* swsContext;
+        SwsContext* swsContext = NULL;
         // RGB 24 bytes frame
-        AVFrame* frame;
+        AVFrame* frame = NULL;
         // RGB 24 bytes buffer size
-        uint32_t bufferSize;
+        uint32_t bufferSize = 0;
 
-        uint32_t width;
-        uint32_t height;
+        uint32_t width = 0;
+        uint32_t height = 0;
 
-        uint32_t framesPerSecond;
+        uint32_t framesPerSecond = 0;
     };
 
     struct AudioStream : public Stream
     {
-        SampleFormat sampleFormat;
-        uint32_t sampleRate;
-        uint32_t channels;
+        SampleFormat sampleFormat = SF_FMT_INVALID;
+        uint32_t sampleRate = 0;
+        uint32_t channels = 0;
     };
 
     struct VideoFrame
     {
-        uint8_t* buffers[NUM_FRAME_DATA_POINTERS];
-        uint32_t lineSize[NUM_FRAME_DATA_POINTERS];
-        uint32_t width;
-        uint32_t height;
-        uint64_t timeUs;
+        uint8_t* buffers[NUM_FRAME_DATA_POINTERS] = { NULL, NULL, NULL, NULL};
+        uint32_t lineSize[NUM_FRAME_DATA_POINTERS] = { 0, 0, 0, 0 };
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint64_t timeUs = 0;
     };
 
     struct AudioFrame
@@ -101,21 +111,21 @@ namespace mediadecoder
 
     struct Producer
     {
-        Decoder* decoder;
+        Decoder* decoder = NULL;
 
         // playback frames
-        VideoQueue* videoQueue;
-        AudioQueue* audioQueue;
+        VideoQueue* videoQueue = NULL;
+        AudioQueue* audioQueue = NULL;
 
         std::atomic<uint32_t> videoQueueSize;
         std::atomic<uint32_t> audioQueueSize;
 
-        uint32_t videoQueueCapacity;
-        uint32_t audioQueueCapacity;
+        uint32_t videoQueueCapacity = 0;
+        uint32_t audioQueueCapacity = 0;
 
         // frame pools
-        VideoQueue* videoFramePool;
-        AudioQueue* audioFramePool;
+        VideoQueue* videoFramePool = NULL;
+        AudioQueue* audioFramePool = NULL;
 
         // media streams owned by the decoder
         std::vector<Stream*> streams;
@@ -125,7 +135,7 @@ namespace mediadecoder
 
         // seeking
         std::atomic<bool> seeking;
-        uint64_t seekTime;
+        uint64_t seekTime = 0;
 
         // eof
         std::atomic<bool> done;

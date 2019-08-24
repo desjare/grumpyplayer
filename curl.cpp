@@ -22,7 +22,7 @@ namespace {
         curl::Session* session = static_cast<curl::Session*>(userdata);
         uint8_t* data = reinterpret_cast<uint8_t*>(ptr);
 
-        std::lock_guard<std::mutex> guard(session->mutex);
+        std::scoped_lock<std::mutex> guard(session->mutex);
         std::deque<uint8_t>& buffer = session->buffer;
         buffer.insert(buffer.end(), data, data + nmemb);
         return nmemb;
@@ -94,7 +94,7 @@ namespace curl
 
     size_t Read(Session* session, uint8_t* readbuf, size_t size)
     {
-        std::lock_guard<std::mutex> guard(session->mutex);
+        std::scoped_lock<std::mutex> guard(session->mutex);
 
         std::deque<uint8_t>& buffer = session->buffer;
         size = std::min(size, buffer.size());
@@ -113,7 +113,7 @@ namespace curl
         // Can we continue the download session
         if(offset >= session->offset &&  offset < session->offset + buffer.size()  )
         {
-            std::lock_guard<std::mutex> guard(session->mutex);
+            std::scoped_lock<std::mutex> guard(session->mutex);
             logger::Info("Curl seek. Buffer already in memory. Size %d", buffer.size());
             size_t offsetBytes = offset - session->offset;
             buffer.erase(buffer.begin(), buffer.begin()+offsetBytes);

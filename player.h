@@ -5,7 +5,15 @@
 #include "audiodevice.h"
 #include "mediadecoder.h"
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#endif
 #include <boost/function.hpp>
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
+
 #include <thread>
 
 namespace player
@@ -16,16 +24,16 @@ namespace player
     {
         std::string path;
 
-        mediadecoder::Decoder* decoder;
+        mediadecoder::Decoder* decoder = NULL;
         
-        mediadecoder::Producer* producer;
-        mediadecoder::VideoFrame* videoFrame;
+        mediadecoder::Producer* producer = NULL;
+        mediadecoder::VideoFrame* videoFrame = NULL;
 
-        audiodevice::Device* audioDevice;
-        videodevice::Device* videoDevice;
+        audiodevice::Device* audioDevice = NULL;
+        videodevice::Device* videoDevice = NULL;
 
-        uint64_t playbackStartTimeUs;
-        uint64_t currentTimeUs;
+        uint64_t playbackStartTimeUs = 0;
+        uint64_t currentTimeUs = 0;
 
         std::atomic<bool> playing;
         std::atomic<bool> pause;

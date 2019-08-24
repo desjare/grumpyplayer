@@ -9,9 +9,6 @@
 #include "curl.h"
 #include "uri.h"
 
-#include <boost/lockfree/queue.hpp>
-#include <boost/function.hpp>
-
 #include <string>
 #include <vector>
 #include <thread>
@@ -73,7 +70,7 @@ namespace {
             {
                 if(data[i] != NULL && linesize[i] != 0)
                 {
-                    frame->buffers[i] = new uint8_t[linesize[i] * height * 2];  // FIXME TBM_desjare: why we need so much buffer on windows
+                    frame->buffers[i] = new uint8_t[static_cast<size_t>(linesize[i]) * static_cast<size_t>(height)];
                     frame->lineSize[i] = linesize[i];
                 }
             }
@@ -296,7 +293,7 @@ namespace {
         {
             for( uint32_t ch = 0; ch < channels; ch++)
             {
-                uint8_t* data  = (uint8_t*)(frame->data[ch] + sampleSize*i);
+                uint8_t* data  = (uint8_t*)(frame->data[ch] + static_cast<ptrdiff_t>(static_cast<size_t>(sampleSize)*static_cast<size_t>(i)));
 
                 for( uint32_t j = 0; j < sampleSize; j++ )
                 {
@@ -355,7 +352,7 @@ namespace {
             {
                 if(videoFrame->buffers[i])
                 {
-                    memcpy(videoFrame->buffers[i], frame->data[i], frame->linesize[i] * frame->height);
+                    memcpy(videoFrame->buffers[i], frame->data[i], static_cast<size_t>(frame->linesize[i]) * static_cast<size_t>(frame->height));
                 }
             }
         }
@@ -468,8 +465,10 @@ namespace mediadecoder
 
     VideoFormat GetOutputFormat(AVPixelFormat inputFormat, AVPixelFormat& outputPixelFormat)
     {
-        VideoFormat f = VF_INVALID;
-        AVPixelFormat p;
+        // default values
+        VideoFormat f = VF_RGB24;
+        AVPixelFormat p = AV_PIX_FMT_RGB24;
+
         switch(inputFormat)
         {
             case AV_PIX_FMT_YUV420P:
