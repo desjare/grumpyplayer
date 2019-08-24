@@ -57,12 +57,13 @@ namespace mediadecoder
         // video stream output format
         VideoFormat outputFormat = VF_INVALID;
 
-        // sws_scale context
+        // sws_scale context if required
         SwsContext* swsContext = NULL;
+        
+        // destination format
+        AVPixelFormat dstFormat = AV_PIX_FMT_NONE;
 
-        // RGB 24 bytes frame
-        AVFrame* reformatFrame = NULL;
-        // RGB 24 bytes buffer size
+        // reformat buffer size if reformat is required
         uint32_t reformatBufferSize = 0;
 
         uint32_t width = 0;
