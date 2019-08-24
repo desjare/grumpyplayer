@@ -13,7 +13,7 @@ if (UNIX)
     add_definitions(-DHAVE_ALSA)	
     add_definitions(-DUNIX)	
     add_compile_options(-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g)
-    add_compile_options(-Wall -Wno-deprecated -Wno-deprecated-declarations)
+    add_compile_options(-Wall)
     add_compile_options(-I./3rdparty)
 
     find_library(AVFORMAT_LIBRARY avformat REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
