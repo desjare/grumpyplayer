@@ -155,13 +155,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // convert windows command line to main style command line
     LPWSTR* argwv = CommandLineToArgvW(cmdLineW, &argc);
 
-    // argv[0] is used for command line name
-    char** argv = new char*[++argc];
-    argv[0] = "grumpyplayer";
+    // argv[0] is use for command line name
+    char** argv = new char*[argc];
 
-    for (int32_t i = 1; i < argc; i++)
+    for (int32_t i = 0; i < argc; i++)
     {
-        argv[i] = WCharToUTF8(argwv[i-1]);
+        argv[i] = WCharToUTF8(argwv[i]);
     }
 
 #else
