@@ -73,7 +73,7 @@ namespace {
             {
                 if(data[i] != NULL && linesize[i] != 0)
                 {
-                    frame->buffers[i] = new uint8_t[linesize[i] * height];
+                    frame->buffers[i] = new uint8_t[linesize[i] * height * 2];  // FIXME TBM_desjare: why we need so much buffer on windows
                     frame->lineSize[i] = linesize[i];
                 }
             }
@@ -235,27 +235,27 @@ namespace {
         }
     }
 
-    uint32_t GetStreamFrameRate(AVStream* st)
+    uint32_t GetStreamFrameRate(AVCodecContext* codecContext, AVStream* st)
     {
         double frameRate = 30.0;
 
-        if ( st->codec->codec_id == AV_CODEC_ID_H264 )//mp4
+        if (codecContext->codec_id == AV_CODEC_ID_H264 )//mp4
         {
             frameRate = st->avg_frame_rate.num / static_cast<double>(st->avg_frame_rate.den);
         }
-        else if ( st->codec->codec_id == AV_CODEC_ID_MJPEG )
+        else if(codecContext->codec_id == AV_CODEC_ID_MJPEG )
         {
             frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
         }
-        else if ( st->codec->codec_id == AV_CODEC_ID_FLV1 )
+        else if (codecContext->codec_id == AV_CODEC_ID_FLV1 )
         {
             frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
         }
-        else if ( st->codec->codec_id == AV_CODEC_ID_WMV3 )
+        else if (codecContext->codec_id == AV_CODEC_ID_WMV3 )
         {
             frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
         }
-        else if ( st->codec->codec_id == AV_CODEC_ID_MPEG4 )//3gp
+        else if (codecContext->codec_id == AV_CODEC_ID_MPEG4 )//3gp
         {
             frameRate = st->r_frame_rate.num / static_cast<double>(st->r_frame_rate.den);
         }
@@ -608,7 +608,7 @@ namespace mediadecoder
             data->videoStream->processCallback = VideoDecoderCallback;
             data->videoStream->width = codecContext->width;
             data->videoStream->height = codecContext->height;
-            data->videoStream->framesPerSecond = GetStreamFrameRate(stream);
+            data->videoStream->framesPerSecond = GetStreamFrameRate(codecContext, stream);
 
             PrintStream(*data->videoStream);
         }
