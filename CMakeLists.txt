@@ -32,6 +32,8 @@ if (UNIX)
     set(GL_LIBRARY GL GLU)
 
     SET(NET_LIBRARY )
+    SET(RC )
+
 endif (UNIX)
 
 # Windows defs
@@ -59,6 +61,7 @@ if (WIN32)
     set(THREAD_LIBRARY )
     set(GL_LIBRARY opengl32 Glu32)
     SET(NET_LIBRARY Ws2_32 Secur32 Bcrypt)
+    SET(RC grumpyplayer.rc)
 
     add_compile_options(-I${3RDPARTY})
     add_compile_options(-I${3RDPARTY}/ffmpeg/include)
@@ -85,7 +88,8 @@ add_executable(grumpyplayer
     logger
     icon 
     curl
-    3rdparty/lodepng/picopng)
+    3rdparty/lodepng/picopng
+    ${RC})
 
 
 target_link_libraries(
