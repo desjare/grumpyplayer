@@ -11,7 +11,7 @@
 
 namespace videodevice
 {
-    static const uint32_t NUM_FRAME_DATA_POINTERS = 3;
+    static const uint32_t NUM_FRAME_DATA_POINTERS = 4;
     struct Device;
 
     struct FrameBuffer
@@ -35,14 +35,14 @@ namespace videodevice
     struct Device
     {
         // texture size
-        GLuint width;
-        GLuint height;
+        GLuint width = 0;
+        GLuint height = 0;
 
         // video size
-        GLuint windowWidth;
-        GLuint windowHeight;
+        GLuint windowWidth = 0;
+        GLuint windowHeight = 0;
 
-        Renderer* renderer;
+        Renderer* renderer = NULL;
     };
 
     Result Init();

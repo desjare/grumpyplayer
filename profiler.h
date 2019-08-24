@@ -20,13 +20,13 @@ namespace profiler
     // of average time for a given profile point
     struct Profiler
     {
-         uint64_t startTime;
-         uint64_t endTime;
-         uint64_t currentTime;
-         uint64_t totalTime;
-         uint64_t count;
-         uint64_t minTime;
-         uint64_t maxTime;
+         uint64_t startTime = 0;
+         uint64_t endTime = 0;
+         uint64_t currentTime = 0;
+         uint64_t totalTime = 0;
+         uint64_t count = 0;
+         uint64_t minTime = 0;
+         uint64_t maxTime = 0;
     };
 
     void Init();

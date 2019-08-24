@@ -25,15 +25,15 @@ namespace audiodevice
     struct Device
     {
 #ifdef HAVE_ALSA
-        snd_pcm_t* playbackHandle;
+        snd_pcm_t* playbackHandle = NULL;
 #endif
 
 #ifdef WIN32
-        IXAudio2* xaudioHandle;
-        IXAudio2MasteringVoice* masterVoice;
+        IXAudio2* xaudioHandle = NULL;
+        IXAudio2MasteringVoice* masterVoice = NULL;
         IXAudio2SourceVoice* sourceVoice;
         WAVEFORMATEX wfx;
-        Audio2VoiceCallback* voiceCallbacks;
+        Audio2VoiceCallback* voiceCallbacks = NULL;
 #endif
     };
 
@@ -48,6 +48,7 @@ namespace audiodevice
 
     Result Pause(Device* device);
     Result Resume(Device* device);
+
     Result Flush(Device* device);
 
 }
