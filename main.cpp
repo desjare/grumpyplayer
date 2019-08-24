@@ -4,6 +4,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/bind.hpp>
 #include <string>
+#include <cstring>
 #include <iostream>
 
 #include "mediadecoder.h"
@@ -156,11 +157,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LPWSTR* argwv = CommandLineToArgvW(cmdLineW, &argc);
 
     // argv[0] is use for command line name
-    char** argv = new char*[argc];
+    char** argv = new char* [static_cast<size_t>(argc)+1];
+    char* argv0 = WCharToUTF8(argwv[0]);
 
-    for (int32_t i = 0; i < argc; i++)
+    int32_t startPos = 1;
+
+    // Windows might call you with the exe as argv[0] or without 
+    // if you associate a file type with your app and called from the explorer.
+    // 
+    // Be sure to handle both case.
+    if (strstr(argv0, ".exe"))
     {
-        argv[i] = WCharToUTF8(argwv[i]);
+        argv[0] = argv0;
+    }
+    else
+    {
+        argv[0] = "grumpyplayer.exe";
+        argc++;
+    }
+
+    for (int32_t i = startPos; i < argc; i++)
+    {
+        argv[i] = WCharToUTF8(argwv[i-1]);
     }
 
 #else
