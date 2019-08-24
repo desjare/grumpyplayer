@@ -341,7 +341,7 @@ namespace {
 
         videoFrame->timeUs = timeUs;
 
-        // Convert the video frame to output formate using sws_scale
+        // Convert the video frame to output format using sws_scale
         if(videoStream->swsContext)
         {
             sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
@@ -349,7 +349,8 @@ namespace {
         }
         else
         {
-            av_image_copy(videoFrame->buffers, videoFrame->lineSize, (const uint8_t**)frame->data, frame->linesize, videoStream->codecContext->pix_fmt,  frame->width, frame->height);
+            av_image_copy(videoFrame->buffers, videoFrame->lineSize, (const uint8_t**)frame->data, frame->linesize, 
+                          videoStream->codecContext->pix_fmt,  frame->width, frame->height);
         }
 
 
@@ -526,7 +527,7 @@ namespace mediadecoder
             }
 
             data->curl = session;
-            const uint32_t avioBufferSize = 32768;
+            const uint32_t avioBufferSize = 32768; // FIXME TBM_desjare: memory leak
             AVIOContext* avio = avio_alloc_context(static_cast<uint8_t*>(av_malloc(avioBufferSize)), avioBufferSize, 0, session, ReadPacket, nullptr, SeekPacket);
             data->avFormatContext->pb = avio;
             path = "curl";
@@ -913,6 +914,7 @@ namespace mediadecoder
 
     void WaitForPlayback(Producer* producer)
     {
+        // Wait for half a second playback before starting to play
         const uint32_t nbBufferForPlayback = GetFramesPerSecond(producer->decoder) / 2;
         bool haveVideo = producer->videoQueueSize > nbBufferForPlayback;
 
