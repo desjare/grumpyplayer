@@ -139,6 +139,13 @@ namespace audiodevice
             return result;
         }
 
+        err = snd_pcm_hw_params_can_pause(hwParams);
+        if( err != 1 ) // can pause
+        {
+            result = Result(false, "Cannot prepare audio interface for use since it cannot pause.");
+            return result;
+        }
+
         return result;
 
     }
