@@ -70,7 +70,7 @@ namespace {
             {
                 if(data[i] != NULL && linesize[i] != 0)
                 {
-                    frame->buffers[i] = new uint8_t[static_cast<size_t>(linesize[i]) * static_cast<size_t>(height)];
+                    frame->buffers[i] = reinterpret_cast<uint8_t*>(av_malloc(static_cast<size_t>(linesize[i]) * static_cast<size_t>(height)));
                     frame->lineSize[i] = linesize[i];
                 }
             }
@@ -88,7 +88,7 @@ namespace {
             frame = new mediadecoder::VideoFrame();
             memset(frame,0, sizeof(mediadecoder::VideoFrame));
 
-            frame->buffers[0] = new uint8_t[bufferSize];
+            frame->buffers[0] = reinterpret_cast<uint8_t*>(av_malloc(bufferSize));
             frame->width = width;
             frame->height = height;
         }
@@ -142,7 +142,7 @@ namespace {
         {
             if(frame->buffers[i])
             {
-                delete [] frame->buffers[i];
+                av_free(frame->buffers[i]);
             }
         }
         delete frame;
@@ -318,7 +318,7 @@ namespace {
                        = reinterpret_cast<mediadecoder::VideoStream*>(stream);
 
         const AVRational& timeBase = stream->stream->time_base;
-        const uint32_t bufferSize = videoStream->bufferSize;
+        const uint32_t reformatBufferSize = videoStream->reformatBufferSize;
         const bool convertFrame = videoStream->swsContext != NULL;
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
         const uint64_t timeUs = chrono::Microseconds(timeSeconds);
@@ -326,7 +326,7 @@ namespace {
         mediadecoder::VideoFrame* videoFrame;
         Result result;
 
-        result = convertFrame ? Create(producer, videoFrame, frame->width, frame->height, bufferSize)
+        result = convertFrame ? Create(producer, videoFrame, frame->width, frame->height, reformatBufferSize)
                               : Create(producer, videoFrame, frame->width, frame->height, frame->data, frame->linesize);
         assert(result);
         if(!result)
@@ -338,23 +338,16 @@ namespace {
         videoFrame->timeUs = timeUs;
 
         // Convert the video frame to output formate using sws_scale
-        if(videoStream->swsContext && videoStream->frame)
+        if(videoStream->swsContext && videoStream->reformatFrame)
         {
             sws_scale(videoStream->swsContext, frame->data, frame->linesize, 0, videoStream->codecContext->height,
-                      videoStream->frame->data, videoStream->frame->linesize );
+                      videoStream->reformatFrame->data, videoStream->reformatFrame->linesize );
 
-            memcpy(videoFrame->buffers[0], videoStream->frame->data[0], bufferSize);
+            memcpy(videoFrame->buffers[0], videoStream->reformatFrame->data[0], reformatBufferSize);
         }
         else
         {
-            // copy channels in frame buffers
-            for(uint32_t i = 0; i < mediadecoder::NUM_FRAME_DATA_POINTERS; i++)
-            {
-                if(videoFrame->buffers[i])
-                {
-                    memcpy(videoFrame->buffers[i], frame->data[i], static_cast<size_t>(frame->linesize[i]) * static_cast<size_t>(frame->height));
-                }
-            }
+            av_image_copy(videoFrame->buffers, videoFrame->lineSize, (const uint8_t**)frame->data, frame->linesize, videoStream->codecContext->pix_fmt,  frame->width, frame->height);
         }
 
 
@@ -594,14 +587,15 @@ namespace mediadecoder
 
             if(codecContext->pix_fmt != outputPixelFormat)
             {
-                data->videoStream->frame = av_frame_alloc();
-                data->videoStream->bufferSize = avpicture_get_size(outputPixelFormat, codecContext->width, codecContext->height);
+                data->videoStream->reformatFrame = av_frame_alloc();
+                data->videoStream->reformatBufferSize = av_image_get_buffer_size(outputPixelFormat, codecContext->width, codecContext->height, 32);
                 data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
                                                               codecContext->pix_fmt, codecContext->width, codecContext->height,
                                                               outputPixelFormat, SWS_BICUBIC, NULL, NULL, NULL);
 
-                uint8_t *buffer = static_cast<uint8_t *>(av_malloc(data->videoStream->bufferSize * sizeof(uint8_t)));
-                avpicture_fill((AVPicture *)data->videoStream->frame, buffer, outputPixelFormat, codecContext->width, codecContext->height);
+                uint8_t *buffer = static_cast<uint8_t *>(av_malloc(data->videoStream->reformatBufferSize * sizeof(uint8_t)));
+                av_image_fill_arrays(data->videoStream->reformatFrame->data, data->videoStream->reformatFrame->linesize, 
+                                     buffer, outputPixelFormat, codecContext->width, codecContext->height, 32);
             }
 
             data->videoStream->processCallback = VideoDecoderCallback;
@@ -692,7 +686,7 @@ namespace mediadecoder
         }
 
         curl::Destroy(decoder->curl);
-        av_frame_free(&decoder->videoStream->frame);
+        av_frame_free(&decoder->videoStream->reformatFrame);
         sws_freeContext(decoder->videoStream->swsContext);
 
         avcodec_close(decoder->videoStream->codecContext);

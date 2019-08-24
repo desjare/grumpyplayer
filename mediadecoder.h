@@ -9,6 +9,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libavutil/imgutils.h>
 }
 
 
@@ -58,10 +59,11 @@ namespace mediadecoder
 
         // sws_scale context
         SwsContext* swsContext = NULL;
+
         // RGB 24 bytes frame
-        AVFrame* frame = NULL;
+        AVFrame* reformatFrame = NULL;
         // RGB 24 bytes buffer size
-        uint32_t bufferSize = 0;
+        uint32_t reformatBufferSize = 0;
 
         uint32_t width = 0;
         uint32_t height = 0;
@@ -79,7 +81,7 @@ namespace mediadecoder
     struct VideoFrame
     {
         uint8_t* buffers[NUM_FRAME_DATA_POINTERS] = { NULL, NULL, NULL, NULL};
-        uint32_t lineSize[NUM_FRAME_DATA_POINTERS] = { 0, 0, 0, 0 };
+        int32_t lineSize[NUM_FRAME_DATA_POINTERS] = { 0, 0, 0, 0 };
         uint32_t width = 0;
         uint32_t height = 0;
         uint64_t timeUs = 0;
