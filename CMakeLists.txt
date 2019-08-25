@@ -15,6 +15,7 @@ if (UNIX)
     add_compile_options(-msse -msse2 -msse3 -msse4 -msse5 -mavx -mavx2 -g)
     add_compile_options(-Wall)
     add_compile_options(-I./3rdparty)
+    add_compile_options(-I/usr/include/freetype2)
 
     find_library(AVFORMAT_LIBRARY avformat REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
     find_library(AVCODEC_LIBRARY avcodec REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
@@ -27,6 +28,7 @@ if (UNIX)
     find_library(BOOST_PROGRAM_OPTIONS_LIBRARY boost_program_options REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
     find_library(BOOST_FILESYSTEM_LIBRARY boost_filesystem REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
     find_library(BOOST_SYSTEM_LIBRARY boost_system REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
+    find_library(FREETYPE_LIBRARY freetype REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
 
     set(THREAD_LIBRARY pthread)
     set(GL_LIBRARY GL GLU)
@@ -107,4 +109,5 @@ target_link_libraries(
     ${BOOST_FILESYSTEM_LIBRARY}
     ${NET_LIBRARY}
     ${THREAD_LIBRARY}
-    ${GL_LIBRARY})
+    ${GL_LIBRARY}
+    ${FREETYPE_LIBRARY})

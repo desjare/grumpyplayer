@@ -3,13 +3,12 @@
 #include "result.h"
 #include "numeric.h"
 #include "logger.h"
-
+#include "filesystem.h"
 
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glext.h>
 
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -22,10 +21,6 @@
 #include <gl/wglext.h>
 #define vdGetProcAddress wglGetProcAddress
 #define PROCADDRNAMEPTR LPCSTR
-#endif
-
-#ifdef __AVX__
-#undef __AVX__
 #endif
 
 #include <algorithm>
@@ -51,8 +46,11 @@ namespace {
     PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
     PFNGLUNIFORM1IPROC glUniform1i;
     PFNGLUNIFORM4FPROC glUniform4f;
+    PFNGLUNIFORM3FPROC glUniform3f;
+    PFNGLUNIFORM4FVPROC glUniform4fv;
     PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
     PFNGLBUFFERDATAPROC glBufferData;
+    PFNGLBUFFERSUBDATAPROC glBufferSubData;
     PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
     PFNGLDELETEBUFFERSPROC glDeleteBuffers;
     PFNGLACTIVETEXTUREPROC glActiveTexture;
@@ -123,11 +121,14 @@ namespace {
         glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC) GetProcAddress((PROCADDRNAMEPTR) "glEnableVertexAttribArray");
         glUniform1i = (PFNGLUNIFORM1IPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniform1i");
         glUniform4f = (PFNGLUNIFORM4FPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniform4f");
+        glUniform3f = (PFNGLUNIFORM3FPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniform3f");
         glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniformMatrix4fv");
         glBufferData = (PFNGLBUFFERDATAPROC) GetProcAddress((PROCADDRNAMEPTR) "glBufferData");
+        glBufferSubData = (PFNGLBUFFERSUBDATAPROC) GetProcAddress((PROCADDRNAMEPTR) "glBufferSubData");
         glDeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC) GetProcAddress((PROCADDRNAMEPTR) "glDeleteVertexArrays");
         glDeleteBuffers = (PFNGLDELETEBUFFERSPROC) GetProcAddress((PROCADDRNAMEPTR) "glDeleteBuffers");
         glActiveTexture = (PFNGLACTIVETEXTUREPROC)GetProcAddress((PROCADDRNAMEPTR) "glActiveTexture");
+        glUniform4fv = (PFNGLUNIFORM4FVPROC) GetProcAddress((PROCADDRNAMEPTR) "glUniform4fv");
     }
 
     Result BuildShader(std::string const &shaderSource, GLuint &shader, GLenum type) {
@@ -191,6 +192,135 @@ namespace {
         }
         
         return result;
+    }
+
+    Result InitText(videodevice::Device* device)
+    {
+        Result result;
+
+        const std::string vertexShaderSource = 
+        "#version 330 core\n"
+        "layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>\n"
+        "out vec2 TexCoords;\n"
+        "\n"
+        "uniform mat4 projection;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);\n"
+        "    TexCoords = vertex.zw;\n"
+        "}\n";
+
+        const std::string fragmentShaderSource =
+        "#version 330 core\n"
+        "in vec2 TexCoords;\n"
+        "out vec4 color;\n"
+        "\n" 
+        "uniform sampler2D text;\n"
+        "uniform vec3 textColor;\n"
+        "\n"
+        "void main()\n"
+        "{\n"    
+        "    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);\n"
+        "    color = vec4(textColor, 1.0) * sampled;\n"
+        "}\n";          
+
+        result = BuildProgram(vertexShaderSource, fragmentShaderSource, device->textProgram);
+        if(!result)
+        {
+            return result;
+        }
+
+        GL_CHECK(glUseProgram(device->textProgram));
+
+        GL_CHECK(glGenVertexArrays(1, &device->textVertexArray));
+        GL_CHECK(glGenBuffers(1, &device->textVertexBuffer));
+        GL_CHECK(glBindVertexArray(device->textVertexArray));
+        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, device->textVertexBuffer));
+        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW));
+        GL_CHECK(glEnableVertexAttribArray(0));
+        GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0));
+        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+        GL_CHECK(glBindVertexArray(0));
+
+        GL_CHECK(device->textUniformProjection = glGetUniformLocation(device->textProgram, "projection"));
+        GL_CHECK(device->textUniformColor = glGetUniformLocation(device->textProgram, "textColor"));
+        GL_CHECK(glUniform1i(glGetUniformLocation(device->textProgram, "text"), 10));
+        
+        if(FT_Init_FreeType(&device->ft))
+        {
+            return Result(false, "Could not init freetype library");
+        }
+
+        auto font = filesystem::FindFile("/usr/share/fonts/", "Times_New_Roman.ttf");
+        if( font )
+        {
+            const char* path = font.get().string().c_str();
+            if(FT_New_Face(device->ft, path, 0, &device->face)) 
+            {
+                return Result(false, "Could not init freetype library");
+            }
+        }
+        else
+        {
+            return Result(false, "Could not find font.");
+        }
+
+        FT_Set_Pixel_Sizes(device->face, 0, 48);
+
+        return result;
+    }
+
+    videodevice::TextCharacter GetTextCharacter(videodevice::Device* device, char c)
+    {
+        auto it = device->textCharacters.find(c);
+        if(it != device->textCharacters.end())
+        {
+            return it->second;
+        }
+
+        // Disable byte-alignment restriction
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 
+
+        // Load character glyph 
+        if (FT_Load_Char(device->face, c, FT_LOAD_RENDER))
+        {
+            videodevice::TextCharacter invalid;
+            return invalid;
+        }
+
+        // Generate texture
+        GLuint texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RED,
+            device->face->glyph->bitmap.width,
+            device->face->glyph->bitmap.rows,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE,
+            device->face->glyph->bitmap.buffer
+        );
+        // Set texture options
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Now store character for later use
+        videodevice::TextCharacter character = {
+            texture,
+            glm::ivec2(device->face->glyph->bitmap.width, device->face->glyph->bitmap.rows),
+            glm::ivec2(device->face->glyph->bitmap_left, device->face->glyph->bitmap_top),
+            device->face->glyph->advance.x
+        };
+        device->textCharacters.insert(std::pair<char, videodevice::TextCharacter>(c, character));
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        return character;
     }
 
     void GetImageCoord(uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth, uint32_t textureHeight, float& x1, float& x2, float& y1, float& y2)
@@ -375,11 +505,12 @@ namespace {
         virtual Result Draw(videodevice::FrameBuffer* f)
         {
             Result result;
-            GL_CHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, 
-                            textureHeight, GL_RGB, GL_UNSIGNED_BYTE, f->frameData[0]));
+            GL_CHECK(glUseProgram(program));
 
             GL_CHECK(glClear(GL_COLOR_BUFFER_BIT)); 
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, frameTexture));
+            GL_CHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, 
+                            textureHeight, GL_RGB, GL_UNSIGNED_BYTE, f->frameData[0]));
             GL_CHECK(glBindVertexArray(vertexArray));
             GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, ((char *)NULL + (0))));
             GL_CHECK(glBindVertexArray(0));
@@ -393,6 +524,8 @@ namespace {
 
             textureWidth = width;
             textureHeight = height;
+
+            GL_CHECK(glUseProgram(program));
 
             // vertexArray
             GL_CHECK(glBindVertexArray(vertexArray));
@@ -434,6 +567,8 @@ namespace {
         {
             Result result;
 
+            GL_CHECK(glUseProgram(program));
+
             float x1, x2, y1, y2;
             GetImageCoord(windowWidth, windowHeight, textureWidth, textureHeight, x1, x2, y1, y2);
 
@@ -464,6 +599,7 @@ namespace {
                   x2,   y2,  0.0f, 1.0f, 0.0f
             };
             GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW));
+            GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER,0));
         }
 
         enum Attribs {
@@ -596,18 +732,18 @@ namespace {
                 return result;
             }
 
-            glUseProgram(prog);
+            GL_CHECK(glUseProgram(prog));
 
-            glUniform1i(glGetUniformLocation(prog, "yTexture"), 0);
-            glUniform1i(glGetUniformLocation(prog, "uTexture"), 1);
-            glUniform1i(glGetUniformLocation(prog, "vTexture"), 2);
+            GL_CHECK(glUniform1i(glGetUniformLocation(prog, "yTexture"), 0));
+            GL_CHECK(glUniform1i(glGetUniformLocation(prog, "uTexture"), 1));
+            GL_CHECK(glUniform1i(glGetUniformLocation(prog, "vTexture"), 2));
 
-            pos = glGetUniformLocation(prog, "pos");
+            GL_CHECK(pos = glGetUniformLocation(prog, "pos"));
 
-            glGenTextures(1, &yTexture);
-            glGenTextures(1, &vTexture);
-            glGenTextures(1, &uTexture);
-            glGenVertexArrays(1, &vertexArray);
+            GL_CHECK(glGenTextures(1, &yTexture));
+            GL_CHECK(glGenTextures(1, &vTexture));
+            GL_CHECK(glGenTextures(1, &uTexture));
+            GL_CHECK(glGenVertexArrays(1, &vertexArray));
 
             return result;
         }
@@ -618,32 +754,37 @@ namespace {
 
             GL_CHECK(glClear(GL_COLOR_BUFFER_BIT)); 
 
-            glUseProgram(prog);
+            GL_CHECK(glUseProgram(prog));
 
-            glBindTexture(GL_TEXTURE_2D, yTexture);
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[0]);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width, f->height, GL_RED, GL_UNSIGNED_BYTE, f->frameData[0]);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, yTexture));
+            GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[0]));
+            GL_CHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width, f->height, GL_RED, GL_UNSIGNED_BYTE, f->frameData[0]));
 
-            glBindTexture(GL_TEXTURE_2D, uTexture);
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[1]);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width/2, f->height/2, GL_RED, GL_UNSIGNED_BYTE, f->frameData[1]);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, uTexture));
+            GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[1]));
+            GL_CHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width/2, f->height/2, GL_RED, GL_UNSIGNED_BYTE, f->frameData[1]));
 
-            glBindTexture(GL_TEXTURE_2D, vTexture);
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[2]);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width/2, f->height/2, GL_RED, GL_UNSIGNED_BYTE, f->frameData[2]);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, vTexture));
+            GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, f->lineSize[2]));
+            GL_CHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f->width/2, f->height/2, GL_RED, GL_UNSIGNED_BYTE, f->frameData[2]));
 
-            glBindVertexArray(vertexArray);
+            GL_CHECK(glBindVertexArray(vertexArray));
 
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, yTexture);
+            GL_CHECK(glActiveTexture(GL_TEXTURE0));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, yTexture));
 
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, uTexture);
+            GL_CHECK(glActiveTexture(GL_TEXTURE1));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, uTexture));
 
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, vTexture);
+            GL_CHECK(glActiveTexture(GL_TEXTURE2));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, vTexture));
 
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            GL_CHECK(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+            GL_CHECK(glBindVertexArray(0));
+            GL_CHECK(glUseProgram(0));
+
             return result;
         }
 
@@ -654,20 +795,24 @@ namespace {
             textureWidth = width;
             textureHeight = height;
 
-            glBindTexture(GL_TEXTURE_2D, yTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL); // y_pixels);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            GL_CHECK(glUseProgram(prog));
 
-            glBindTexture(GL_TEXTURE_2D, uTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, yTexture));
+            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL)); // y_pixels);
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-            glBindTexture(GL_TEXTURE_2D, vTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, uTexture));
+            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, vTexture));
+            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
             return result;
         }
@@ -679,8 +824,10 @@ namespace {
             windowWidth = w;
             windowHeight = h;
 
+            GL_CHECK(glUseProgram(prog));
+
             GetImageCoord(windowWidth, windowHeight, textureWidth, textureHeight, x1, x2, y1, y2);
-            glUniform4f(pos, x1, y1, x2-x1, y2-y1);
+            GL_CHECK(glUniform4f(pos, x1, y1, x2-x1, y2-y1));
 
             GL_CHECK(glViewport(0,0, windowWidth, windowHeight));
             WriteMVPMatrix(windowWidth, windowHeight);
@@ -754,7 +901,6 @@ namespace videodevice
         InitGLext();
 
         device = new Device();
-        memset(device, 0, sizeof(Device));
 
         // only one OpenGL device exists at one time
         currentDevice = device;
@@ -774,11 +920,20 @@ namespace videodevice
                 return Result(false, "Unsupported output format %d", outputFormat);
         }
 
+        // create video renderer
         result = device->renderer->Create();
         if(!result)
         {
             return result;
         }
+
+        // initialize text
+        result = InitText(device);
+        if(!result)
+        {
+            return result;
+        }
+        
 
         return result;
     }
@@ -786,6 +941,65 @@ namespace videodevice
     Result DrawFrame(Device* device, FrameBuffer* fb)
     {
         return device->renderer->Draw(fb);
+    }
+
+    Result DrawText(Device* device, const std::string& text, float x, float y, float scale, glm::vec3 color)
+    {
+        Result result;
+
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+ 
+        // Disable byte-alignment restriction
+        GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1)); 
+        GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
+        
+        GL_CHECK(glUseProgram(device->textProgram));
+        glUniform3f(device->textUniformColor, color.x, color.y, color.z);
+
+        glBindVertexArray(device->textVertexArray);
+
+        // Iterate through all characters
+        std::string::const_iterator c;
+        for (c = text.begin(); c != text.end(); c++)
+        { 
+            TextCharacter ch = GetTextCharacter(device, *c);
+
+            ::glActiveTexture(GL_TEXTURE10);
+            GLfloat xpos = x + ch.bearing.x * scale;
+            GLfloat ypos = y - (ch.size.y - ch.bearing.y) * scale;
+
+            GLfloat w = ch.size.x * scale;
+            GLfloat h = ch.size.y * scale;
+            // Update VBO for each character
+            GLfloat vertices[6][4] = {
+                { xpos,     ypos + h,   0.0, 0.0 },            
+                { xpos,     ypos,       0.0, 1.0 },
+                { xpos + w, ypos,       1.0, 1.0 },
+
+                { xpos,     ypos + h,   0.0, 0.0 },
+                { xpos + w, ypos,       1.0, 1.0 },
+                { xpos + w, ypos + h,   1.0, 0.0 }           
+            };
+            // Render glyph texture over quad
+            glBindTexture(GL_TEXTURE_2D, ch.texture);
+            // Update content of VBO memory
+            glBindBuffer(GL_ARRAY_BUFFER, device->textVertexBuffer);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            // Render quad
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+            x += (ch.advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64)
+        }
+        glBindVertexArray(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_BLEND);
+
+        return result;
     }
 
     Result SetTextureSize(Device* device, uint32_t width, uint32_t height)
@@ -808,6 +1022,11 @@ namespace videodevice
         device->windowHeight = height;
 
         result = device->renderer->SetWindowSize(width,height);
+    
+        // text projection matrix
+        GL_CHECK(glUseProgram(device->textProgram));
+        glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(width), 0.0f, static_cast<GLfloat>(height));
+        GL_CHECK(glUniformMatrix4fv(device->textUniformProjection, 1, GL_FALSE, glm::value_ptr(projection)));
 
         return result;
     }
