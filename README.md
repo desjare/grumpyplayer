@@ -33,6 +33,7 @@ I used and inspired myself of several projects writing the player so here are so
  * swsscale lib
  * glfw3 lib
  * curl lib
+ * freetype2 lib
  * cmake
  
  <h2>Ubuntu 18.04</h2>
