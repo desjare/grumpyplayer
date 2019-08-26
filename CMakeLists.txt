@@ -51,6 +51,7 @@ if (WIN32)
     find_library(SWRESAMPLE_LIBRARY swresample REQUIRED HINTS ${3RDPARTY}/ffmpeg/lib/${LIBARCH})
     find_library(GLFW_LIBRARY glfw3 REQUIRED HINTS ${3RDPARTY}/glfw/lib/${LIBARCH})
     find_library(CURL_LIBRARY curl REQUIRED HINTS ${3RDPARTY}/curl/lib/${LIBARCH})
+	find_library(FREETYPE_LIBRARY freetype REQUIRED HINTS  ${3RDPARTY}/freetype/lib/${LIBARCH})
 
     # boost deps are automatically added
     link_directories( ${3RDPARTY}/boost/lib/${LIBARCH} )
@@ -71,6 +72,8 @@ if (WIN32)
     add_compile_options(-I${3RDPARTY}/glfw/include)
     add_compile_options(-I${3RDPARTY}/curl/include)
     add_compile_options(-I${3RDPARTY}/glm/include)
+	add_compile_options(-I${3RDPARTY}/freetype/include/)
+	add_compile_options(-I${3RDPARTY}/freetype/include/freetype2/)
 
     add_definitions(-DCURL_STATICLIB)
 
