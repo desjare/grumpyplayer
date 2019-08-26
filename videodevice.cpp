@@ -718,6 +718,13 @@ namespace {
     // Yuv420pRenderer End
     
     // text renderer
+    #ifdef WIN32
+    const std::string fontPath = "C:\\Windows\\Fronts\\";
+    #else
+    const std::string fontPath = "/usr/share/fonts/";
+    #endif
+
+
     struct TextCharacter 
     {
         GLuint texture =  0;           // ID handle of the glyph texture
@@ -805,7 +812,7 @@ namespace {
                 return Result(false, "Could not init freetype library");
             }
 
-            auto font = filesystem::FindFile("/usr/share/fonts/", "Times_New_Roman.ttf");
+            auto font = filesystem::FindFile(fontPath, "Times_New_Roman.ttf");
             if( font )
             {
                 const char* path = font.get().string().c_str();
