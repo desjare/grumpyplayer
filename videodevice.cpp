@@ -719,11 +719,11 @@ namespace {
     
     // text renderer
     #ifdef WIN32
-    const std::string fontPath = "C:\\Windows\\Fronts\\";
-    const std::string defaultFont = "times.ttf";
+    const std::string FONT_PATH = "C:\\Windows\\Fonts\\";
+    const std::string DEFAULT_FONT = "times.ttf";
     #else
-    const std::string fontPath = "/usr/share/fonts/";
-    const std::string defaultFont = "Times_New_Roman.ttf";
+    const std::string FONT_PATH = "/usr/share/fonts/";
+    const std::string DEFAULT_FONT = "Times_New_Roman.ttf";
     #endif
 
 
@@ -814,13 +814,14 @@ namespace {
                 return Result(false, "Could not init freetype library");
             }
 
-            auto font = filesystem::FindFile(fontPath, defaultFont);
+            auto font = filesystem::FindFile(FONT_PATH, DEFAULT_FONT);
             if( font )
             {
-                const char* path = font.get().string().c_str();
+                std::string pathstr = font.get().string();
+                const char* path = pathstr.c_str();
                 if(FT_New_Face(ft, path, 0, &face)) 
                 {
-                    return Result(false, "Could not init freetype library");
+                    return Result(false, "Could not load font %s", path);
                 }
             }
             else
