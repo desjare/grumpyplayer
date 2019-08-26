@@ -29,17 +29,18 @@ namespace videodevice
         virtual ~Renderer(){}
 
         virtual Result Create() = 0;
-        virtual Result Draw(FrameBuffer*) = 0;
-        virtual Result SetTextureSize(uint32_t width, uint32_t height) = 0;
         virtual Result SetWindowSize(uint32_t width, uint32_t height) = 0;
     };
 
-    struct TextCharacter 
+    struct FrameRenderer : public Renderer
     {
-        GLuint texture =  0;           // ID handle of the glyph texture
-        glm::ivec2 size = { 0, 0 };    // Size of glyph
-        glm::ivec2 bearing = { 0, 0 }; // Offset from baseline to left/top of glyph
-        GLuint advance = 0;            // Horizontal offset to advance to next glyph
+        virtual Result Render(FrameBuffer*) = 0;
+        virtual Result SetTextureSize(uint32_t width, uint32_t height) = 0;
+    };
+
+    struct TextRenderer : public Renderer
+    {
+        virtual Result Render(const std::string& text, float x, float y, float scale, glm::vec3 color) = 0;
     };
 
     struct Device
@@ -53,19 +54,10 @@ namespace videodevice
         GLuint windowHeight = 0;
 
         // video renderer
-        Renderer* renderer = NULL;
+        FrameRenderer* renderer = NULL;
 
-        // text
-        FT_Library ft;
-        FT_Face face;
-
-        GLuint textProgram;
-        GLuint textVertexBuffer;
-        GLuint textVertexArray;
-        GLuint textUniformColor;
-        GLuint textUniformProjection;
-
-        std::map<char, TextCharacter> textCharacters;
+        // text renderer
+        TextRenderer* text = NULL;
     };
 
     Result Init();

@@ -194,134 +194,6 @@ namespace {
         return result;
     }
 
-    Result InitText(videodevice::Device* device)
-    {
-        Result result;
-
-        const std::string vertexShaderSource = 
-        "#version 330 core\n"
-        "layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>\n"
-        "out vec2 TexCoords;\n"
-        "\n"
-        "uniform mat4 projection;\n"
-        "\n"
-        "void main()\n"
-        "{\n"
-        "    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);\n"
-        "    TexCoords = vertex.zw;\n"
-        "}\n";
-
-        const std::string fragmentShaderSource =
-        "#version 330 core\n"
-        "in vec2 TexCoords;\n"
-        "out vec4 color;\n"
-        "\n" 
-        "uniform sampler2D text;\n"
-        "uniform vec3 textColor;\n"
-        "\n"
-        "void main()\n"
-        "{\n"    
-        "    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);\n"
-        "    color = vec4(textColor, 1.0) * sampled;\n"
-        "}\n";          
-
-        result = BuildProgram(vertexShaderSource, fragmentShaderSource, device->textProgram);
-        if(!result)
-        {
-            return result;
-        }
-
-        GL_CHECK(glUseProgram(device->textProgram));
-
-        GL_CHECK(glGenVertexArrays(1, &device->textVertexArray));
-        GL_CHECK(glGenBuffers(1, &device->textVertexBuffer));
-        GL_CHECK(glBindVertexArray(device->textVertexArray));
-        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, device->textVertexBuffer));
-        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW));
-        GL_CHECK(glEnableVertexAttribArray(0));
-        GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0));
-        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
-        GL_CHECK(glBindVertexArray(0));
-
-        GL_CHECK(device->textUniformProjection = glGetUniformLocation(device->textProgram, "projection"));
-        GL_CHECK(device->textUniformColor = glGetUniformLocation(device->textProgram, "textColor"));
-        GL_CHECK(glUniform1i(glGetUniformLocation(device->textProgram, "text"), 10));
-        
-        if(FT_Init_FreeType(&device->ft))
-        {
-            return Result(false, "Could not init freetype library");
-        }
-
-        auto font = filesystem::FindFile("/usr/share/fonts/", "Times_New_Roman.ttf");
-        if( font )
-        {
-            const char* path = font.get().string().c_str();
-            if(FT_New_Face(device->ft, path, 0, &device->face)) 
-            {
-                return Result(false, "Could not init freetype library");
-            }
-        }
-        else
-        {
-            return Result(false, "Could not find font.");
-        }
-
-        FT_Set_Pixel_Sizes(device->face, 0, 48);
-
-        return result;
-    }
-
-    videodevice::TextCharacter GetTextCharacter(videodevice::Device* device, char c)
-    {
-        auto it = device->textCharacters.find(c);
-        if(it != device->textCharacters.end())
-        {
-            return it->second;
-        }
-
-        // Disable byte-alignment restriction
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1); 
-
-        // Load character glyph 
-        if (FT_Load_Char(device->face, c, FT_LOAD_RENDER))
-        {
-            videodevice::TextCharacter invalid;
-            return invalid;
-        }
-
-        // Generate texture
-        GLuint texture;
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RED,
-            device->face->glyph->bitmap.width,
-            device->face->glyph->bitmap.rows,
-            0,
-            GL_RED,
-            GL_UNSIGNED_BYTE,
-            device->face->glyph->bitmap.buffer
-        );
-        // Set texture options
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // Now store character for later use
-        videodevice::TextCharacter character = {
-            texture,
-            glm::ivec2(device->face->glyph->bitmap.width, device->face->glyph->bitmap.rows),
-            glm::ivec2(device->face->glyph->bitmap_left, device->face->glyph->bitmap_top),
-            device->face->glyph->advance.x
-        };
-        device->textCharacters.insert(std::pair<char, videodevice::TextCharacter>(c, character));
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        return character;
-    }
 
     void GetImageCoord(uint32_t windowWidth, uint32_t windowHeight, uint32_t textureWidth, uint32_t textureHeight, float& x1, float& x2, float& y1, float& y2)
     {
@@ -387,22 +259,11 @@ namespace {
         logger::Debug("w %f h %f adjustWidth %f adjustHeight %f tr %f ar %f x1 %f x2 %f y1 %f y2 %f", ww, wh, adjustWidth, adjustHeight, tr, adjustWidth / adjustHeight, x1, x2, y1, y2);
     }
 
-    class Rgb24Renderer : public videodevice::Renderer
+    class Rgb24Renderer : public videodevice::FrameRenderer
     {
     public:
         Rgb24Renderer()
-        : textureWidth(0),
-          textureHeight(0),
-          windowWidth(0),
-          windowHeight(0),
-          vertexArray(0),
-          vertexBuffer(0),
-          elementBuffer(0),
-          frameTexture(0),
-          program(0)
         {
-            memset(attribs, 0, sizeof(attribs));
-            memset(uniforms, 0, sizeof(uniforms));
         }
 
         virtual ~Rgb24Renderer()
@@ -502,7 +363,7 @@ namespace {
             return result;
         }
 
-        virtual Result Draw(videodevice::FrameBuffer* f)
+        virtual Result Render(videodevice::FrameBuffer* f)
         {
             Result result;
             GL_CHECK(glUseProgram(program));
@@ -514,6 +375,7 @@ namespace {
             GL_CHECK(glBindVertexArray(vertexArray));
             GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, ((char *)NULL + (0))));
             GL_CHECK(glBindVertexArray(0));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
             return result;
         }
@@ -546,6 +408,7 @@ namespace {
             };
             GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elem), elem, GL_STATIC_DRAW));
             GL_CHECK(glBindVertexArray(0));
+            GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER,0));
 
             GL_CHECK(glActiveTexture(GL_TEXTURE0));
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, frameTexture));
@@ -557,8 +420,10 @@ namespace {
             GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 
                 0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
             GL_CHECK(glUniform1i(uniforms[FRAME_TEX], 0));
-            
+
             WriteMVPMatrix(width, height);
+
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
             return result;
         }
@@ -599,7 +464,6 @@ namespace {
                   x2,   y2,  0.0f, 1.0f, 0.0f
             };
             GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW));
-            GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER,0));
         }
 
         enum Attribs {
@@ -615,42 +479,28 @@ namespace {
         };
 
         // texture size
-        GLuint textureWidth;
-        GLuint textureHeight;
+        GLuint textureWidth = 0;
+        GLuint textureHeight = 0;
 
         // video size
-        GLuint windowWidth;
-        GLuint windowHeight;
+        GLuint windowWidth = 0;
+        GLuint windowHeight = 0;
 
         // rendering
-        GLuint vertexArray;
-        GLuint vertexBuffer;
-        GLuint elementBuffer;
-        GLuint frameTexture;
-        GLuint program;
-        GLuint attribs[NB_ATTRIBS];
-        GLuint uniforms[NB_UNIFORMS];
+        GLuint vertexArray = 0;
+        GLuint vertexBuffer = 0;
+        GLuint elementBuffer = 0;
+        GLuint frameTexture = 0;
+        GLuint program = 0;
+        GLuint attribs[NB_ATTRIBS] = {0, 0};
+        GLuint uniforms[NB_UNIFORMS] = {0, 0};
     };
 
     // Yuv420pRenderer
-    class Yuv420pRenderer : public videodevice::Renderer
+    class Yuv420pRenderer : public videodevice::FrameRenderer
     {
     public:
         Yuv420pRenderer()
-        : textureWidth(0),
-          textureHeight(0),
-          windowWidth(0),
-          windowHeight(0),
-          x1(0.0f),
-          x2(0.0f),
-          y1(0.0f),
-          y2(0.0f),
-          vertexArray(0),
-          yTexture(0),
-          uTexture(0),
-          vTexture(0),
-          prog(0),
-          pos(0)
         {
         }
 
@@ -748,7 +598,7 @@ namespace {
             return result;
         }
 
-        virtual Result Draw(videodevice::FrameBuffer* f)
+        virtual Result Render(videodevice::FrameBuffer* f)
         {
             Result result;
 
@@ -781,6 +631,7 @@ namespace {
 
             GL_CHECK(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
 
+            GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
             GL_CHECK(glBindVertexArray(0));
             GL_CHECK(glUseProgram(0));
@@ -796,22 +647,9 @@ namespace {
             textureHeight = height;
 
             GL_CHECK(glUseProgram(prog));
-
-            GL_CHECK(glBindTexture(GL_TEXTURE_2D, yTexture));
-            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL)); // y_pixels);
-            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-            GL_CHECK(glBindTexture(GL_TEXTURE_2D, uTexture));
-            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL));
-            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
-            GL_CHECK(glBindTexture(GL_TEXTURE_2D, vTexture));
-            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width/2, height/2, 0, GL_RED, GL_UNSIGNED_BYTE, NULL));
-            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-
+            SetTextureSize(yTexture, width, height);
+            SetTextureSize(uTexture, width / 2, height / 2);
+            SetTextureSize(vTexture, width / 2, height / 2);
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
             return result;
@@ -824,11 +662,10 @@ namespace {
             windowWidth = w;
             windowHeight = h;
 
-            GL_CHECK(glUseProgram(prog));
-
             GetImageCoord(windowWidth, windowHeight, textureWidth, textureHeight, x1, x2, y1, y2);
+            
+            GL_CHECK(glUseProgram(prog));
             GL_CHECK(glUniform4f(pos, x1, y1, x2-x1, y2-y1));
-
             GL_CHECK(glViewport(0,0, windowWidth, windowHeight));
             WriteMVPMatrix(windowWidth, windowHeight);
 
@@ -842,40 +679,291 @@ namespace {
             GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(prog, "mvpMatrix"), 1, GL_FALSE, glm::value_ptr(mvp)));
         }
 
+        void SetTextureSize(GLuint texture, uint32_t width, uint32_t height)
+        {
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        }
+
         // texture size
-        GLuint textureWidth;
-        GLuint textureHeight;
+        GLuint textureWidth = 0;
+        GLuint textureHeight = 0;
 
         // video size
-        GLuint windowWidth;
-        GLuint windowHeight;
+        GLuint windowWidth = 0;
+        GLuint windowHeight = 0;
 
         // draw position
-        float x1;
-        float x2;
-        float y1;
-        float y2;
+        float x1 = 0.0f;
+        float x2 = 0.0;
+        float y1 = 0.0;
+        float y2 = 0.0;
 
         // rendering
-        GLuint vertexArray;
+        GLuint vertexArray = 0;
 
         // yuv textures
-        GLuint yTexture;
-        GLuint uTexture;
-        GLuint vTexture;
+        GLuint yTexture = 0;
+        GLuint uTexture = 0;
+        GLuint vTexture = 0;
 
         // shader
-        GLuint prog;
+        GLuint prog = 0;
 
         // draw position
-        GLint  pos;
+        GLint  pos = 0;
     };
     // Yuv420pRenderer End
+    
+    // text renderer
+    struct TextCharacter 
+    {
+        GLuint texture =  0;           // ID handle of the glyph texture
+        glm::ivec2 size = { 0, 0 };    // Size of glyph
+        glm::ivec2 bearing = { 0, 0 }; // Offset from baseline to left/top of glyph
+        GLuint advance = 0;            // Horizontal offset to advance to next glyph
+    };
+
+    class FreeTypeTextRenderer : public videodevice::TextRenderer
+    {
+    public:
+        FreeTypeTextRenderer()
+        {
+        }
+
+        virtual ~FreeTypeTextRenderer()
+        {
+            FT_Done_Face(face);
+            FT_Done_FreeType(ft);
+
+            GL_CHECK(glDeleteVertexArrays(1, &textVertexBuffer));
+            GL_CHECK(glDeleteBuffers(1, &textVertexBuffer));
+
+            for( auto it = textCharacters.begin(); it != textCharacters.end(); ++it)
+            {
+                GL_CHECK(glDeleteTextures(1, &it->second.texture));
+            }
+        }
+        
+        virtual Result Create()
+        {
+            Result result;
+
+            const std::string vertexShaderSource = 
+            "#version 330 core\n"
+            "layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>\n"
+            "out vec2 TexCoords;\n"
+            "\n"
+            "uniform mat4 projection;\n"
+            "\n"
+            "void main()\n"
+            "{\n"
+            "    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);\n"
+            "    TexCoords = vertex.zw;\n"
+            "}\n";
+
+            const std::string fragmentShaderSource =
+            "#version 330 core\n"
+            "in vec2 TexCoords;\n"
+            "out vec4 color;\n"
+            "\n" 
+            "uniform sampler2D text;\n"
+            "uniform vec3 textColor;\n"
+            "\n"
+            "void main()\n"
+            "{\n"    
+            "    vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);\n"
+            "    color = vec4(textColor, 1.0) * sampled;\n"
+            "}\n";          
+
+            result = BuildProgram(vertexShaderSource, fragmentShaderSource, textProgram);
+            if(!result)
+            {
+                return result;
+            }
+
+            GL_CHECK(glUseProgram(textProgram));
+
+            GL_CHECK(glGenVertexArrays(1, &textVertexArray));
+            GL_CHECK(glGenBuffers(1, &textVertexBuffer));
+            GL_CHECK(glBindVertexArray(textVertexArray));
+            GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, textVertexBuffer));
+            GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW));
+            GL_CHECK(glEnableVertexAttribArray(0));
+            GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0));
+            GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+            GL_CHECK(glBindVertexArray(0));
+
+            GL_CHECK(textUniformProjection = glGetUniformLocation(textProgram, "projection"));
+            GL_CHECK(textUniformColor = glGetUniformLocation(textProgram, "textColor"));
+            GL_CHECK(glUniform1i(glGetUniformLocation(textProgram, "text"), 10));
+            
+            if(FT_Init_FreeType(&ft))
+            {
+                return Result(false, "Could not init freetype library");
+            }
+
+            auto font = filesystem::FindFile("/usr/share/fonts/", "Times_New_Roman.ttf");
+            if( font )
+            {
+                const char* path = font.get().string().c_str();
+                if(FT_New_Face(ft, path, 0, &face)) 
+                {
+                    return Result(false, "Could not init freetype library");
+                }
+            }
+            else
+            {
+                return Result(false, "Could not find font.");
+            }
+
+            FT_Set_Pixel_Sizes(face, 0, 48);
+
+            return result;
+
+        }
+
+        virtual Result SetWindowSize(uint32_t width, uint32_t height)
+        {
+            Result result;
+            // text projection matrix
+            GL_CHECK(glUseProgram(textProgram));
+            glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(width), 0.0f, static_cast<GLfloat>(height));
+            GL_CHECK(glUniformMatrix4fv(textUniformProjection, 1, GL_FALSE, glm::value_ptr(projection)));
+            return result;
+        }
+
+        virtual Result Render(const std::string& text, float x, float y, float scale, glm::vec3 color)
+        {
+            Result result;
+
+            GL_CHECK(glEnable(GL_CULL_FACE));
+            GL_CHECK(glEnable(GL_BLEND));
+            GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+     
+            // Disable byte-alignment restriction
+            GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1)); 
+            GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
+            
+            GL_CHECK(glUseProgram(textProgram));
+            GL_CHECK(glUniform3f(textUniformColor, color.x, color.y, color.z));
+
+            GL_CHECK(glBindVertexArray(textVertexArray));
+
+            // Iterate through all characters
+            std::string::const_iterator c;
+            for (c = text.begin(); c != text.end(); c++)
+            { 
+                TextCharacter ch = GetTextCharacter(*c);
+
+                GL_CHECK(::glActiveTexture(GL_TEXTURE10));
+                GLfloat xpos = x + ch.bearing.x * scale;
+                GLfloat ypos = y - (ch.size.y - ch.bearing.y) * scale;
+
+                GLfloat w = ch.size.x * scale;
+                GLfloat h = ch.size.y * scale;
+                // Update VBO for each character
+                GLfloat vertices[6][4] = {
+                    { xpos,     ypos + h,   0.0, 0.0 },            
+                    { xpos,     ypos,       0.0, 1.0 },
+                    { xpos + w, ypos,       1.0, 1.0 },
+
+                    { xpos,     ypos + h,   0.0, 0.0 },
+                    { xpos + w, ypos,       1.0, 1.0 },
+                    { xpos + w, ypos + h,   1.0, 0.0 }           
+                };
+                // Render glyph texture over quad
+                GL_CHECK(glBindTexture(GL_TEXTURE_2D, ch.texture));
+                // Update content of VBO memory
+                GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, textVertexBuffer));
+                GL_CHECK(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices)); 
+                GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+                // Render quad
+                GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+                // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+                x += (ch.advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64)
+            }
+            GL_CHECK(glBindVertexArray(0));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+
+            GL_CHECK(glDisable(GL_CULL_FACE));
+            GL_CHECK(glDisable(GL_BLEND));
+
+            return result;
+        }
+
+    private:
+        TextCharacter GetTextCharacter(char c)
+        {
+            auto it = textCharacters.find(c);
+            if(it != textCharacters.end())
+            {
+                return it->second;
+            }
+
+            // Disable byte-alignment restriction
+            GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1)); 
+
+            // Load character glyph 
+            if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+            {
+                logger::Error("FreeTypeTextRenderer cannot load char %c", c);
+                TextCharacter invalid;
+                return invalid;
+            }
+
+            // Generate texture
+            GLuint texture;
+            GL_CHECK(glGenTextures(1, &texture));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
+            GL_CHECK(glTexImage2D(
+                GL_TEXTURE_2D,
+                0,
+                GL_RED,
+                face->glyph->bitmap.width,
+                face->glyph->bitmap.rows,
+                0,
+                GL_RED,
+                GL_UNSIGNED_BYTE,
+                face->glyph->bitmap.buffer
+            ));
+            // Set texture options
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+            // Now store character for later use
+            TextCharacter character = {
+                texture,
+                glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+                glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+                static_cast<GLuint>(face->glyph->advance.x)
+            };
+            textCharacters.insert(std::pair<char, TextCharacter>(c, character));
+            GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
+
+            return character;
+        }
+
+        FT_Library ft;
+        FT_Face face;
+
+        GLuint textProgram = 0;
+        GLuint textVertexBuffer = 0;
+        GLuint textVertexArray = 0;
+        GLuint textUniformColor = 0;
+        GLuint textUniformProjection = 0;
+
+        std::map<char, TextCharacter> textCharacters;
+    };
+    // text renderer end
 }
 
 namespace videodevice
 {
-
     // videodevice
     Result Init()
     {
@@ -927,79 +1015,26 @@ namespace videodevice
             return result;
         }
 
-        // initialize text
-        result = InitText(device);
+        // create text renderer
+        device->text = new FreeTypeTextRenderer();
+
+        result = device->text->Create();
         if(!result)
         {
             return result;
         }
-        
 
         return result;
     }
 
     Result DrawFrame(Device* device, FrameBuffer* fb)
     {
-        return device->renderer->Draw(fb);
+        return device->renderer->Render(fb);
     }
 
     Result DrawText(Device* device, const std::string& text, float x, float y, float scale, glm::vec3 color)
     {
-        Result result;
-
-        glEnable(GL_CULL_FACE);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- 
-        // Disable byte-alignment restriction
-        GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1)); 
-        GL_CHECK(glPixelStorei(GL_UNPACK_ROW_LENGTH, 0));
-        
-        GL_CHECK(glUseProgram(device->textProgram));
-        glUniform3f(device->textUniformColor, color.x, color.y, color.z);
-
-        glBindVertexArray(device->textVertexArray);
-
-        // Iterate through all characters
-        std::string::const_iterator c;
-        for (c = text.begin(); c != text.end(); c++)
-        { 
-            TextCharacter ch = GetTextCharacter(device, *c);
-
-            ::glActiveTexture(GL_TEXTURE10);
-            GLfloat xpos = x + ch.bearing.x * scale;
-            GLfloat ypos = y - (ch.size.y - ch.bearing.y) * scale;
-
-            GLfloat w = ch.size.x * scale;
-            GLfloat h = ch.size.y * scale;
-            // Update VBO for each character
-            GLfloat vertices[6][4] = {
-                { xpos,     ypos + h,   0.0, 0.0 },            
-                { xpos,     ypos,       0.0, 1.0 },
-                { xpos + w, ypos,       1.0, 1.0 },
-
-                { xpos,     ypos + h,   0.0, 0.0 },
-                { xpos + w, ypos,       1.0, 1.0 },
-                { xpos + w, ypos + h,   1.0, 0.0 }           
-            };
-            // Render glyph texture over quad
-            glBindTexture(GL_TEXTURE_2D, ch.texture);
-            // Update content of VBO memory
-            glBindBuffer(GL_ARRAY_BUFFER, device->textVertexBuffer);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            // Render quad
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-            x += (ch.advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64)
-        }
-        glBindVertexArray(0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-
-        glDisable(GL_CULL_FACE);
-        glDisable(GL_BLEND);
-
-        return result;
+        return device->text->Render(text, x, y, scale, color);
     }
 
     Result SetTextureSize(Device* device, uint32_t width, uint32_t height)
@@ -1022,12 +1057,17 @@ namespace videodevice
         device->windowHeight = height;
 
         result = device->renderer->SetWindowSize(width,height);
-    
-        // text projection matrix
-        GL_CHECK(glUseProgram(device->textProgram));
-        glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(width), 0.0f, static_cast<GLfloat>(height));
-        GL_CHECK(glUniformMatrix4fv(device->textUniformProjection, 1, GL_FALSE, glm::value_ptr(projection)));
+        if(!result)
+        {
+            return result;
+        }
+        result = device->text->SetWindowSize(width,height);
+        if(!result)
+        {
+            return result;
+        }
 
+    
         return result;
     }
 
@@ -1036,6 +1076,7 @@ namespace videodevice
         if(device)
         {
             delete device->renderer;
+            delete device->text;
             delete device;
             device = NULL;
             currentDevice = NULL;
