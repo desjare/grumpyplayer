@@ -750,9 +750,12 @@ namespace {
             GL_CHECK(glDeleteVertexArrays(1, &textVertexBuffer));
             GL_CHECK(glDeleteBuffers(1, &textVertexBuffer));
 
-            for( auto it = textCharacters.begin(); it != textCharacters.end(); ++it)
+            for( auto fontIt = textCharacters.begin(); fontIt != textCharacters.end(); ++fontIt)
             {
-                GL_CHECK(glDeleteTextures(1, &it->second.texture));
+                for( auto it = fontIt->second.begin(); it != fontIt->second.end(); ++it)
+                {
+                    GL_CHECK(glDeleteTextures(1, &it->second.texture));
+                }
             }
         }
         
@@ -829,10 +832,7 @@ namespace {
                 return Result(false, "Could not find font.");
             }
 
-            FT_Set_Pixel_Sizes(face, 0, 48);
-
             return result;
-
         }
 
         virtual Result SetWindowSize(uint32_t width, uint32_t height)
@@ -845,9 +845,11 @@ namespace {
             return result;
         }
 
-        virtual Result Render(const std::string& text, float x, float y, float scale, glm::vec3 color)
+        virtual Result Render(const std::string& text, uint32_t fontSize, float x, float y, float scale, glm::vec3 color)
         {
             Result result;
+
+            FT_Set_Pixel_Sizes(face, 0, fontSize);
 
             GL_CHECK(glEnable(GL_CULL_FACE));
             GL_CHECK(glEnable(GL_BLEND));
@@ -866,7 +868,7 @@ namespace {
             std::string::const_iterator c;
             for (c = text.begin(); c != text.end(); c++)
             { 
-                TextCharacter ch = GetTextCharacter(*c);
+                TextCharacter ch = GetTextCharacter(fontSize, *c);
 
                 GL_CHECK(::glActiveTexture(GL_TEXTURE10));
                 GLfloat xpos = x + ch.bearing.x * scale;
@@ -904,11 +906,33 @@ namespace {
             return result;
         }
 
-    private:
-        TextCharacter GetTextCharacter(char c)
+        virtual Result GetSize(const std::string& text, uint32_t fontSize, float& w, float& h)
         {
-            auto it = textCharacters.find(c);
-            if(it != textCharacters.end())
+            Result result;
+
+            FT_Set_Pixel_Sizes(face, 0, fontSize);
+
+            w = 0.0f;
+            h = 0.0f;
+
+            // Iterate through all characters
+            std::string::const_iterator c;
+            for (c = text.begin(); c != text.end(); c++)
+            { 
+                TextCharacter ch = GetTextCharacter(fontSize, *c);
+
+                h = std::max(h, static_cast<float>(ch.size.y));
+                w += (ch.advance >> 6); // Bitshift by 6 to get value in pixels (2^6 = 64)
+            }
+
+            return result;
+        }
+
+    private:
+        TextCharacter GetTextCharacter(uint32_t fontSize, char c)
+        {
+            auto it = textCharacters[fontSize].find(c);
+            if(it != textCharacters[fontSize].end())
             {
                 return it->second;
             }
@@ -952,7 +976,7 @@ namespace {
                 glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
                 static_cast<GLuint>(face->glyph->advance.x)
             };
-            textCharacters.insert(std::pair<char, TextCharacter>(c, character));
+            textCharacters[fontSize].insert(std::pair<char, TextCharacter>(c, character));
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
             return character;
@@ -967,7 +991,7 @@ namespace {
         GLuint textUniformColor = 0;
         GLuint textUniformProjection = 0;
 
-        std::map<char, TextCharacter> textCharacters;
+        std::map<uint32_t, std::map<char, TextCharacter> > textCharacters;
     };
     // text renderer end
 }
@@ -1042,9 +1066,14 @@ namespace videodevice
         return device->renderer->Render(fb);
     }
 
-    Result DrawText(Device* device, const std::string& text, float x, float y, float scale, glm::vec3 color)
+    Result DrawText(Device* device, const std::string& text, uint32_t fontSize, float x, float y, float scale, glm::vec3 color)
     {
-        return device->text->Render(text, x, y, scale, color);
+        return device->text->Render(text, fontSize, x, y, scale, color);
+    }
+
+    Result GetTextSize(Device* device, const std::string& text, uint32_t fontSize, float& w, float& h)
+    {
+        return device->text->GetSize(text, fontSize, w, h);
     }
 
     Result SetTextureSize(Device* device, uint32_t width, uint32_t height)
