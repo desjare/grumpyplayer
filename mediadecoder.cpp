@@ -754,7 +754,13 @@ namespace mediadecoder
                 }
             }
 
-            Stream* stream = producer->streams[packet->stream_index];
+            Stream* stream = static_cast<size_t>(packet->stream_index) < producer->streams.size() ? 
+                                                          producer->streams[packet->stream_index] : NULL;
+            if(!stream)
+            {
+                continue;
+            }
+
             AVMediaType type = stream->codec->type;
 
             const profiler::Point profilePoint 
