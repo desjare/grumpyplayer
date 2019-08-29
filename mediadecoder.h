@@ -38,7 +38,7 @@ namespace mediadecoder
     struct Producer;
 
     // types
-    typedef boost::function<void (Stream*, Producer*, AVFrame*)> DecoderCallback;
+    typedef boost::function<void (Stream*, Producer*, AVFrame*, AVPacket*)> DecoderCallback;
 
     struct Stream
     {
@@ -79,6 +79,11 @@ namespace mediadecoder
         uint32_t channels = 0;
     };
 
+    struct SubtitleStream : public Stream
+    {
+
+    };
+
     struct VideoFrame
     {
         uint8_t* buffers[NUM_FRAME_DATA_POINTERS] = { NULL, NULL, NULL, NULL};
@@ -106,8 +111,12 @@ namespace mediadecoder
     struct Decoder
     {
         AVFormatContext* avFormatContext;
+
         VideoStream* videoStream;
         AudioStream* audioStream;
+        
+        std::vector<SubtitleStream*> subtitleStreams;
+        
         Producer* producer;
         curl::Session* curl;
     };

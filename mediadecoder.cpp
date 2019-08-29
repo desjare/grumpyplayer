@@ -267,7 +267,7 @@ namespace {
         return static_cast<uint32_t>(ceil(frameRate));
     }
 
-    void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame)
+    void AudioDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame, AVPacket* packet)
     {
         profiler::ScopeProfiler profiler(profiler::PROFILER_PROCESS_AUDIO_FRAME);
         const uint32_t sampleSize = av_get_bytes_per_sample(stream->codecContext->sample_fmt);
@@ -313,7 +313,7 @@ namespace {
         } while( !success && !producer->quitting && !producer->seeking );
     }
 
-    void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame)
+    void VideoDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame, AVPacket*)
     {
         profiler::ScopeProfiler profiler(profiler::PROFILER_PROCESS_VIDEO_FRAME);
 
@@ -360,6 +360,23 @@ namespace {
             success = PushFrame(producer, videoFrame);
 
         } while( !success && !producer->quitting && !producer->seeking );
+    }
+
+    void SubtitleDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame, AVPacket* packet)
+    {
+        logger::Info("Got subtitle on index %d", stream->streamIndex);
+        
+        int32_t gotSub = 1;
+        AVSubtitle sub;
+        int32_t outcome = avcodec_decode_subtitle2(stream->codecContext, &sub, &gotSub, packet);
+        if(outcome < 0)
+        {
+            std::string error = ErrorToString(outcome);
+            logger::Error("avcodec_decode_subtitle2 error %s", error.c_str());
+        }
+
+        avsubtitle_free(&sub);
+
     }
 
     void Seek(mediadecoder::Producer* producer )
@@ -646,6 +663,40 @@ namespace mediadecoder
             PrintStream(*data->audioStream);
         }
 
+        // subtitle streams
+        for(uint32_t index = 0; index < data->avFormatContext->nb_streams; index++)
+        {
+            AVStream* stream = data->avFormatContext->streams[index];
+            AVCodecParameters* codecParameters = data->avFormatContext->streams[index]->codecpar;
+            AVCodec* codec = avcodec_find_decoder(codecParameters->codec_id);
+            if(!codec)
+            {
+                return Result(false, "Cannot find decoder %s", "audio");
+            }
+
+            if(codec->type == AVMEDIA_TYPE_SUBTITLE)
+            {
+                AVCodecContext* codecContext = avcodec_alloc_context3(codec);
+                avcodec_parameters_to_context(codecContext, codecParameters);
+                outcome = avcodec_open2(codecContext, codec, NULL);
+                if(outcome < 0)
+                {
+                    std::string error = ErrorToString(outcome);
+                    return Result(false, "avcodec_open2 error %s\n", error.c_str());
+                }
+
+                SubtitleStream* subtitleStream = new SubtitleStream();
+                subtitleStream->codecParameters = codecParameters;
+                subtitleStream->codec = codec;
+                subtitleStream->codecContext = codecContext;
+                subtitleStream->stream = stream;
+                subtitleStream->streamIndex = index;
+                subtitleStream->processCallback = SubtitleDecoderCallback;
+
+                data->subtitleStreams.push_back(subtitleStream);
+            }
+        }
+
         return result;
     }
 
@@ -761,38 +812,45 @@ namespace mediadecoder
                 continue;
             }
 
-            AVMediaType type = stream->codec->type;
+            const AVMediaType type = stream->codec->type;
 
-            const profiler::Point profilePoint 
-                         = type == AVMEDIA_TYPE_VIDEO ? profiler::PROFILER_DECODE_VIDEO_FRAME
-                                                      : profiler::PROFILER_DECODE_AUDIO_FRAME;
-            profiler::StartBlock(profilePoint);
-
-            outcome = avcodec_send_packet(stream->codecContext, packet);
-            if(outcome < 0 )
+            if(type == AVMEDIA_TYPE_VIDEO || type == AVMEDIA_TYPE_AUDIO)
             {
-                std::string error = ErrorToString(outcome);
-                logger::Error("accodec_send_packet error %s", error.c_str());
+                const profiler::Point profilePoint 
+                             = type == AVMEDIA_TYPE_VIDEO ? profiler::PROFILER_DECODE_VIDEO_FRAME
+                                                          : profiler::PROFILER_DECODE_AUDIO_FRAME;
+                profiler::StartBlock(profilePoint);
+
+                outcome = avcodec_send_packet(stream->codecContext, packet);
+                if(outcome < 0 )
+                {
+                    std::string error = ErrorToString(outcome);
+                    logger::Error("accodec_send_packet error %s", error.c_str());
+                }
+
+                while( outcome >= 0 )
+                {
+                    outcome = avcodec_receive_frame(stream->codecContext, frame);
+                    
+                    if (outcome == AVERROR(EAGAIN) || outcome == AVERROR_EOF)
+                    {
+                        break;
+                    }
+                    else if(outcome < 0 )
+                    {
+                         profiler::StopBlock(profilePoint);
+                         std::string error = ErrorToString(outcome);
+                         logger::Error("avcodec_receive_frame error %s", error.c_str());
+                         return;
+                    }
+
+                    profiler::StopBlock(profilePoint);
+                    stream->processCallback(stream, producer, frame, packet);
+                }
             }
-
-            while( outcome >= 0 )
+            else if(type == AVMEDIA_TYPE_SUBTITLE)
             {
-                outcome = avcodec_receive_frame(stream->codecContext, frame);
-                
-                if (outcome == AVERROR(EAGAIN) || outcome == AVERROR_EOF)
-                {
-                    break;
-                }
-                else if(outcome < 0 )
-                {
-                     profiler::StopBlock(profilePoint);
-                     std::string error = ErrorToString(outcome);
-                     logger::Error("avcodec_receive_frame error %s", error.c_str());
-                     return;
-                }
-
-                profiler::StopBlock(profilePoint);
-                stream->processCallback(stream, producer, frame);
+                stream->processCallback(stream, producer, frame, packet);
             }
 
             av_packet_free(&packet);
@@ -827,11 +885,14 @@ namespace mediadecoder
         producer->videoQueueCapacity = videoQueueSize;
         producer->audioQueueCapacity = audioQueueSize;
 
-        uint32_t streamArraySize 
-                     = std::max(decoder->videoStream->streamIndex, decoder->audioStream->streamIndex) + 1;
-        producer->streams.resize(streamArraySize);
+        producer->streams.resize(decoder->avFormatContext->nb_streams);
         producer->streams[decoder->videoStream->streamIndex] = decoder->videoStream;
         producer->streams[decoder->audioStream->streamIndex] = decoder->audioStream;
+        for(auto streamIt = decoder->subtitleStreams.begin(); streamIt != decoder->subtitleStreams.end(); ++streamIt)
+        {
+            producer->streams[(*streamIt)->streamIndex] = *streamIt;
+        }
+
         producer->quitting = false;
 
         producer->thread = std::thread(DecoderThread, producer);
