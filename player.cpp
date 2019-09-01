@@ -379,6 +379,10 @@ namespace player
          {
              mediadecoder::Consume(player->producer, player->videoFrame);
          }
+         if(!player->subtitle)
+         {
+             mediadecoder::Consume(player->producer, player->subtitle);
+         }
 
          if( player->videoFrame  )
          {
@@ -391,18 +395,35 @@ namespace player
              {
                  profiler::ScopeProfiler profiler(profiler::PROFILER_VIDEO_DRAW);
 
+                 // create fb based on VideoFrame
                  videodevice::FrameBuffer fb;
-
                  fb.width = player->videoFrame->width;
                  fb.height = player->videoFrame->height;
-
                  for(uint32_t i = 0; i < videodevice::NUM_FRAME_DATA_POINTERS; i++)
                  {
                      fb.frameData[i] = player->videoFrame->buffers[i];
                      fb.lineSize[i] = player->videoFrame->lineSize[i];
                  }
 
+                 // draw frame
                  videodevice::DrawFrame(player->videoDevice, &fb);
+
+                 // subtitle
+                 if(player->subtitle)
+                 {
+                     if(player->subtitle->startTimeUs >= player->currentTimeUs && player->subtitle->endTimeUs <= player->currentTimeUs)
+                     {
+                         videodevice::DrawText(player->videoDevice, player->subtitle->text, 48, 50, 50, 1, glm::vec3(1,1,1));
+                     }
+
+                     if(player->currentTimeUs > player->subtitle->endTimeUs)
+                     {
+                         mediadecoder::Release(player->producer, player->subtitle);
+                         player->subtitle = NULL;
+                     }
+                 }
+
+                 // swap buffer
                  swapBufferCallback();
 
                  mediadecoder::Release(player->producer, player->videoFrame);

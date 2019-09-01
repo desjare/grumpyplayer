@@ -93,6 +93,7 @@ add_executable(grumpyplayer
     logger
     icon 
     curl
+    subtitle
     3rdparty/lodepng/picopng
     ${RC})
 

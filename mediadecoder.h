@@ -4,6 +4,7 @@
 #include "mediaformat.h"
 #include "curl.h"
 #include "result.h"
+#include "subtitle.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -81,7 +82,7 @@ namespace mediadecoder
 
     struct SubtitleStream : public Stream
     {
-
+        subtitle::SubStationAlphaHeader* subtitleHeader = NULL;
     };
 
     struct VideoFrame
@@ -95,18 +96,26 @@ namespace mediadecoder
 
     struct AudioFrame
     {
-        uint8_t* samples;
-        uint32_t sampleSize;
-        uint32_t nbSamples;
-        uint32_t channels;
-        uint64_t timeUs;
-        std::atomic<bool> inUse;
+        uint8_t* samples = NULL;
+        uint32_t sampleSize = 0;
+        uint32_t nbSamples = 0;
+        uint32_t channels = 0;
+        uint64_t timeUs = 0;
+        std::atomic<bool> inUse = false;
+    };
+
+    struct Subtitle
+    {
+        std::string text;
+        uint64_t startTimeUs = 0;
+        uint64_t endTimeUs = 0;
     };
 
     template<typename T>
     using FrameQueue = boost::lockfree::queue<T, boost::lockfree::fixed_sized<true> >;
     typedef FrameQueue<AudioFrame*> AudioQueue;
     typedef FrameQueue<VideoFrame*> VideoQueue;
+    typedef FrameQueue<Subtitle*>   SubtitleQueue;
 
     struct Decoder
     {
@@ -138,6 +147,9 @@ namespace mediadecoder
         // frame pools
         VideoQueue* videoFramePool = NULL;
         AudioQueue* audioFramePool = NULL;
+
+        // subtitle
+        SubtitleQueue* subtitleQueue = NULL;
 
         // media streams owned by the decoder
         std::vector<Stream*> streams;
@@ -174,9 +186,11 @@ namespace mediadecoder
     bool   IsSeeking(Producer*);
     bool   Consume(Producer*, VideoFrame*& frame);
     bool   Consume(Producer*, AudioFrame*& frame);
+    bool   Consume(Producer*, Subtitle*& sub);
 
     void   Release(Producer*,VideoFrame*);
     void   Release(Producer*,AudioFrame*);
+    void   Release(Producer*,Subtitle*);
 
     void   WaitForPlayback(Producer*);
 };

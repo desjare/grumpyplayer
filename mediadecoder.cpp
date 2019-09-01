@@ -366,16 +366,42 @@ namespace {
     {
         logger::Info("Got subtitle on index %d", stream->streamIndex);
         
+        AVSubtitle avSub;
         int32_t gotSub = 1;
-        AVSubtitle sub;
-        int32_t outcome = avcodec_decode_subtitle2(stream->codecContext, &sub, &gotSub, packet);
+
+        int32_t outcome = avcodec_decode_subtitle2(stream->codecContext, &avSub, &gotSub, packet);
         if(outcome < 0)
         {
             std::string error = ErrorToString(outcome);
             logger::Error("avcodec_decode_subtitle2 error %s", error.c_str());
         }
 
-        avsubtitle_free(&sub);
+        const AVRational& timeBase = stream->stream->time_base;
+        const double timeSeconds = static_cast<double>(avSub.pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
+        const uint64_t timeUs = chrono::Microseconds(timeSeconds);
+
+        mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
+
+        // start_display_time & end_display_time in ms
+        sub->startTimeUs = timeUs + avSub.start_display_time * 1000;
+        sub->endTimeUs = timeUs + avSub.end_display_time * 1000;
+
+        for(uint32_t i = 0; i < avSub.num_rects; i++)
+        {
+            AVSubtitleRect* rect = avSub.rects[i];
+            if(rect->type == SUBTITLE_TEXT)
+            {
+                sub->text += rect->text;
+                logger::Info("Sub %s", sub->text.c_str());
+            }
+            else if(rect->type == SUBTITLE_ASS)
+            {
+            }
+        }
+
+        producer->subtitleQueue->push(sub);
+
+        avsubtitle_free(&avSub);
 
     }
 
@@ -397,6 +423,7 @@ namespace {
 
         ::Release(producer, producer->videoQueue);
         ::Release(producer, producer->audioQueue);
+        ::Release(producer, producer->subtitleQueue);
         producer->videoQueueSize = 0;
         producer->audioQueueSize = 0;
 
@@ -693,6 +720,21 @@ namespace mediadecoder
                 subtitleStream->streamIndex = index;
                 subtitleStream->processCallback = SubtitleDecoderCallback;
 
+                // ssa / ass
+                if(codecContext->subtitle_header)
+                {
+                    std::string ssa(reinterpret_cast<char*>(codecContext->subtitle_header), codecContext->subtitle_header_size);
+                    subtitle::SubStationAlphaHeader* subtitleHeader = NULL;
+
+                    result = subtitle::Parse(ssa, subtitleHeader);
+                    if(!result)
+                    {
+                        return result;
+                    }
+
+                    subtitleStream->subtitleHeader = subtitleHeader;
+                }
+
                 data->subtitleStreams.push_back(subtitleStream);
             }
         }
@@ -867,6 +909,7 @@ namespace mediadecoder
 
         const uint32_t videoQueueSize =  nbSecondsPreBuffer * GetFramesPerSecond(decoder);
         const uint32_t audioQueueSize = 32768u;
+        const uint32_t subtitleQueueSize = 32768u;
 
         assert(videoQueueSize > 0);
         assert(!decoder->producer);
@@ -884,6 +927,8 @@ namespace mediadecoder
         producer->audioFramePool = new AudioQueue(audioQueueSize);
         producer->videoQueueCapacity = videoQueueSize;
         producer->audioQueueCapacity = audioQueueSize;
+
+        producer->subtitleQueue = new SubtitleQueue(subtitleQueueSize);
 
         producer->streams.resize(decoder->avFormatContext->nb_streams);
         producer->streams[decoder->videoStream->streamIndex] = decoder->videoStream;
@@ -957,6 +1002,10 @@ namespace mediadecoder
         }
     }
 
+    void Release(Producer* producer, Subtitle* subtitle)
+    {
+        delete subtitle;
+    }
     
     bool Consume(Producer* producer, VideoFrame*& videoFrame)
     {
@@ -977,6 +1026,14 @@ namespace mediadecoder
             return true;
         }
         return false;
+    }
+
+    bool Consume(Producer* producer, Subtitle*& subtitle)
+    {
+         subtitle = NULL;
+         producer->subtitleQueue->pop(subtitle);
+
+         return subtitle != NULL;
     }
 
     void WaitForPlayback(Producer* producer)
