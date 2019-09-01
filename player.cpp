@@ -379,9 +379,13 @@ namespace player
          {
              mediadecoder::Consume(player->producer, player->videoFrame);
          }
-         if(!player->subtitle)
+
+         mediadecoder::Subtitle* subtitle = NULL;
+         mediadecoder::Consume(player->producer, subtitle);
+         if(subtitle)
          {
-             mediadecoder::Consume(player->producer, player->subtitle);
+             mediadecoder::Release(player->producer, player->subtitle);
+             player->subtitle = subtitle;
          }
 
          if( player->videoFrame  )
@@ -411,12 +415,15 @@ namespace player
                  // subtitle
                  if(player->subtitle)
                  {
-                     if(player->subtitle->startTimeUs >= player->currentTimeUs && player->subtitle->endTimeUs <= player->currentTimeUs)
+                     const bool haveSubtitleTimes = player->subtitle->startTimeUs != 0 && player->subtitle->endTimeUs;
+                     const bool inSubtitleTime = !haveSubtitleTimes || (player->subtitle->startTimeUs >= player->currentTimeUs && player->subtitle->endTimeUs <= player->currentTimeUs);
+
+                     if(inSubtitleTime)
                      {
-                         videodevice::DrawText(player->videoDevice, player->subtitle->text, 48, 50, 50, 1, glm::vec3(1,1,1));
+                         //videodevice::DrawText(player->videoDevice, player->subtitle->text, 48, 50, 50, 1, glm::vec3(1,1,1));
                      }
 
-                     if(player->currentTimeUs > player->subtitle->endTimeUs)
+                     if(haveSubtitleTimes && player->currentTimeUs > player->subtitle->endTimeUs)
                      {
                          mediadecoder::Release(player->producer, player->subtitle);
                          player->subtitle = NULL;

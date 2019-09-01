@@ -365,7 +365,9 @@ namespace {
     void SubtitleDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame, AVPacket* packet)
     {
         logger::Info("Got subtitle on index %d", stream->streamIndex);
-        
+
+        mediadecoder::SubtitleStream* subStream = reinterpret_cast<mediadecoder::SubtitleStream*>(stream);
+
         AVSubtitle avSub;
         int32_t gotSub = 1;
 
@@ -376,15 +378,17 @@ namespace {
             logger::Error("avcodec_decode_subtitle2 error %s", error.c_str());
         }
 
+        mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
         const AVRational& timeBase = stream->stream->time_base;
         const double timeSeconds = static_cast<double>(avSub.pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
-        const uint64_t timeUs = chrono::Microseconds(timeSeconds);
 
-        mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
-
-        // start_display_time & end_display_time in ms
-        sub->startTimeUs = timeUs + avSub.start_display_time * 1000;
-        sub->endTimeUs = timeUs + avSub.end_display_time * 1000;
+        if(timeSeconds > 0.0)
+        {
+            const uint64_t timeUs = chrono::Microseconds(timeSeconds);
+            // start_display_time & end_display_time in ms
+            sub->startTimeUs = timeUs + avSub.start_display_time * 1000;
+            sub->endTimeUs = timeUs + avSub.end_display_time * 1000;
+        }
 
         for(uint32_t i = 0; i < avSub.num_rects; i++)
         {
@@ -393,9 +397,21 @@ namespace {
             {
                 sub->text += rect->text;
                 logger::Info("Sub %s", sub->text.c_str());
+
             }
             else if(rect->type == SUBTITLE_ASS)
             {
+                subtitle::SubStationAlphaDialogue* dialogue = NULL;
+
+                Result result = subtitle::Parse(rect->ass, subStream->subtitleHeader, dialogue);
+                if(!result)
+                {
+                    logger::Error("Error parsing dialogue: %s", result.getError().c_str());
+                    continue;
+                }
+
+                sub->text += dialogue->text;
+                delete dialogue;
             }
         }
 

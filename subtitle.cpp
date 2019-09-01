@@ -24,6 +24,9 @@ namespace
     const char* FORMAT_EFFECT = "Effect";
     const char* FORMAT_TEXT = "Text";
 
+    // Dialogue
+    const char* DIALOGUE = "Dialogue:";
+
 }
 
 namespace subtitle
@@ -116,6 +119,46 @@ namespace subtitle
             delete header;
             header = NULL;
             result = Result(false, "No Event format found in ssa/ass header.");
+        }
+        return result;
+    }
+
+    Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue)
+    {
+        Result result;
+        if(starts_with(ssa, DIALOGUE))
+        {
+            std::string itemFields = ssa.substr(strlen(DIALOGUE));
+            const size_t numFields = header->eventFormatFieldPos.size();
+
+            std::vector<std::string> fields;
+            split(fields, itemFields, ',', numFields);
+
+
+            if(fields.size() == numFields)
+            {
+                uint32_t textPos = header->eventFormatFieldPos[FORMAT_TEXT];
+                uint32_t startPos = header->eventFormatFieldPos[FORMAT_START];
+                uint32_t endPos = header->eventFormatFieldPos[FORMAT_END];
+
+                std::string text = fields[textPos];
+                std::string start = fields[startPos];
+                std::string end = fields[endPos];
+
+                dialogue = new SubStationAlphaDialogue();
+                dialogue->text = text;
+
+            }
+            else
+            {
+                result = Result(false, "Dialogue fields does not match format.");
+            }
+            
+
+        }
+        else
+        {
+            result = Result(false, "Dialogue not found in events.");
         }
 
         return result;

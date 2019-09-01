@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <vector>
 
 inline std::string & ltrim(std::string & str)
 {
@@ -28,6 +29,37 @@ inline bool starts_with(const std::string& haystack, const std::string& needle)
 {
     return needle.length() <= haystack.length() 
         && std::equal(needle.begin(), needle.end(), haystack.begin());
+}
+
+inline void split(std::vector<std::string>&v, const std::string& s, char delim, size_t maxFields)
+{
+    const size_t size = s.size();
+    const char* str = s.c_str();
+    uint32_t start = 0;
+
+    v.clear();
+    v.reserve(maxFields);
+
+    for(uint32_t i = 0; i < size; i++)
+    {
+        if(str[i] == delim)
+        {
+            std::string item = s.substr(start, i - start);
+            start = i + 1;
+            v.push_back(item);
+
+            if(v.size() == maxFields-1)
+            {
+                break;
+            }
+        }
+    }
+
+    if(start < size && v.size() == maxFields-1)
+    {
+        std::string item = s.substr(start);
+        v.push_back(item);
+    }
 }
 
 inline std::istream& getline(std::istream& is, std::string& t)
