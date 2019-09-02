@@ -40,6 +40,16 @@ inline bool starts_with(const std::string& haystack, const std::string& needle)
         && std::equal(needle.begin(), needle.end(), haystack.begin());
 }
 
+inline std::string replace_all(std::string subject, const std::string& search, const std::string& replace) 
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+         subject.replace(pos, search.length(), replace);
+         pos += replace.length();
+    }
+    return subject;
+}
+
 inline void split(std::vector<std::string>&v, const std::string& s, char delim, size_t maxFields)
 {
     const size_t size = s.size();

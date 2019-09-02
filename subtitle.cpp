@@ -327,7 +327,6 @@ namespace subtitle
             std::vector<std::string> fields;
             split(fields, itemFields, ',', numFields);
 
-
             if(fields.size() == numFields)
             {
                 dialogue = new SubStationAlphaDialogue();
@@ -342,18 +341,19 @@ namespace subtitle
                 FetchField(FORMAT_MARGNIV, dialogue->marginV, header->eventFormatFieldPos, fields);
                 FetchField(FORMAT_STYLE, dialogue->style, header->eventFormatFieldPos, fields);
 
+                // do not support line break
+                dialogue->text = replace_all(dialogue->text, "\\N", " ");
             }
             else
             {
                 result = Result(false, "Dialogue fields does not match format.");
             }
-            
-
         }
         else
         {
             result = Result(false, "Dialogue not found in events.");
         }
+
 
         return result;
     }
