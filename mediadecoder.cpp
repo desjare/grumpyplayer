@@ -325,6 +325,7 @@ namespace {
         const bool convertFrame = videoStream->swsContext != NULL;
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
         const uint64_t timeUs = chrono::Microseconds(timeSeconds);
+        producer->currentDecodingTimeUs = timeUs;
 
         mediadecoder::VideoFrame* videoFrame;
         Result result;
@@ -364,8 +365,6 @@ namespace {
 
     void SubtitleDecoderCallback(mediadecoder::Stream* stream, mediadecoder::Producer* producer, AVFrame* frame, AVPacket* packet)
     {
-        logger::Info("Got subtitle on index %d", stream->streamIndex);
-
         mediadecoder::SubtitleStream* subStream = reinterpret_cast<mediadecoder::SubtitleStream*>(stream);
 
         AVSubtitle avSub;
@@ -379,25 +378,43 @@ namespace {
         }
 
         mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
+
+        // by default, use current decoding time
+        sub->startTimeUs = producer->currentDecodingTimeUs;
+        sub->endTimeUs = sub->startTimeUs + chrono::Microseconds(mediadecoder::DEFAULT_SUBTITLE_DURATION_SEC);
+
+        // if we have a valid pts, use it
         const AVRational& timeBase = stream->stream->time_base;
         const double timeSeconds = static_cast<double>(avSub.pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
-
         if(timeSeconds > 0.0)
         {
             const uint64_t timeUs = chrono::Microseconds(timeSeconds);
-            // start_display_time & end_display_time in ms
-            sub->startTimeUs = timeUs + avSub.start_display_time * 1000;
-            sub->endTimeUs = timeUs + avSub.end_display_time * 1000;
+            sub->startTimeUs = timeUs;
+        }
+
+        // start_display_time & end_display_time in ms
+        if(avSub.start_display_time != 0)
+        {
+            sub->startTimeUs = sub->startTimeUs + avSub.start_display_time * 1000;
+        }
+        if(avSub.end_display_time != 0)
+        {
+            sub->endTimeUs = sub->startTimeUs + avSub.end_display_time * 1000;
         }
 
         for(uint32_t i = 0; i < avSub.num_rects; i++)
         {
             AVSubtitleRect* rect = avSub.rects[i];
+
+            if((rect->type == SUBTITLE_TEXT || rect->type == SUBTITLE_ASS) && avSub.num_rects > 1)
+            {
+                logger::Warn("Decoding subtitle has %d rects", avSub.num_rects);
+            }
+
             if(rect->type == SUBTITLE_TEXT)
             {
+                logger::Info("Text Sub %s", sub->text.c_str());
                 sub->text += rect->text;
-                logger::Info("Sub %s", sub->text.c_str());
-
             }
             else if(rect->type == SUBTITLE_ASS)
             {
@@ -411,14 +428,30 @@ namespace {
                 }
 
                 sub->text += dialogue->text;
+
+                if(dialogue->startTimeUs != 0)
+                {
+                    sub->startTimeUs = dialogue->startTimeUs;
+                }
+
+                if(dialogue->endTimeUs != 0)
+                {
+                    sub->endTimeUs = dialogue->endTimeUs;
+                }
+
                 delete dialogue;
             }
+            else
+            {
+                logger::Warn("Unsupported subtitle type %d", rect->type);
+            }
         }
+
+        logger::Info("Got subtitle on index %d: %s", stream->streamIndex, sub->text.c_str());
 
         producer->subtitleQueue->push(sub);
 
         avsubtitle_free(&avSub);
-
     }
 
     void Seek(mediadecoder::Producer* producer )
@@ -736,6 +769,7 @@ namespace mediadecoder
                 subtitleStream->streamIndex = index;
                 subtitleStream->processCallback = SubtitleDecoderCallback;
 
+
                 // ssa / ass
                 if(codecContext->subtitle_header)
                 {
@@ -751,6 +785,7 @@ namespace mediadecoder
                     subtitleStream->subtitleHeader = subtitleHeader;
                 }
 
+                data->subtitleIndexes.push_back(index);
                 data->subtitleStreams.push_back(subtitleStream);
             }
         }
@@ -784,6 +819,16 @@ namespace mediadecoder
             return 0;
         }
         return decoder->videoStream->framesPerSecond;
+    }
+
+    void ToggleSubtitle(Decoder* decoder)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return;
+        }
+        decoder->subtitleIndex = (decoder->subtitleIndex + 1) % decoder->subtitleIndexes.size();
+        logger::Info("Subtitle set to stream index %d", decoder->subtitleIndexes[decoder->subtitleIndex]);
     }
 
     void Destroy(Decoder*& decoder)
@@ -908,7 +953,10 @@ namespace mediadecoder
             }
             else if(type == AVMEDIA_TYPE_SUBTITLE)
             {
-                stream->processCallback(stream, producer, frame, packet);
+                if(packet->stream_index == producer->decoder->subtitleIndexes[producer->decoder->subtitleIndex] )
+                {
+                    stream->processCallback(stream, producer, frame, packet);
+                }
             }
 
             av_packet_free(&packet);

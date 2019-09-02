@@ -247,6 +247,14 @@ namespace player
         }
     }
 
+    void ToggleSubtitle(Player* player)
+    {
+        if(player && player->decoder)
+        {
+            mediadecoder::ToggleSubtitle(player->decoder);
+        }
+    }
+
     void Play(Player* player)
     {
         logger::Info("Play");
@@ -380,12 +388,9 @@ namespace player
              mediadecoder::Consume(player->producer, player->videoFrame);
          }
 
-         mediadecoder::Subtitle* subtitle = NULL;
-         mediadecoder::Consume(player->producer, subtitle);
-         if(subtitle)
+         if(!player->subtitle)
          {
-             mediadecoder::Release(player->producer, player->subtitle);
-             player->subtitle = subtitle;
+             mediadecoder::Consume(player->producer, player->subtitle);
          }
 
          if( player->videoFrame  )
@@ -415,15 +420,17 @@ namespace player
                  // subtitle
                  if(player->subtitle)
                  {
-                     const bool haveSubtitleTimes = player->subtitle->startTimeUs != 0 && player->subtitle->endTimeUs;
-                     const bool inSubtitleTime = !haveSubtitleTimes || (player->subtitle->startTimeUs >= player->currentTimeUs && player->subtitle->endTimeUs <= player->currentTimeUs);
+                     const int64_t subtitleDuration = player->subtitle->endTimeUs - player->subtitle->startTimeUs;
+                     int64_t subtitleWait = chrono::Wait(player->playbackStartTimeUs, player->subtitle->startTimeUs);
+                     
+                     const bool inSubtitleTime = (subtitleWait <= 0 && subtitleWait >= -subtitleDuration);
 
                      if(inSubtitleTime)
                      {
-                         //videodevice::DrawText(player->videoDevice, player->subtitle->text, 48, 50, 50, 1, glm::vec3(1,1,1));
+                         videodevice::DrawText(player->videoDevice, player->subtitle->text, 48, 50, 50, 1, glm::vec3(1,1,1));
                      }
 
-                     if(haveSubtitleTimes && player->currentTimeUs > player->subtitle->endTimeUs)
+                     if(player->currentTimeUs > player->subtitle->endTimeUs)
                      {
                          mediadecoder::Release(player->producer, player->subtitle);
                          player->subtitle = NULL;

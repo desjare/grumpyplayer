@@ -62,6 +62,11 @@ namespace {
         }
     }
 
+    void SubtitleCallback(gui::Handle*, player::Player* player)
+    {
+        player::ToggleSubtitle(player);
+    }
+
     void SetWindowTitle(gui::Handle* handle, uint64_t timeUs, uint64_t duration, const std::string& program, const std::string& filename)
     {
         boost::filesystem::path path(filename);
@@ -311,10 +316,14 @@ int main(int argc, char** argv)
     gui::PauseCb pauseCallback
                   = boost::bind(PauseCallback, _1, player);
 
+    gui::SubtitleCb subtitleCallback
+                  = boost::bind(SubtitleCallback, _1, player);
+
     gui::SetWindowSizeChangeCallback(uiHandle, windowSizeChangeCallback);
     gui::SetFileDropCallback(uiHandle, fileDropCallback);
     gui::SetSeekCallback(uiHandle, seekCallback);
     gui::SetPauseCallback(uiHandle, pauseCallback);
+    gui::SetSubtitleCallback(uiHandle, subtitleCallback);
 
     // start playback
     player::Play(player);

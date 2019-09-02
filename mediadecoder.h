@@ -33,6 +33,7 @@ extern "C" {
 namespace mediadecoder
 {
     static const uint32_t NUM_FRAME_DATA_POINTERS = 4;
+    static const uint32_t DEFAULT_SUBTITLE_DURATION_SEC = 4;
     
     // forward declaration
     struct Stream;
@@ -125,6 +126,8 @@ namespace mediadecoder
         AudioStream* audioStream;
         
         std::vector<SubtitleStream*> subtitleStreams;
+        std::vector<int32_t> subtitleIndexes = {-1 };
+        uint32_t subtitleIndex = 0;
         
         Producer* producer;
         curl::Session* curl;
@@ -155,14 +158,16 @@ namespace mediadecoder
         std::vector<Stream*> streams;
 
         std::thread thread;
-        std::atomic<bool> quitting;
+        std::atomic<bool> quitting = false;;
+
+        uint64_t currentDecodingTimeUs = 0;
 
         // seeking
         std::atomic<bool> seeking;
         uint64_t seekTime = 0;
 
         // eof
-        std::atomic<bool> done;
+        std::atomic<bool> done = false;;
     };
 
     Result   Init();
@@ -175,6 +180,7 @@ namespace mediadecoder
     VideoFormat GetOutputFormat(Decoder*);
     uint64_t    GetDuration(Decoder* decoder);
     uint32_t    GetFramesPerSecond(Decoder* decoder);
+    void        ToggleSubtitle(Decoder*);
 
     void     Destroy(Decoder*&);
 

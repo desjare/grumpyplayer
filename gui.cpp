@@ -58,6 +58,12 @@ namespace {
         }
     }
 
+    void ToggleSubtitle(GLFWwindow* window)
+    {
+        gui::Handle* handle = handles[window];
+        handle->subtitleCb(handle);
+    }
+
     void MouseDoubleClick(GLFWwindow* window)
     {
         ToggleFullScreen(window);
@@ -125,6 +131,9 @@ namespace {
             {
                 case GLFW_KEY_F:
                     ToggleFullScreen(window);
+                    break;
+                case GLFW_KEY_S:
+                    ToggleSubtitle(window);
                     break;
                 case GLFW_KEY_SPACE:
                     handle->pauseCb(handle);
@@ -230,6 +239,11 @@ namespace gui
     void SetPauseCallback(Handle* handle, PauseCb pauseCb)
     {
         handle->pauseCb = pauseCb;
+    }
+
+    void SetSubtitleCallback(Handle* handle, SubtitleCb cb)
+    {
+        handle->subtitleCb = cb;
     }
 
     void SetWindowSize(Handle* handle, uint32_t width, uint32_t height)
