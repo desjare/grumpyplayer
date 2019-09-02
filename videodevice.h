@@ -73,6 +73,7 @@ namespace videodevice
 
     Result SetTextureSize(Device* device, uint32_t width, uint32_t height);
     Result SetWindowSize(Device* device, uint32_t width, uint32_t height);
+    Result GetWindowSize(Device* device, uint32_t& width, uint32_t& height);
     
     void   Destroy(Device*& device);
 }

@@ -1122,6 +1122,19 @@ namespace videodevice
         return result;
     }
 
+    Result GetWindowSize(Device* device, uint32_t& width, uint32_t& height)
+    {
+        Result result;
+        if(!device)
+        {
+            return Result(false, "No device.");
+        }
+
+        width = device->windowWidth;
+        height = device->windowHeight;
+        return result;
+    }
+
     void Destroy(Device*& device)
     {
         if(device)

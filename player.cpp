@@ -149,6 +149,41 @@ namespace {
             audiodevice::Flush(player->audioDevice);
         }
     }
+
+    void DrawSubtitle(player::Player* player)
+    {
+         // subtitle
+         if(player->subtitle)
+         {
+             const int64_t subtitleDuration = player->subtitle->endTimeUs - player->subtitle->startTimeUs;
+             int64_t subtitleWait = chrono::Wait(player->playbackStartTimeUs, player->subtitle->startTimeUs);
+             
+             const bool inSubtitleTime = (subtitleWait <= 0 && subtitleWait >= -subtitleDuration);
+
+             if(inSubtitleTime)
+             {
+                 float tw = 0.0f;
+                 float th = 0.0f;
+                 uint32_t w = 0;
+                 uint32_t h = 0;
+                 
+                 int fontSize = 48;
+
+                 videodevice::GetTextSize(player->videoDevice, player->subtitle->text, fontSize, tw, th);
+                 videodevice::GetWindowSize(player->videoDevice, w, h);
+
+                 float x = w / 2.0f - tw / 2.0f;
+
+                 videodevice::DrawText(player->videoDevice, player->subtitle->text, fontSize, x, 50, 1, glm::vec3(1,1,1));
+             }
+
+             if(subtitleWait < -subtitleDuration)
+             {
+                 mediadecoder::Release(player->producer, player->subtitle);
+                 player->subtitle = NULL;
+             }
+         }
+    }
 }
 
 namespace player
@@ -240,7 +275,7 @@ namespace player
 
     void SetWindowSize(Player* player, uint32_t w, uint32_t h)
     {
-        assert(player && player->videoDevice);
+        assert(player);
         if(player && player->videoDevice)
         {
             videodevice::SetWindowSize(player->videoDevice, w, h);
@@ -417,25 +452,7 @@ namespace player
                  // draw frame
                  videodevice::DrawFrame(player->videoDevice, &fb);
 
-                 // subtitle
-                 if(player->subtitle)
-                 {
-                     const int64_t subtitleDuration = player->subtitle->endTimeUs - player->subtitle->startTimeUs;
-                     int64_t subtitleWait = chrono::Wait(player->playbackStartTimeUs, player->subtitle->startTimeUs);
-                     
-                     const bool inSubtitleTime = (subtitleWait <= 0 && subtitleWait >= -subtitleDuration);
-
-                     if(inSubtitleTime)
-                     {
-                         videodevice::DrawText(player->videoDevice, player->subtitle->text, 48, 50, 50, 1, glm::vec3(1,1,1));
-                     }
-
-                     if(player->currentTimeUs > player->subtitle->endTimeUs)
-                     {
-                         mediadecoder::Release(player->producer, player->subtitle);
-                         player->subtitle = NULL;
-                     }
-                 }
+                 DrawSubtitle(player);
 
                  // swap buffer
                  swapBufferCallback();
