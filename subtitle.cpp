@@ -2,6 +2,7 @@
 #include "precomp.h"
 #include "subtitle.h"
 #include "stringext.h"
+#include "chrono.h"
 
 #include <boost/algorithm/string.hpp>
 #include <vector>
@@ -26,6 +27,37 @@ namespace
 
     // Dialogue
     const char* DIALOGUE = "Dialogue:";
+
+    double EventTimeToSeconds(const std::string& time)
+    {
+        // format 00:00:00.00
+        std::vector<std::string> fields;
+        boost::split(fields, time, boost::is_any_of(":"));
+
+        double seconds = 0.0;
+
+        if(fields.size() == 3)
+        {
+            int32_t hour = std::atoi(fields[0].c_str());
+            int32_t min = std::atoi(fields[1].c_str());
+
+            std::vector<std::string> secondsFields;
+            boost::split(secondsFields, fields[2], boost::is_any_of("."));
+
+            int32_t sec = std::atoi(secondsFields[0].c_str());
+            int32_t milli = 0;
+            if(secondsFields.size() > 1)
+            {
+                milli = std::atoi(secondsFields[1].c_str()) * 10;
+            }
+
+            seconds = hour * 60.0 * 60.0;
+            seconds += min * 60.0;
+            seconds += sec;
+            seconds += milli / 1000.0;
+        }
+        return seconds;
+    }
 
 }
 
@@ -147,6 +179,8 @@ namespace subtitle
 
                 dialogue = new SubStationAlphaDialogue();
                 dialogue->text = text;
+                dialogue->startTimeUs = chrono::Microseconds(EventTimeToSeconds(start));
+                dialogue->endTimeUs = chrono::Microseconds(EventTimeToSeconds(end));
 
             }
             else
