@@ -141,7 +141,7 @@ namespace subtitle
                 uint32_t startPos = header->eventFormatFieldPos[FORMAT_START];
                 uint32_t endPos = header->eventFormatFieldPos[FORMAT_END];
 
-                std::string text = fields[textPos];
+                std::string text = trimeol(fields[textPos]);
                 std::string start = fields[startPos];
                 std::string end = fields[endPos];
 

@@ -20,6 +20,13 @@ inline std::string & rtrim(std::string & str)
   return str;   
 }
 
+inline std::string & trimeol(std::string & str)
+{
+  auto it1 =  std::find_if( str.rbegin() , str.rend() , [](char ch){ return !(ch == '\n' || ch == '\r'); } );
+  str.erase( it1.base() , str.end() );
+  return str;   
+}
+
 inline std::string& trim(std::string & str)
 {
    return ltrim(rtrim(str));
