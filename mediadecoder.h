@@ -79,6 +79,7 @@ namespace mediadecoder
         SampleFormat sampleFormat = SF_FMT_INVALID;
         uint32_t sampleRate = 0;
         uint32_t channels = 0;
+        std::vector<AudioChannel> channelMapping;
     };
 
     struct SubtitleStream : public Stream

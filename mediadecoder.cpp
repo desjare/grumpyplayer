@@ -735,6 +735,43 @@ namespace mediadecoder
             data->audioStream->sampleRate = codecParameters->sample_rate;
             data->audioStream->channels = codecParameters->channels;
             data->audioStream->processCallback = AudioDecoderCallback;
+            data->audioStream->channelMapping.resize(codecParameters->channels);
+
+            // channel layouts
+            const uint64_t channelLayout = codecContext->channel_layout;
+            std::map<uint32_t, AudioChannel> AVAudioChannelMap;
+            AVAudioChannelMap[AV_CH_FRONT_LEFT] = AC_CH_FRONT_LEFT;
+            AVAudioChannelMap[AV_CH_FRONT_RIGHT] = AC_CH_FRONT_RIGHT;
+            AVAudioChannelMap[AV_CH_FRONT_CENTER] = AC_CH_FRONT_CENTER;
+            AVAudioChannelMap[AV_CH_LOW_FREQUENCY] = AC_CH_LOW_FREQUENCY;
+            AVAudioChannelMap[AV_CH_BACK_LEFT] = AC_CH_BACK_LEFT;
+            AVAudioChannelMap[AV_CH_BACK_RIGHT] = AC_CH_BACK_RIGHT;
+            AVAudioChannelMap[AV_CH_FRONT_LEFT_OF_CENTER] = AC_CH_FRONT_LEFT_OF_CENTER;
+            AVAudioChannelMap[AV_CH_FRONT_RIGHT_OF_CENTER] = AC_CH_FRONT_RIGHT_OF_CENTER;
+            AVAudioChannelMap[AV_CH_BACK_CENTER] = AC_CH_BACK_CENTER;
+            AVAudioChannelMap[AV_CH_SIDE_LEFT] = AC_CH_SIDE_LEFT;
+            AVAudioChannelMap[AV_CH_SIDE_RIGHT] = AC_CH_SIDE_RIGHT;
+            AVAudioChannelMap[AV_CH_TOP_CENTER] = AC_CH_TOP_CENTER;
+            AVAudioChannelMap[AV_CH_TOP_FRONT_LEFT] = AC_CH_TOP_FRONT_LEFT;
+            AVAudioChannelMap[AV_CH_TOP_FRONT_CENTER] = AC_CH_TOP_FRONT_CENTER;
+            AVAudioChannelMap[AV_CH_TOP_FRONT_RIGHT] = AC_CH_TOP_FRONT_RIGHT;
+            AVAudioChannelMap[AV_CH_TOP_BACK_LEFT] = AC_CH_TOP_BACK_LEFT;
+            AVAudioChannelMap[AV_CH_TOP_BACK_CENTER] = AC_CH_TOP_BACK_CENTER;
+            AVAudioChannelMap[AV_CH_TOP_BACK_RIGHT] = AC_CH_TOP_BACK_RIGHT;
+
+            for(auto it = AVAudioChannelMap.begin(); it != AVAudioChannelMap.end(); ++it)
+            {
+                int index = av_get_channel_layout_channel_index(channelLayout, it->first);
+                if(index >= 0)
+                {
+                    data->audioStream->channelMapping[index] = it->second;
+                }
+            }
+
+            for(auto it = data->audioStream->channelMapping.begin(); it !=  data->audioStream->channelMapping.end(); ++it)
+            {
+                assert(*it != AC_CH_INVALID);
+            }
 
             PrintStream(*data->audioStream);
         }

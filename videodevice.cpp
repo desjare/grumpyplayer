@@ -721,10 +721,10 @@ namespace {
     // text renderer
     #ifdef WIN32
     const std::string FONT_PATH = "C:\\Windows\\Fonts\\";
-    const std::string DEFAULT_FONT = "times.ttf";
+    const std::string DEFAULT_FONT = "arial.ttf";
     #else
     const std::string FONT_PATH = "/usr/share/fonts/";
-    const std::string DEFAULT_FONT = "Times_New_Roman.ttf";
+    const std::string DEFAULT_FONT = "Arial.ttf";
     #endif
 
 
