@@ -17,7 +17,7 @@ namespace subtitle
         // style
         std::string name;
         std::string fontName;
-        uint32_t fontSize;
+        uint32_t fontSize = 0;
         glm::vec3 primaryColor;
         glm::vec3 secondaryColor;
         glm::vec3 outlineColor;

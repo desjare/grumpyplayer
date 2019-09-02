@@ -2,9 +2,11 @@
 #pragma once
 
 #include <string>
+#include <codecvt>
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <locale>
 
 inline std::string & ltrim(std::string & str)
 {
@@ -68,6 +70,13 @@ inline void split(std::vector<std::string>&v, const std::string& s, char delim, 
         v.push_back(item);
     }
 }
+
+inline std::wstring utf8towstring(const std::string& utf8)
+{
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> utf8conv;
+    return utf8conv.from_bytes(utf8);
+}
+
 
 inline std::istream& getline(std::istream& is, std::string& t)
 {

@@ -4,6 +4,7 @@
 #include "numeric.h"
 #include "logger.h"
 #include "filesystem.h"
+#include "stringext.h"
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -738,6 +739,9 @@ namespace {
     class FreeTypeTextRenderer : public videodevice::TextRenderer
     {
     public:
+        typedef uint32_t CharCode;
+
+    public:
         FreeTypeTextRenderer()
         {
         }
@@ -849,6 +853,8 @@ namespace {
         {
             Result result;
 
+            const std::wstring wtext = utf8towstring(text);
+
             FT_Set_Pixel_Sizes(face, 0, fontSize);
 
             GL_CHECK(glEnable(GL_CULL_FACE));
@@ -865,8 +871,8 @@ namespace {
             GL_CHECK(glBindVertexArray(textVertexArray));
 
             // Iterate through all characters
-            std::string::const_iterator c;
-            for (c = text.begin(); c != text.end(); c++)
+            std::wstring::const_iterator c;
+            for (c = wtext.begin(); c != wtext.end(); c++)
             { 
                 TextCharacter ch = GetTextCharacter(fontSize, *c);
 
@@ -915,9 +921,11 @@ namespace {
             w = 0.0f;
             h = 0.0f;
 
+            const std::wstring wtext = utf8towstring(text);
+
             // Iterate through all characters
-            std::string::const_iterator c;
-            for (c = text.begin(); c != text.end(); c++)
+            std::wstring::const_iterator c;
+            for (c = wtext.begin(); c != wtext.end(); c++)
             { 
                 TextCharacter ch = GetTextCharacter(fontSize, *c);
 
@@ -929,7 +937,7 @@ namespace {
         }
 
     private:
-        TextCharacter GetTextCharacter(uint32_t fontSize, char c)
+        TextCharacter GetTextCharacter(uint32_t fontSize, CharCode c)
         {
             auto it = textCharacters[fontSize].find(c);
             if(it != textCharacters[fontSize].end())
@@ -982,6 +990,10 @@ namespace {
             return character;
         }
 
+    private:
+        typedef std::map<CharCode, TextCharacter> CharMap;
+        typedef std::map<uint32_t, CharMap> CharFontSizeMap;
+    private:
         FT_Library ft;
         FT_Face face;
 
@@ -991,7 +1003,7 @@ namespace {
         GLuint textUniformColor = 0;
         GLuint textUniformProjection = 0;
 
-        std::map<uint32_t, std::map<char, TextCharacter> > textCharacters;
+        CharFontSizeMap textCharacters;
     };
     // text renderer end
 }
