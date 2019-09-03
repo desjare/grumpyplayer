@@ -765,6 +765,7 @@ namespace mediadecoder
                 if(index >= 0)
                 {
                     data->audioStream->channelMapping[index] = it->second;
+                    logger::Info("Channel %s at %d", av_get_channel_name(it->first), index);
                 }
             }
 

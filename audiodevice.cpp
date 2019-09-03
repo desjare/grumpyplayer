@@ -1,6 +1,7 @@
 
 #include "precomp.h"
 #include "audiodevice.h"
+#include "logger.h"
 
 #include <system_error>
 #include <thread>
@@ -41,6 +42,52 @@ namespace {
         }
         return sndFormat;
     }
+
+    snd_pcm_chmap_position AudioChannelToASound(AudioChannel ch)
+    {
+        switch(ch)
+        {
+            case AC_CH_FRONT_LEFT:
+                return SND_CHMAP_FL;
+            case AC_CH_FRONT_RIGHT:
+                return SND_CHMAP_FR;
+            case AC_CH_FRONT_CENTER:
+                return SND_CHMAP_FC;
+            case AC_CH_LOW_FREQUENCY:
+                return SND_CHMAP_LFE;
+            case AC_CH_BACK_LEFT:
+                return SND_CHMAP_RL;
+            case AC_CH_BACK_RIGHT:
+                return SND_CHMAP_RR;
+            case AC_CH_FRONT_LEFT_OF_CENTER:
+                return SND_CHMAP_FLC;
+            case AC_CH_FRONT_RIGHT_OF_CENTER:
+                return SND_CHMAP_FRC;
+            case AC_CH_BACK_CENTER:
+                return SND_CHMAP_RC;
+            case AC_CH_SIDE_LEFT:
+                return SND_CHMAP_SL;
+            case AC_CH_SIDE_RIGHT:
+                return SND_CHMAP_SR;
+            case AC_CH_TOP_CENTER:
+                return SND_CHMAP_TC;
+            case AC_CH_TOP_FRONT_LEFT:
+                return SND_CHMAP_TFL;
+            case AC_CH_TOP_FRONT_CENTER:
+                return SND_CHMAP_TFC;
+            case AC_CH_TOP_FRONT_RIGHT:
+                return SND_CHMAP_TFR;
+            case AC_CH_TOP_BACK_LEFT:
+                return SND_CHMAP_TRL;
+            case AC_CH_TOP_BACK_CENTER:
+                return SND_CHMAP_TRC;
+            case AC_CH_TOP_BACK_RIGHT:
+                return SND_CHMAP_TRR;
+            default:
+                break;
+        }
+        return SND_CHMAP_UNKNOWN;
+    }
 #endif
 
 }
@@ -70,7 +117,7 @@ namespace audiodevice
         device = NULL;
     }
 
-    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat, const std::vector<AudioChannel>& mapping)
     {
         Result result;
 
@@ -102,7 +149,7 @@ namespace audiodevice
             return result;
         }
 
-        err = snd_pcm_hw_params_set_format (device->playbackHandle, hwParams, SampleFormatToASound(sampleFormat));
+        err = snd_pcm_hw_params_set_format (device->playbackHandle, hwParams,SampleFormatToASound(sampleFormat));
         if( err < 0 )
         {
             result = Result(false, "Cannot set sample format %s", snd_strerror(err));
@@ -131,13 +178,34 @@ namespace audiodevice
         }
 
         snd_pcm_hw_params_free(hwParams);
-        
+
         err = snd_pcm_prepare(device->playbackHandle);
         if( err < 0 )
         {
             result = Result(false, "Cannot prepare audio interface for use %s", snd_strerror(err));
             return result;
         }
+
+        // chmap
+        size_t size = offsetof(snd_pcm_chmap_t, pos[channels]);
+        assert(size >= sizeof(snd_pcm_chmap_t));
+
+        snd_pcm_chmap_t* map = (snd_pcm_chmap_t*) calloc(1, size);
+        map->channels = channels;
+   
+        for (uint32_t i = 0 ; i < map->channels ; ++i) 
+        {
+            map->pos[i] = AudioChannelToASound(mapping[i]);
+        }
+
+        err = snd_pcm_set_chmap(device->playbackHandle, map);
+        if(err < 0 )
+        {
+            // apparently a known pulse alsa issue
+            logger::Error("Cannot set chmap %s", snd_strerror(err));
+        }
+
+        free(map);
 
         err = snd_pcm_hw_params_can_pause(hwParams);
         if( err != 1 ) // can pause
@@ -290,7 +358,7 @@ namespace audiodevice
         return result;
     }
 
-    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat, const std::vector<AudioChannel>& mapping)
     {
         Result result;
 

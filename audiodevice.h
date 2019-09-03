@@ -40,7 +40,7 @@ namespace audiodevice
     Result Create(Device*& device);
     void   Destroy(Device*& device);
 
-    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat);
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat, const std::vector<AudioChannel>& mapping);
 
     Result WriteInterleaved(Device* device, void* buf, uint32_t frames, std::atomic<bool>& bufferInUse);
     
