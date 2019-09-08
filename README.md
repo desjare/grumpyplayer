@@ -15,7 +15,7 @@ Main modules are:
 * streamer (curl)
 * subtitle (ssa/ass)
 
-Overall I think it is a good example of how to use ffmpeg to decode a video from file or stream and use the viddeo and audio media for playback.
+Overall I think it is a good example of how to use ffmpeg to decode a video from file or stream and use the video and audio media for playback.
 
 <h2>Credits</h2>
 
