@@ -72,7 +72,7 @@ namespace audiodevice
         device = NULL;
     }
 
-    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat, const std::vector<AudioChannel>& mapping)
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
     {
         Result result;
 
@@ -292,7 +292,7 @@ namespace audiodevice
         return result;
     }
 
-    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat, const std::vector<AudioChannel>& mapping)
+    Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
     {
         Result result;
 

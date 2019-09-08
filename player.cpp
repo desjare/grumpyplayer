@@ -263,9 +263,8 @@ namespace player
         const uint32_t channels = audioStream->channels;
         const uint32_t sampleRate = audioStream->sampleRate;
         const SampleFormat sampleFormat = audioStream->sampleFormat;
-        std::vector<AudioChannel> channelMapping = audioStream->channelMapping;
 
-        result = audiodevice::SetInputFormat(player->audioDevice,channels,sampleRate,sampleFormat, channelMapping);
+        result = audiodevice::SetInputFormat(player->audioDevice,channels,sampleRate,sampleFormat);
         if(!result)
         {
             return result;
