@@ -70,6 +70,13 @@ namespace {
         const size_t channels = input.size();
         outputMap.clear();
 
+        // mono
+        if(channels == 0)
+        {
+            outputMap[0] = 0;
+            return;
+        }
+
         auto it = ChannelsToChanelMaps.find(input.size());
         if( it != ChannelsToChanelMaps.end() )
         {
