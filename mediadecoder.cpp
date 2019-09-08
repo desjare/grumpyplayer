@@ -23,11 +23,47 @@ namespace {
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
 
+    // output channel mapping 
+    const AudioChannelList ChannelMap2ChannelsDefault = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT};
+    const AudioChannelList ChannelMap3ChannelsDefault = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_LOW_FREQUENCY};
+    const AudioChannelList ChannelMap4ChannelsDefault = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT};
+
+#ifdef WIN32
+    // https://docs.microsoft.com/en-us/windows/win32/xaudio2/xaudio2-default-channel-mapping
+    const AudioChannelList ChannelMap5ChannelsRear = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_FRONT_CENTER, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT};
+    const AudioChannelList ChannelMap5ChannelsSide = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_FRONT_CENTER, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT};
+
+    const AudioChannelList ChannelMap6ChannelsRear = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT};
+    const AudioChannelList ChannelMap6ChannelsSide = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT};
+
+    const AudioChannelList ChannelMap8ChannelsDefault = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT};
+#else
+    // pulse audio (found no doc)
+    const AudioChannelList ChannelMap5ChannelsRear = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT, AC_CH_FRONT_CENTER};
+    const AudioChannelList ChannelMap5ChannelsSide = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT, AC_CH_FRONT_CENTER};
+
     const AudioChannelList ChannelMap6ChannelsRear = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY};
     const AudioChannelList ChannelMap6ChannelsSide = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY};
-    const std::vector<AudioChannelList> ChannelMap6Channels = {ChannelMap6ChannelsRear, ChannelMap6ChannelsSide} ;
 
-    std::map<uint32_t, const std::vector<AudioChannelList>> ChannelsToChanelMaps = { {6, ChannelMap6Channels} };
+    // assuming this one
+    const AudioChannelList ChannelMap8ChannelsDefault = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY};
+#endif
+
+    const std::vector<AudioChannelList> ChannelMap2Channels = {ChannelMap2ChannelsDefault};
+    const std::vector<AudioChannelList> ChannelMap3Channels = {ChannelMap3ChannelsDefault};
+    const std::vector<AudioChannelList> ChannelMap4Channels = {ChannelMap4ChannelsDefault};
+    const std::vector<AudioChannelList> ChannelMap5Channels = {ChannelMap5ChannelsRear, ChannelMap5ChannelsSide} ;
+    const std::vector<AudioChannelList> ChannelMap6Channels = {ChannelMap6ChannelsRear, ChannelMap6ChannelsSide} ;
+    const std::vector<AudioChannelList> ChannelMap8Channels = {ChannelMap8ChannelsDefault};
+
+    std::map<uint32_t, const std::vector<AudioChannelList>> ChannelsToChanelMaps = { 
+        {2,ChannelMap2Channels}, 
+        {3,ChannelMap3Channels}, 
+        {4,ChannelMap3Channels}, 
+        {5, ChannelMap5Channels},
+        {6, ChannelMap6Channels},
+        {8, ChannelMap8Channels}
+    };
 
     void GetChannelInputToOutputMap(const AudioChannelList& input, std::map<uint32_t, uint32_t>& outputMap)
     {
@@ -68,6 +104,7 @@ namespace {
         }
         
         // use no mapping
+        logger::Warn("GetChannelInputToOutputMap: no mapping found.");
         for(uint32_t i = 0; i < channels; i++)
         {
             outputMap[i] = i;
