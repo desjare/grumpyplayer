@@ -1,6 +1,6 @@
 # grumpyplayer
 
-Experimental linux & windows video player video player based on glfw, OpenGL, ALSA, XAudio2, ffmpeg, boost and curl. It supports full screen mode (double click), drag & drop and bicubic gpu resizing. It is also possible to launch it with a URL and the video will be streamed.
+Experimental linux & windows video player video player based on glfw, OpenGL, ALSA, XAudio2, ffmpeg, boost and curl. It supports full screen mode (double click), drag & drop, bicubic gpu resizing & ssa/ass subtitles. It is also possible to launch it with a URL and the video will be streamed.
 
 This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. While the implementation uses encapsulation & structure, data definitions are public and accessible. It relies heavily on C++ standard library or boost but it uses a more a C style design approach in the implementation and APIs. PEP-20 states that explicit is better than implicit and beautiful is better than ugly. These principles should apply to C++ as well and I often see overly complicated class hirarchies that are difficult to maintain. The player was written with that in mind.
 
@@ -13,6 +13,7 @@ Main modules are:
 * mediadecoder (ffmpeg)
 * gui (glfw3)
 * streamer (curl)
+* subtitle (ssa/ass)
 
 Overall I think it is a good example of how to use ffmpeg to decode a video from file or stream and use the viddeo and audio media for playback.
 
@@ -52,5 +53,6 @@ All 3rdparty libs are included in 3rdparty folder fox x64 architecture. Binary f
 
 <h1>Bugs</h1>
 
+* Below two audio channels, the audio channel mapping has not been tested. It is currently configured according to pulse and XAudio2 configuration but no tests has been done beside the stereo mix. The player is able to play 5.1 audio on stereo on linux but has not been tested beyond that.
 * The player pre-buffer a lot of frames and is consuming a lot of memory.
 * When streaming video, it will buffer the entire file and release bytes as they are read.
