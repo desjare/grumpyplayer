@@ -849,7 +849,7 @@ namespace {
             return result;
         }
 
-        virtual Result Render(const std::string& text, uint32_t fontSize, float x, float y, float scale, glm::vec3 color)
+        virtual Result Render(const std::string& text, const std::string& fontName, uint32_t fontSize, float x, float y, float scale, glm::vec3 color)
         {
             Result result;
 
@@ -912,7 +912,7 @@ namespace {
             return result;
         }
 
-        virtual Result GetSize(const std::string& text, uint32_t fontSize, float& w, float& h)
+        virtual Result GetSize(const std::string& text, const std::string& fontName, uint32_t fontSize, float& w, float& h)
         {
             Result result;
 
@@ -1078,14 +1078,14 @@ namespace videodevice
         return device->renderer->Render(fb);
     }
 
-    Result DrawText(Device* device, const std::string& text, uint32_t fontSize, float x, float y, float scale, glm::vec3 color)
+    Result DrawText(Device* device, const std::string& text, const std::string& fontName, uint32_t fontSize, float x, float y, float scale, glm::vec3 color)
     {
-        return device->text->Render(text, fontSize, x, y, scale, color);
+        return device->text->Render(text, fontName, fontSize, x, y, scale, color);
     }
 
-    Result GetTextSize(Device* device, const std::string& text, uint32_t fontSize, float& w, float& h)
+    Result GetTextSize(Device* device, const std::string& text, const std::string& fontName, uint32_t fontSize, float& w, float& h)
     {
-        return device->text->GetSize(text, fontSize, w, h);
+        return device->text->GetSize(text, fontName, fontSize, w, h);
     }
 
     Result SetTextureSize(Device* device, uint32_t width, uint32_t height)

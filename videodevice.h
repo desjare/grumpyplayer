@@ -40,8 +40,8 @@ namespace videodevice
 
     struct TextRenderer : public Renderer
     {
-        virtual Result Render(const std::string& text, uint32_t fontSize, float x, float y, float scale, glm::vec3 color) = 0;
-        virtual Result GetSize(const std::string& text, uint32_t fontSize, float& w, float& h) = 0;
+        virtual Result Render(const std::string& text, const std::string& fontName, uint32_t fontSize, float x, float y, float scale, glm::vec3 color) = 0;
+        virtual Result GetSize(const std::string& text, const std::string& fontName, uint32_t fontSize, float& w, float& h) = 0;
     };
 
     struct Device
@@ -68,8 +68,8 @@ namespace videodevice
 
     Result DrawFrame(Device* device, FrameBuffer*);
 
-    Result DrawText(Device* device, const std::string& text, uint32_t fontSize, float x, float y, float scale, glm::vec3 color);
-    Result GetTextSize(Device* device, const std::string& text, uint32_t fontSize, float& w, float& h);
+    Result DrawText(Device* device, const std::string& text, const std::string& fontName, uint32_t fontSize, float x, float y, float scale, glm::vec3 color);
+    Result GetTextSize(Device* device, const std::string& text, const std::string& fontName, uint32_t fontSize, float& w, float& h);
 
     Result SetTextureSize(Device* device, uint32_t width, uint32_t height);
     Result SetWindowSize(Device* device, uint32_t width, uint32_t height);

@@ -3,6 +3,7 @@
 #include "subtitle.h"
 #include "stringext.h"
 #include "chrono.h"
+#include "logger.h"
 
 #include <boost/algorithm/string.hpp>
 #include <vector>
@@ -183,14 +184,14 @@ namespace subtitle
     {
         Result result;
 
+        logger::Info("SSA Header\n%s", ssa.c_str());
+
         std::vector<SubStationAlphaHeaderSection*> sections;
         SubStationAlphaHeaderSection* section = nullptr;
         std::istringstream input(ssa);
         std::string line;
 
         header = new SubStationAlphaHeader();
-
-        printf("%s\n", ssa.c_str());
         
         while( getline(input, line) )
         {
@@ -319,6 +320,8 @@ namespace subtitle
     Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue)
     {
         Result result;
+        logger::Debug("Parse SSA Dialogue: %s", ssa.c_str());
+
         if(starts_with(ssa, DIALOGUE))
         {
             std::string itemFields = ssa.substr(strlen(DIALOGUE));

@@ -5,8 +5,9 @@
 namespace logger
 {
     enum Level
-    {
-        DEBUG = 0,
+    {  
+        TRACE = 0,
+        DEBUG,
         INFO,
         WARNING,
         ERROR,
@@ -16,6 +17,7 @@ namespace logger
     void  SetLevel(int level);
     Level GetLevelFromString(const std::string&);
 
+    void Trace(const char* fmt, ...);
     void Debug(const char* fmt, ...);
     void Info(const char* fmt, ...);
     void Warn(const char* fmt, ...);

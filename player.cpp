@@ -108,7 +108,7 @@ namespace {
             else
             {
                 nbNoFrame += 1;
-                logger::Debug("No audio frame count:%d", nbNoFrame);
+                logger::Trace("No audio frame count:%d", nbNoFrame);
             }
         }
     }
@@ -167,14 +167,17 @@ namespace {
                  uint32_t w = 0;
                  uint32_t h = 0;
                  
-                 int fontSize = 48;
+                 uint32_t fontSize = player->subtitle->fontSize;
+                 const std::string& fontName = player->subtitle->fontName;
 
-                 videodevice::GetTextSize(player->videoDevice, player->subtitle->text, fontSize, tw, th);
+                 videodevice::GetTextSize(player->videoDevice, player->subtitle->text, fontName, fontSize, tw, th);
                  videodevice::GetWindowSize(player->videoDevice, w, h);
 
+                 // center type
                  float x = w / 2.0f - tw / 2.0f;
+                 float y = 50.0f;
 
-                 videodevice::DrawText(player->videoDevice, player->subtitle->text, fontSize, x, 50, 1, glm::vec3(1,1,1));
+                 videodevice::DrawText(player->videoDevice, player->subtitle->text, fontName, fontSize, x, y, 1, player->subtitle->color);
              }
 
              if(subtitleWait < -subtitleDuration)

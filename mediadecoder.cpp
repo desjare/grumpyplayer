@@ -523,6 +523,7 @@ namespace {
             else if(rect->type == SUBTITLE_ASS)
             {
                 subtitle::SubStationAlphaDialogue* dialogue = nullptr;
+                subtitle::SubStationAlphaHeader* header = subStream->subtitleHeader;
 
                 Result result = subtitle::Parse(rect->ass, subStream->subtitleHeader, dialogue);
                 if(!result)
@@ -542,6 +543,17 @@ namespace {
                 {
                     sub->endTimeUs = dialogue->endTimeUs;
                 }
+
+                if(!header->fontName.empty())
+                {
+                    sub->fontName = header->fontName;
+                }
+
+                if(header->fontSize != 0)
+                {
+                    sub->fontSize = header->fontSize;
+                }
+                sub->color = header->primaryColor;
 
                 delete dialogue;
             }
@@ -1007,7 +1019,7 @@ namespace mediadecoder
 
         if(!continueDecoding)
         {
-            logger::Debug("ContinueDecoding queue full video %d audio %d", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
+            logger::Trace("ContinueDecoding queue full video %d audio %d", producer->videoQueueSize.load(),  producer->audioQueueSize.load());
         }
 
         return continueDecoding;

@@ -113,6 +113,10 @@ namespace mediadecoder
         std::string text;
         uint64_t startTimeUs = 0;
         uint64_t endTimeUs = 0;
+
+        std::string fontName = "Arial";
+        uint32_t fontSize = 16;
+        glm::vec3 color = {1.0f, 1.0f, 1.0f};
     };
 
     template<typename T>

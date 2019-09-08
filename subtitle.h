@@ -18,8 +18,8 @@ namespace subtitle
         std::string name;
         std::string fontName;
         uint32_t fontSize = 0;
-        glm::vec3 primaryColor;
-        glm::vec3 secondaryColor;
+        glm::vec3 primaryColor = {1.0f, 1.0f, 1.0f};
+        glm::vec3 secondaryColor = {1.0f, 1.0f, 1.0f};
         glm::vec3 outlineColor;
 
         std::map<std::string, uint32_t> styleFormatFieldPos;

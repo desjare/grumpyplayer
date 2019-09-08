@@ -17,7 +17,11 @@ namespace logger
     {
         Level level = INVALID;
 
-        if( str == "debug" )
+        if( str == "trace" )
+        {
+            level = TRACE;
+        }
+        else if( str == "debug" )
         {
             level = DEBUG;
         }
@@ -37,9 +41,25 @@ namespace logger
         return level;
     }
 
+    void Trace(const char* fmt, ...)
+    {
+      if(logLevel != TRACE )
+      {
+          return;
+      }
+      va_list args;
+      char buffer[BUFSIZ];
+
+      va_start(args, fmt);
+      vsnprintf(buffer, sizeof buffer, fmt, args);
+      va_end(args);
+
+      printf("Trace: %s\n", buffer);
+    }
+
     void Debug(const char* fmt, ...)
     {
-      if(logLevel != DEBUG )
+      if(logLevel >= DEBUG )
       {
           return;
       }
