@@ -23,6 +23,58 @@ namespace {
     const uint32_t QUEUE_FULL_SLEEP_TIME_MS = 200;
     const uint32_t WAIT_PLAYBACK_SLEEP_TIME_MS = 100;
 
+    const AudioChannelList ChannelMap6ChannelsRear = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_BACK_LEFT, AC_CH_BACK_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY};
+    const AudioChannelList ChannelMap6ChannelsSide = {AC_CH_FRONT_LEFT, AC_CH_FRONT_RIGHT, AC_CH_SIDE_LEFT, AC_CH_SIDE_RIGHT, AC_CH_FRONT_CENTER, AC_CH_LOW_FREQUENCY};
+    const std::vector<AudioChannelList> ChannelMap6Channels = {ChannelMap6ChannelsRear, ChannelMap6ChannelsSide} ;
+
+    std::map<uint32_t, const std::vector<AudioChannelList>> ChannelsToChanelMaps = { {6, ChannelMap6Channels} };
+
+    void GetChannelInputToOutputMap(const AudioChannelList& input, std::map<uint32_t, uint32_t>& outputMap)
+    {
+        const size_t channels = input.size();
+        outputMap.clear();
+
+        auto it = ChannelsToChanelMaps.find(input.size());
+        if( it != ChannelsToChanelMaps.end() )
+        {
+             const std::vector<AudioChannelList>& channelSetups = it->second;
+
+             for(auto setup:channelSetups)
+             {
+                 for(uint32_t i = 0; i < channels; i++)
+                 {
+                     for(uint32_t j = 0; j < channels; j++)
+                     {
+                         if(input[i] == setup[j])
+                         {
+                             outputMap[i] = j;
+                             break;
+                         }
+                     }
+                 }
+
+                 // we are done, all are mapped properly
+                 if(outputMap.size() == input.size())
+                 {
+                      return;
+                 }
+                 else
+                 {
+                     // missing channels in setup
+                     outputMap.clear();
+                 }
+
+             }
+        }
+        
+        // use no mapping
+        for(uint32_t i = 0; i < channels; i++)
+        {
+            outputMap[i] = i;
+        }
+
+    }
+
     SampleFormat AVFormatToSampleFormat(AVSampleFormat f)
     {
         SampleFormat sf = SF_FMT_INVALID;
@@ -52,6 +104,8 @@ namespace {
 
         return sf;
     }
+
+
 
     std::string ErrorToString(int errnum)
     {
@@ -288,6 +342,10 @@ namespace {
             return;
         }
 
+        mediadecoder::AudioStream* audioStream 
+                       = reinterpret_cast<mediadecoder::AudioStream*>(stream);
+
+        const std::map<uint32_t, uint32_t>& inputToOutputMapping = audioStream->channelInputToOutputMapping;
         audioFrame->timeUs = timeUs;
         uint8_t* samples = audioFrame->samples;
         uint32_t pos = 0;
@@ -296,7 +354,11 @@ namespace {
         {
             for( uint32_t ch = 0; ch < channels; ch++)
             {
-                uint8_t* data  = (uint8_t*)(frame->data[ch] + static_cast<ptrdiff_t>(static_cast<size_t>(sampleSize)*static_cast<size_t>(i)));
+                std::map<uint32_t, uint32_t>::const_iterator it = inputToOutputMapping.find(ch);
+                assert(it != inputToOutputMapping.end());
+
+                const uint32_t outputChannel = it->second;
+                uint8_t* data  = (uint8_t*)(frame->data[outputChannel] + static_cast<ptrdiff_t>(static_cast<size_t>(sampleSize)*static_cast<size_t>(i)));
 
                 for( uint32_t j = 0; j < sampleSize; j++ )
                 {
@@ -773,6 +835,10 @@ namespace mediadecoder
             {
                 assert(*it != AC_CH_INVALID);
             }
+
+            // input to output mapping
+            const AudioChannelList& channels = data->audioStream->channelMapping;
+            GetChannelInputToOutputMap(channels, data->audioStream->channelInputToOutputMapping);
 
             PrintStream(*data->audioStream);
         }

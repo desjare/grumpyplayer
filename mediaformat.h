@@ -44,3 +44,4 @@ enum VideoFormat
 };
 
 typedef std::vector<VideoFormat> VideoFormatList;
+typedef std::vector<AudioChannel> AudioChannelList;

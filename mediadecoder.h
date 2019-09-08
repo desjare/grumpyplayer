@@ -34,7 +34,7 @@ namespace mediadecoder
 {
     static const uint32_t NUM_FRAME_DATA_POINTERS = 4;
     static const uint32_t DEFAULT_SUBTITLE_DURATION_SEC = 4;
-    
+
     // forward declaration
     struct Stream;
     struct Producer;
@@ -79,7 +79,9 @@ namespace mediadecoder
         SampleFormat sampleFormat = SF_FMT_INVALID;
         uint32_t sampleRate = 0;
         uint32_t channels = 0;
-        std::vector<AudioChannel> channelMapping;
+
+        AudioChannelList channelMapping;
+        std::map<uint32_t, uint32_t> channelInputToOutputMapping;
     };
 
     struct SubtitleStream : public Stream
