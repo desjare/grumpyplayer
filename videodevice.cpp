@@ -721,25 +721,38 @@ namespace {
     // text renderer
     #ifdef WIN32
     const std::string FONT_PATH = "C:\\Windows\\Fonts\\";
-    const std::string DEFAULT_FONT = "arial.ttf";
+    const std::string FONT_EXT = ".ttf";
+    const std::string DEFAULT_FONT = "Arial";
     #else
     const std::string FONT_PATH = "/usr/share/fonts/";
-    const std::string DEFAULT_FONT = "Arial.ttf";
+    const std::string FONT_EXT = ".ttf";
+    const std::string DEFAULT_FONT = "Arial";
     #endif
 
-
-    struct TextCharacter 
-    {
-        GLuint texture =  0;           // ID handle of the glyph texture
-        glm::ivec2 size = { 0, 0 };    // Size of glyph
-        glm::ivec2 bearing = { 0, 0 }; // Offset from baseline to left/top of glyph
-        GLuint advance = 0;            // Horizontal offset to advance to next glyph
-    };
 
     class FreeTypeTextRenderer : public videodevice::TextRenderer
     {
     public:
         typedef uint32_t CharCode;
+
+        struct TextCharacter 
+        {
+            GLuint texture =  0;           // ID handle of the glyph texture
+            glm::ivec2 size = { 0, 0 };    // Size of glyph
+            glm::ivec2 bearing = { 0, 0 }; // Offset from baseline to left/top of glyph
+            GLuint advance = 0;            // Horizontal offset to advance to next glyph
+        };
+
+        typedef std::map<CharCode, TextCharacter> TextCharacterMap;
+        typedef std::map<uint32_t, TextCharacterMap> TextCharacterFontSizeMap;
+
+        struct TextFont
+        {
+            FT_Face face;
+            TextCharacterFontSizeMap chars;
+        };
+
+        typedef std::map<std::string, TextFont> FontCharacterMap;
 
     public:
         FreeTypeTextRenderer()
@@ -748,19 +761,23 @@ namespace {
 
         virtual ~FreeTypeTextRenderer()
         {
-            FT_Done_Face(face);
-            FT_Done_FreeType(ft);
-
             GL_CHECK(glDeleteVertexArrays(1, &textVertexBuffer));
             GL_CHECK(glDeleteBuffers(1, &textVertexBuffer));
 
-            for( auto fontIt = textCharacters.begin(); fontIt != textCharacters.end(); ++fontIt)
+            for(auto fontCharIt = fontCharacters.begin(); fontCharIt != fontCharacters.end(); ++fontCharIt)
             {
-                for( auto it = fontIt->second.begin(); it != fontIt->second.end(); ++it)
+                FT_Done_Face((*fontCharIt).second.face);
+
+                for( auto fontIt = fontCharIt->second.chars.begin(); fontIt != fontCharIt->second.chars.end(); ++fontIt)
                 {
-                    GL_CHECK(glDeleteTextures(1, &it->second.texture));
+                    for( auto it = fontIt->second.begin(); it != fontIt->second.end(); ++it)
+                    {
+                        GL_CHECK(glDeleteTextures(1, &it->second.texture));
+                    }
                 }
             }
+
+            FT_Done_FreeType(ft);
         }
         
         virtual Result Create()
@@ -821,21 +838,6 @@ namespace {
                 return Result(false, "Could not init freetype library");
             }
 
-            auto font = filesystem::FindFile(FONT_PATH, DEFAULT_FONT);
-            if( font )
-            {
-                std::string pathstr = font.get().string();
-                const char* path = pathstr.c_str();
-                if(FT_New_Face(ft, path, 0, &face)) 
-                {
-                    return Result(false, "Could not load font %s", path);
-                }
-            }
-            else
-            {
-                return Result(false, "Could not find font.");
-            }
-
             return result;
         }
 
@@ -855,7 +857,14 @@ namespace {
 
             const std::wstring wtext = utf8towstring(text);
 
-            FT_Set_Pixel_Sizes(face, 0, fontSize);
+            TextFont& font = defaultFont;
+            result = GetFont(fontName, font);
+            if(!result)
+            {
+                return result;
+            }
+
+            FT_Set_Pixel_Sizes(font.face, 0, fontSize);
 
             GL_CHECK(glEnable(GL_CULL_FACE));
             GL_CHECK(glEnable(GL_BLEND));
@@ -874,7 +883,7 @@ namespace {
             std::wstring::const_iterator c;
             for (c = wtext.begin(); c != wtext.end(); c++)
             { 
-                TextCharacter ch = GetTextCharacter(fontSize, *c);
+                TextCharacter ch = GetTextCharacter(font,fontSize, *c);
 
                 GL_CHECK(::glActiveTexture(GL_TEXTURE10));
                 GLfloat xpos = x + ch.bearing.x * scale;
@@ -916,7 +925,14 @@ namespace {
         {
             Result result;
 
-            FT_Set_Pixel_Sizes(face, 0, fontSize);
+            TextFont& font = defaultFont;
+            result = GetFont(fontName, font);
+            if(!result)
+            {
+                return result;
+            }
+
+            FT_Set_Pixel_Sizes(font.face, 0, fontSize);
 
             w = 0.0f;
             h = 0.0f;
@@ -927,7 +943,7 @@ namespace {
             std::wstring::const_iterator c;
             for (c = wtext.begin(); c != wtext.end(); c++)
             { 
-                TextCharacter ch = GetTextCharacter(fontSize, *c);
+                TextCharacter ch = GetTextCharacter(font, fontSize, *c);
 
                 h = std::max(h, static_cast<float>(ch.size.y));
                 w += (ch.advance >> 6); // Bitshift by 6 to get value in pixels (2^6 = 64)
@@ -937,10 +953,13 @@ namespace {
         }
 
     private:
-        TextCharacter GetTextCharacter(uint32_t fontSize, CharCode c)
+        TextCharacter GetTextCharacter(TextFont& font, uint32_t fontSize, CharCode c)
         {
-            auto it = textCharacters[fontSize].find(c);
-            if(it != textCharacters[fontSize].end())
+            TextCharacterFontSizeMap& textCharacters = font.chars;
+            TextCharacterMap& textChars = textCharacters[fontSize];
+
+            auto it = textChars.find(c);
+            if(it != textChars.end())
             {
                 return it->second;
             }
@@ -949,7 +968,7 @@ namespace {
             GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1)); 
 
             // Load character glyph 
-            if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+            if (FT_Load_Char(font.face, c, FT_LOAD_RENDER))
             {
                 logger::Error("FreeTypeTextRenderer cannot load char %c", c);
                 TextCharacter invalid;
@@ -964,12 +983,12 @@ namespace {
                 GL_TEXTURE_2D,
                 0,
                 GL_RED,
-                face->glyph->bitmap.width,
-                face->glyph->bitmap.rows,
+                font.face->glyph->bitmap.width,
+                font.face->glyph->bitmap.rows,
                 0,
                 GL_RED,
                 GL_UNSIGNED_BYTE,
-                face->glyph->bitmap.buffer
+                font.face->glyph->bitmap.buffer
             ));
             // Set texture options
             GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
@@ -980,22 +999,60 @@ namespace {
             // Now store character for later use
             TextCharacter character = {
                 texture,
-                glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-                glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
-                static_cast<GLuint>(face->glyph->advance.x)
+                glm::ivec2(font.face->glyph->bitmap.width, font.face->glyph->bitmap.rows),
+                glm::ivec2(font.face->glyph->bitmap_left, font.face->glyph->bitmap_top),
+                static_cast<GLuint>(font.face->glyph->advance.x)
             };
-            textCharacters[fontSize].insert(std::pair<char, TextCharacter>(c, character));
+            textChars.insert(std::pair<char, TextCharacter>(c, character));
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
             return character;
         }
 
-    private:
-        typedef std::map<CharCode, TextCharacter> CharMap;
-        typedef std::map<uint32_t, CharMap> CharFontSizeMap;
+        Result GetFont(const std::string& fontName, TextFont& font)
+        {
+            Result result;
+
+            FontCharacterMap::iterator it = fontCharacters.find(tolower(fontName));
+            if(it != fontCharacters.end())
+            {
+                font = it->second;
+            }
+
+            std::string fontFile = fontName + FONT_EXT;
+
+            auto fontPath = filesystem::FindFileNoCase(FONT_PATH, fontFile);
+            if( fontPath )
+            {
+                std::string pathstr = fontPath.get().string();
+                const char* path = pathstr.c_str();
+                
+                boost::filesystem::path p(path);
+                font = fontCharacters[tolower(p.stem().string())];
+
+                if( FT_New_Face(ft, path, 0, &font.face) )
+                {
+                    logger::Error("Cannot load font %s", path);
+                    result = Result(false, "Cannot load font %s", path);
+                }
+            }
+            else
+            {
+                logger::Error("Font file not found %s", fontName.c_str());
+            }
+
+            // fallback on default font
+            if(!result)
+            {
+                logger::Error("Falling back on default font");
+                result = GetFont(DEFAULT_FONT, font);
+            }
+
+            return result;
+        }
+
     private:
         FT_Library ft;
-        FT_Face face;
 
         GLuint textProgram = 0;
         GLuint textVertexBuffer = 0;
@@ -1003,7 +1060,8 @@ namespace {
         GLuint textUniformColor = 0;
         GLuint textUniformProjection = 0;
 
-        CharFontSizeMap textCharacters;
+        FontCharacterMap fontCharacters;
+        TextFont defaultFont;
     };
     // text renderer end
 }

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <locale>
+#include <cctype>
 
 inline std::string & ltrim(std::string & str)
 {
@@ -48,6 +49,20 @@ inline std::string replace_all(std::string subject, const std::string& search, c
          pos += replace.length();
     }
     return subject;
+}
+
+inline bool compare_nocase(const std::string & str1, const std::string &str2)
+{
+	return ((str1.size() == str2.size()) && std::equal(str1.begin(), str1.end(), str2.begin(), [](const char & c1, const char & c2){
+							return (c1 == c2 || std::toupper(c1) == std::toupper(c2));
+								}));
+}
+
+inline std::string tolower(std::string s) 
+{
+    std::transform(s.begin(), s.end(), s.begin(), 
+                   [](unsigned char c){ return std::tolower(c); } );
+    return s;
 }
 
 inline void split(std::vector<std::string>&v, const std::string& s, char delim, size_t maxFields)
