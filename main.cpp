@@ -194,7 +194,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
     else
     {
-        argv[0] = "grumpyplayer";
+        argv[0] = "grumpy";
         argc++;
     }
 
@@ -207,7 +207,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 int main(int argc, char** argv)
 {
 #endif
-    std::string program = "grumpyplayer";
+    std::string program = "grumpy";
     std::string path;
 
     Init();
