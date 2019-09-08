@@ -149,8 +149,6 @@ namespace {
         return sf;
     }
 
-
-
     std::string ErrorToString(int errnum)
     {
         char buf[BUFSIZ];
@@ -168,7 +166,7 @@ namespace {
 
             for(uint32_t i = 0; i < mediadecoder::NUM_FRAME_DATA_POINTERS; i++)
             {
-                if(data[i] != NULL && linesize[i] != 0)
+                if(data[i] != nullptr && linesize[i] != 0)
                 {
                     frame->buffers[i] = reinterpret_cast<uint8_t*>(av_malloc(static_cast<size_t>(linesize[i]) * static_cast<size_t>(height)));
                     frame->lineSize[i] = linesize[i];
@@ -428,7 +426,7 @@ namespace {
 
         const AVRational& timeBase = stream->stream->time_base;
         const uint32_t reformatBufferSize = videoStream->reformatBufferSize;
-        const bool convertFrame = videoStream->swsContext != NULL;
+        const bool convertFrame = videoStream->swsContext != nullptr;
         const double timeSeconds = static_cast<double>(frame->pts) * static_cast<double>(timeBase.num) / static_cast<double>(timeBase.den);
         const uint64_t timeUs = chrono::Microseconds(timeSeconds);
         producer->currentDecodingTimeUs = timeUs;
@@ -524,7 +522,7 @@ namespace {
             }
             else if(rect->type == SUBTITLE_ASS)
             {
-                subtitle::SubStationAlphaDialogue* dialogue = NULL;
+                subtitle::SubStationAlphaDialogue* dialogue = nullptr;
 
                 Result result = subtitle::Parse(rect->ass, subStream->subtitleHeader, dialogue);
                 if(!result)
@@ -704,7 +702,6 @@ namespace mediadecoder
     {
         Result result;
         decoder = new Decoder();
-        memset(decoder, 0, sizeof(Decoder));
         decoder->avFormatContext = avformat_alloc_context();
         return result;
     }
@@ -718,7 +715,7 @@ namespace mediadecoder
         if( !Uri::IsLocal( &uri) )
         {
             // network stream
-            curl::Session* session = NULL;
+            curl::Session* session = nullptr;
             result = curl::Create(session, path, 0);
             if(!result)
             {
@@ -732,7 +729,7 @@ namespace mediadecoder
             path = "curl";
         }
 
-        int outcome = avformat_open_input(&data->avFormatContext, path.c_str(), NULL, NULL);
+        int outcome = avformat_open_input(&data->avFormatContext, path.c_str(), nullptr, nullptr);
         if(outcome != 0)
         {
             std::string error = ErrorToString(outcome);
@@ -741,7 +738,7 @@ namespace mediadecoder
         data->avFormatContext->debug = 1;
         data->avFormatContext->flags |= AVFMT_FLAG_GENPTS;
 
-        outcome = avformat_find_stream_info(data->avFormatContext, NULL);
+        outcome = avformat_find_stream_info(data->avFormatContext, nullptr);
         if(outcome < 0)
         {
             std::string error = ErrorToString(outcome);
@@ -750,7 +747,7 @@ namespace mediadecoder
 
         av_dump_format(data->avFormatContext, 0, filename.c_str(), 0);
 
-        int index = av_find_best_stream(data->avFormatContext, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+        int index = av_find_best_stream(data->avFormatContext, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
         if(index >= 0)
         {
             AVStream* stream = data->avFormatContext->streams[index];
@@ -761,7 +758,7 @@ namespace mediadecoder
                 return Result(false, "Cannot find decoder %s", "video");
             }
 
-            AVDictionary* opts = NULL;
+            AVDictionary* opts = nullptr;
             av_dict_set(&opts, "refcounted_frames", "0", 0);
 
             AVCodecContext* codecContext = avcodec_alloc_context3(codec);
@@ -793,7 +790,7 @@ namespace mediadecoder
                 data->videoStream->reformatBufferSize = av_image_get_buffer_size(outputPixelFormat, codecContext->width, codecContext->height, 32);
                 data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
                                                               codecContext->pix_fmt, codecContext->width, codecContext->height,
-                                                              outputPixelFormat, SWS_BICUBIC, NULL, NULL, NULL);
+                                                              outputPixelFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
             }
 
             data->videoStream->processCallback = VideoDecoderCallback;
@@ -808,7 +805,7 @@ namespace mediadecoder
             return Result(false, "Cannot find best video stream");
         }
 
-        index = av_find_best_stream(data->avFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+        index = av_find_best_stream(data->avFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
         if(index >= 0)
         {
             AVStream* stream = data->avFormatContext->streams[index];
@@ -819,7 +816,7 @@ namespace mediadecoder
                 return Result(false, "Cannot find decoder %s", "audio");
             }
 
-            AVDictionary* opts = NULL;
+            AVDictionary* opts = nullptr;
             av_dict_set(&opts, "refcounted_frames", "0", 0);
 
             AVCodecContext* codecContext = avcodec_alloc_context3(codec);
@@ -902,7 +899,7 @@ namespace mediadecoder
             {
                 AVCodecContext* codecContext = avcodec_alloc_context3(codec);
                 avcodec_parameters_to_context(codecContext, codecParameters);
-                outcome = avcodec_open2(codecContext, codec, NULL);
+                outcome = avcodec_open2(codecContext, codec, nullptr);
                 if(outcome < 0)
                 {
                     std::string error = ErrorToString(outcome);
@@ -917,20 +914,23 @@ namespace mediadecoder
                 subtitleStream->streamIndex = index;
                 subtitleStream->processCallback = SubtitleDecoderCallback;
 
-
                 // ssa / ass
                 if(codecContext->subtitle_header)
                 {
                     std::string ssa(reinterpret_cast<char*>(codecContext->subtitle_header), codecContext->subtitle_header_size);
-                    subtitle::SubStationAlphaHeader* subtitleHeader = NULL;
+                    subtitle::SubStationAlphaHeader* subtitleHeader = nullptr;
 
                     result = subtitle::Parse(ssa, subtitleHeader);
                     if(!result)
                     {
-                        return result;
+                        logger::Error("Could not parse ass subtitle header %s", result.getError());
+                        delete subtitleStream; subtitleStream = nullptr;
+                        continue;
                     }
-
-                    subtitleStream->subtitleHeader = subtitleHeader;
+                    else
+                    {
+                        subtitleStream->subtitleHeader = subtitleHeader;
+                    }
                 }
 
                 data->subtitleIndexes.push_back(index);
@@ -996,7 +996,7 @@ namespace mediadecoder
         avformat_free_context(decoder->avFormatContext);
 
         delete decoder;
-        decoder = NULL;
+        decoder = nullptr;
     }
 
     bool ContinueDecoding(Producer* producer)
@@ -1057,7 +1057,7 @@ namespace mediadecoder
             }
 
             Stream* stream = static_cast<size_t>(packet->stream_index) < producer->streams.size() ? 
-                                                          producer->streams[packet->stream_index] : NULL;
+                                                          producer->streams[packet->stream_index] : nullptr;
             if(!stream)
             {
                 continue;
@@ -1101,8 +1101,10 @@ namespace mediadecoder
             }
             else if(type == AVMEDIA_TYPE_SUBTITLE)
             {
-                if(packet->stream_index == producer->decoder->subtitleIndexes[producer->decoder->subtitleIndex] )
+                int32_t subtitleStreamIndex = producer->decoder->subtitleIndexes[producer->decoder->subtitleIndex];
+                if(packet->stream_index == subtitleStreamIndex )
                 {
+                    logger::Info("Got subtitle decoder index %d index %d", producer->decoder->subtitleIndex, subtitleStreamIndex);
                     stream->processCallback(stream, producer, frame, packet);
                 }
             }
@@ -1126,7 +1128,7 @@ namespace mediadecoder
         assert(videoQueueSize > 0);
         assert(!decoder->producer);
 
-        if( decoder->producer != NULL )
+        if( decoder->producer != nullptr )
         {
             return Result(false, "Decoder has already a producer.");
         }
@@ -1178,7 +1180,7 @@ namespace mediadecoder
         delete producer->audioFramePool;
  
         delete producer;
-        producer = NULL;
+        producer = nullptr;
     }
 
     void Seek(Producer* producer, uint64_t timeUs)
@@ -1221,17 +1223,17 @@ namespace mediadecoder
     
     bool Consume(Producer* producer, VideoFrame*& videoFrame)
     {
-         videoFrame = NULL;
+         videoFrame = nullptr;
          if( producer->videoQueue->pop(videoFrame) )
          {
              producer->videoQueueSize--;
          }
-         return videoFrame != NULL;
+         return videoFrame != nullptr;
     }
 
     bool Consume(Producer* producer,AudioFrame*& audioFrame)
     {
-        audioFrame = NULL;
+        audioFrame = nullptr;
         if( producer->audioQueue->pop(audioFrame) )
         {
             producer->audioQueueSize--;
@@ -1242,10 +1244,10 @@ namespace mediadecoder
 
     bool Consume(Producer* producer, Subtitle*& subtitle)
     {
-         subtitle = NULL;
+         subtitle = nullptr;
          producer->subtitleQueue->pop(subtitle);
 
-         return subtitle != NULL;
+         return subtitle != nullptr;
     }
 
     void WaitForPlayback(Producer* producer)

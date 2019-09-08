@@ -56,7 +56,7 @@ namespace {
     PFNGLDELETEBUFFERSPROC glDeleteBuffers;
     PFNGLACTIVETEXTUREPROC glActiveTexture;
 
-    videodevice::Device* currentDevice = NULL;
+    videodevice::Device* currentDevice = nullptr;
 
     void CheckOpenGLError(const char* stmt, const char* fname, int line)
     {
@@ -374,7 +374,7 @@ namespace {
             GL_CHECK(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, 
                             textureHeight, GL_RGB, GL_UNSIGNED_BYTE, f->frameData[0]));
             GL_CHECK(glBindVertexArray(vertexArray));
-            GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, ((char *)NULL + (0))));
+            GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, ((char *)nullptr + (0))));
             GL_CHECK(glBindVertexArray(0));
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
 
@@ -396,10 +396,10 @@ namespace {
             // vertexBuffer
             WriteVertexBuffer(0, 0, static_cast<float>(width), static_cast<float>(height));
 
-            GL_CHECK(glVertexAttribPointer(attribs[VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)NULL + (0))));
+            GL_CHECK(glVertexAttribPointer(attribs[VERTICES], 3, GL_FLOAT, GL_FALSE, 20, ((char *)nullptr + (0))));
             GL_CHECK(glEnableVertexAttribArray(attribs[VERTICES]));
 
-            GL_CHECK(glVertexAttribPointer(attribs[TEX_COORDS], 2, GL_FLOAT, GL_FALSE, 20,  ((char *)NULL + (12))));
+            GL_CHECK(glVertexAttribPointer(attribs[TEX_COORDS], 2, GL_FLOAT, GL_FALSE, 20,  ((char *)nullptr + (12))));
             GL_CHECK(glEnableVertexAttribArray(attribs[TEX_COORDS]));  
 
             GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer));
@@ -419,7 +419,7 @@ namespace {
             GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
             GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
             GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 
-                0, GL_RGB, GL_UNSIGNED_BYTE, NULL));
+                0, GL_RGB, GL_UNSIGNED_BYTE, nullptr));
             GL_CHECK(glUniform1i(uniforms[FRAME_TEX], 0));
 
             WriteMVPMatrix(width, height);
@@ -683,7 +683,7 @@ namespace {
         void SetTextureSize(GLuint texture, uint32_t width, uint32_t height)
         {
             GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
-            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL));
+            GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr));
             GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
             GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
         }
@@ -806,7 +806,7 @@ namespace {
             GL_CHECK(glGenBuffers(1, &textVertexBuffer));
             GL_CHECK(glBindVertexArray(textVertexArray));
             GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, textVertexBuffer));
-            GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW));
+            GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, nullptr, GL_DYNAMIC_DRAW));
             GL_CHECK(glEnableVertexAttribArray(0));
             GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0));
             GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
@@ -1026,7 +1026,7 @@ namespace videodevice
     {
         Result result;
 
-        if( currentDevice != NULL )
+        if( currentDevice != nullptr )
         {
             return Result(false, "Video device already exist. Cannot create more than one device.");
         }
@@ -1142,8 +1142,8 @@ namespace videodevice
             delete device->renderer;
             delete device->text;
             delete device;
-            device = NULL;
-            currentDevice = NULL;
+            device = nullptr;
+            currentDevice = nullptr;
         }
     }
 

@@ -44,10 +44,10 @@ namespace mediadecoder
 
     struct Stream
     {
-        AVCodecParameters* codecParameters = NULL;
-        AVCodec* codec = NULL;
-        AVCodecContext* codecContext = NULL;
-        AVStream* stream = NULL;
+        AVCodecParameters* codecParameters = nullptr;
+        AVCodec* codec = nullptr;
+        AVCodecContext* codecContext = nullptr;
+        AVStream* stream = nullptr;
         int32_t streamIndex = -1;
 
         // processing
@@ -60,7 +60,7 @@ namespace mediadecoder
         VideoFormat outputFormat = VF_INVALID;
 
         // sws_scale context if required
-        SwsContext* swsContext = NULL;
+        SwsContext* swsContext = nullptr;
         
         // destination format
         AVPixelFormat dstFormat = AV_PIX_FMT_NONE;
@@ -86,12 +86,12 @@ namespace mediadecoder
 
     struct SubtitleStream : public Stream
     {
-        subtitle::SubStationAlphaHeader* subtitleHeader = NULL;
+        subtitle::SubStationAlphaHeader* subtitleHeader = nullptr;
     };
 
     struct VideoFrame
     {
-        uint8_t* buffers[NUM_FRAME_DATA_POINTERS] = { NULL, NULL, NULL, NULL};
+        uint8_t* buffers[NUM_FRAME_DATA_POINTERS] = { nullptr, nullptr, nullptr, nullptr};
         int32_t lineSize[NUM_FRAME_DATA_POINTERS] = { 0, 0, 0, 0 };
         uint32_t width = 0;
         uint32_t height = 0;
@@ -100,7 +100,7 @@ namespace mediadecoder
 
     struct AudioFrame
     {
-        uint8_t* samples = NULL;
+        uint8_t* samples = nullptr;
         uint32_t sampleSize = 0;
         uint32_t nbSamples = 0;
         uint32_t channels = 0;
@@ -123,26 +123,26 @@ namespace mediadecoder
 
     struct Decoder
     {
-        AVFormatContext* avFormatContext;
+        AVFormatContext* avFormatContext = nullptr;
 
-        VideoStream* videoStream;
-        AudioStream* audioStream;
+        VideoStream* videoStream = nullptr;
+        AudioStream* audioStream = nullptr;
         
         std::vector<SubtitleStream*> subtitleStreams;
-        std::vector<int32_t> subtitleIndexes = {-1 };
+        std::vector<int32_t> subtitleIndexes = {-1};
         uint32_t subtitleIndex = 0;
         
-        Producer* producer;
-        curl::Session* curl;
+        Producer* producer = nullptr;
+        curl::Session* curl = nullptr;
     };
 
     struct Producer
     {
-        Decoder* decoder = NULL;
+        Decoder* decoder = nullptr;
 
         // playback frames
-        VideoQueue* videoQueue = NULL;
-        AudioQueue* audioQueue = NULL;
+        VideoQueue* videoQueue = nullptr;
+        AudioQueue* audioQueue = nullptr;
 
         std::atomic<uint32_t> videoQueueSize;
         std::atomic<uint32_t> audioQueueSize;
@@ -151,11 +151,11 @@ namespace mediadecoder
         uint32_t audioQueueCapacity = 0;
 
         // frame pools
-        VideoQueue* videoFramePool = NULL;
-        AudioQueue* audioFramePool = NULL;
+        VideoQueue* videoFramePool = nullptr;
+        AudioQueue* audioFramePool = nullptr;
 
         // subtitle
-        SubtitleQueue* subtitleQueue = NULL;
+        SubtitleQueue* subtitleQueue = nullptr;
 
         // media streams owned by the decoder
         std::vector<Stream*> streams;

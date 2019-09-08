@@ -25,7 +25,7 @@ namespace curl
 {
     struct Session
     {
-        CURL* curl = NULL;
+        CURL* curl = nullptr;
 
         std::mutex mutex;
         std::deque<uint8_t> buffer;

@@ -71,7 +71,7 @@ namespace {
 
     void AudioPlaybackThread(player::Player* player)
     {
-        mediadecoder::AudioFrame* audioFrame = NULL;
+        mediadecoder::AudioFrame* audioFrame = nullptr;
         Result result;
         uint32_t nbNoFrame = 0;
   
@@ -103,7 +103,7 @@ namespace {
                     logger::Error("AudioDeviceWriteInterleaved failed %s", result.getError().c_str());
                 }
                 mediadecoder::Release(player->producer, audioFrame);
-                audioFrame = NULL;
+                audioFrame = nullptr;
             }
             else
             {
@@ -180,7 +180,7 @@ namespace {
              if(subtitleWait < -subtitleDuration)
              {
                  mediadecoder::Release(player->producer, player->subtitle);
-                 player->subtitle = NULL;
+                 player->subtitle = nullptr;
              }
          }
     }
@@ -199,11 +199,11 @@ namespace player
     {
         Result result;
         player = new Player();
-        player->decoder = NULL;
-        player->producer = NULL;
-        player->videoFrame = NULL;
-        player->audioDevice = NULL;
-        player->videoDevice = NULL ;
+        player->decoder = nullptr;
+        player->producer = nullptr;
+        player->videoFrame = nullptr;
+        player->audioDevice = nullptr;
+        player->videoDevice = nullptr ;
         player->playbackStartTimeUs = 0;
         player->currentTimeUs = 0;
         player->playing = false;
@@ -458,7 +458,7 @@ namespace player
                  swapBufferCallback();
 
                  mediadecoder::Release(player->producer, player->videoFrame);
-                 player->videoFrame = NULL;
+                 player->videoFrame = nullptr;
              }
              else 
              {
@@ -497,6 +497,6 @@ namespace player
         audiodevice::Destroy(player->audioDevice);
 
         delete player;
-        player = NULL;
+        player = nullptr;
     }
 }

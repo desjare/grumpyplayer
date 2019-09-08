@@ -49,7 +49,7 @@ namespace {
         session->offset = 0;
 
         curl_easy_cleanup(session->curl);
-        session->curl = NULL;
+        session->curl = nullptr;
         session->cancel = false;
         session->done = false;
         session->result = CURLE_OK;

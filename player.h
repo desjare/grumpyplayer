@@ -24,14 +24,14 @@ namespace player
     {
         std::string path;
 
-        mediadecoder::Decoder* decoder = NULL;
+        mediadecoder::Decoder* decoder = nullptr;
         
-        mediadecoder::Producer* producer = NULL;
-        mediadecoder::VideoFrame* videoFrame = NULL;
-        mediadecoder::Subtitle* subtitle = NULL;
+        mediadecoder::Producer* producer = nullptr;
+        mediadecoder::VideoFrame* videoFrame = nullptr;
+        mediadecoder::Subtitle* subtitle = nullptr;
 
-        audiodevice::Device* audioDevice = NULL;
-        videodevice::Device* videoDevice = NULL;
+        audiodevice::Device* audioDevice = nullptr;
+        videodevice::Device* videoDevice = nullptr;
 
         uint64_t playbackStartTimeUs = 0;
         uint64_t currentTimeUs = 0;

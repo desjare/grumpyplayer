@@ -55,10 +55,10 @@ namespace videodevice
         GLuint windowHeight = 0;
 
         // video renderer
-        FrameRenderer* renderer = NULL;
+        FrameRenderer* renderer = nullptr;
 
         // text renderer
-        TextRenderer* text = NULL;
+        TextRenderer* text = nullptr;
     };
 
     Result Init();

@@ -92,7 +92,7 @@ namespace
 
             // red
             std::string rstr = s.substr(0,2);
-            r = strtol(rstr.c_str(), NULL, 16) / 255.0f;
+            r = strtol(rstr.c_str(), nullptr, 16) / 255.0f;
 
             // erase r
             s.erase(0, 2); 
@@ -101,7 +101,7 @@ namespace
             {
                 // g
                 std::string gstr = s.substr(0,2);
-                g = strtol(gstr.c_str(), NULL, 16) / 255.0;
+                g = strtol(gstr.c_str(), nullptr, 16) / 255.0;
 
                 // erase g
                 s.erase(0, 2); 
@@ -110,7 +110,7 @@ namespace
                 {
                     // b
                     std::string bstr = s.substr(0,2);
-                    b = strtol(bstr.c_str(), NULL, 16) / 255.0;
+                    b = strtol(bstr.c_str(), nullptr, 16) / 255.0;
                 }
             }
         }
@@ -184,7 +184,7 @@ namespace subtitle
         Result result;
 
         std::vector<SubStationAlphaHeaderSection*> sections;
-        SubStationAlphaHeaderSection* section = NULL;
+        SubStationAlphaHeaderSection* section = nullptr;
         std::istringstream input(ssa);
         std::string line;
 
@@ -310,7 +310,7 @@ namespace subtitle
         if(header->eventFormatFieldPos.empty())
         {
             delete header;
-            header = NULL;
+            header = nullptr;
             result = Result(false, "No Event format found in ssa/ass header.");
         }
         return result;

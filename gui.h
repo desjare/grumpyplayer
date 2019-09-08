@@ -28,7 +28,7 @@ namespace gui
 
     struct Handle
     {
-        GLFWwindow* window = NULL;
+        GLFWwindow* window = nullptr;
 
         WindowSizeChangeCb sizeChangeCb;
         FileDropCb fileDropCb;

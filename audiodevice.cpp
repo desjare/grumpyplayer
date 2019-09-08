@@ -69,7 +69,7 @@ namespace audiodevice
     {
         snd_pcm_close(device->playbackHandle);
         delete device;
-        device = NULL;
+        device = nullptr;
     }
 
     Result SetInputFormat(Device* device, uint32_t channels, uint32_t sampleRate, SampleFormat sampleFormat)
@@ -82,7 +82,7 @@ namespace audiodevice
             result = Result(false, "Invalid audiodevice");
         }
 
-        snd_pcm_hw_params_t* hwParams = NULL;
+        snd_pcm_hw_params_t* hwParams = nullptr;
         int err = snd_pcm_hw_params_malloc(&hwParams);
         if( err < 0 )
         {
@@ -276,7 +276,7 @@ namespace audiodevice
         Result result;
 
         HRESULT hr;
-        if (FAILED(hr = CoInitialize(NULL)))
+        if (FAILED(hr = CoInitialize(nullptr)))
         {
             return Result(false, "CoInitialize failed. Error: %s", std::system_category().message(hr).c_str());
         }
@@ -452,7 +452,7 @@ namespace audiodevice
             delete device->voiceCallbacks;
 
             delete device;
-            device = NULL;
+            device = nullptr;
         }
     }
 #endif

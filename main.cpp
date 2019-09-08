@@ -157,10 +157,10 @@ void SetLogLevel(std::string level)
 char* WCharToUTF8(LPWSTR pWSTR)
 { 
     size_t wsize = wcslen(pWSTR);
-    size_t sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, pWSTR, static_cast<int>(wsize), NULL, 0, NULL, NULL);
+    size_t sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, pWSTR, static_cast<int>(wsize), nullptr, 0, nullptr, nullptr);
     char* str = new char[sizeNeeded+1];
     memset(str, 0, sizeNeeded + 1);
-    WideCharToMultiByte(CP_UTF8, 0, pWSTR, static_cast<int>(wsize), str, static_cast<int>(sizeNeeded+1), NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, pWSTR, static_cast<int>(wsize), str, static_cast<int>(sizeNeeded+1), nullptr, nullptr);
     return str;
 }
 
@@ -250,10 +250,10 @@ int main(int argc, char** argv)
 
 
     // gui 
-    gui::Handle* uiHandle = NULL;
+    gui::Handle* uiHandle = nullptr;
 
     // player
-    player::Player* player = NULL;
+    player::Player* player = nullptr;
 
     // Create windowsw
     Result result = CreateWindows(uiHandle, 640, 480);

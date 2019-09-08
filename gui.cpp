@@ -41,7 +41,7 @@ namespace {
 
         if( gui::IsFullScreen(handle) )
         {
-            glfwSetWindowMonitor( handle->window, NULL,  handle->posx, handle->posy, handle->backupWidth, handle->backupHeight, 0 );
+            glfwSetWindowMonitor( handle->window, nullptr,  handle->posx, handle->posy, handle->backupWidth, handle->backupHeight, 0 );
         }
         else
         {
@@ -178,7 +178,7 @@ namespace gui
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
-        handle->window = glfwCreateWindow(width, height, "grumpy", NULL, NULL);
+        handle->window = glfwCreateWindow(width, height, "grumpy", nullptr, nullptr);
         if(!handle->window)
         {
             result = Result(false, std::string("gwfw failed to open window"));
@@ -253,7 +253,7 @@ namespace gui
 
     bool IsFullScreen(Handle* handle)
     {
-        return glfwGetWindowMonitor(handle->window)  != NULL;
+        return glfwGetWindowMonitor(handle->window)  != nullptr;
     }
 
     void SwapBuffers(Handle* handle)
