@@ -115,3 +115,14 @@ target_link_libraries(
     ${THREAD_LIBRARY}
     ${GL_LIBRARY}
     ${FREETYPE_LIBRARY})
+
+
+install(TARGETS grumpyplayer
+    RUNTIME DESTINATION "/usr/bin"
+    LIBRARY DESTINATION "/usr/bin"
+    DESTINATION "/usr/bin/"
+)
+
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "KK")
+INCLUDE(CPack)

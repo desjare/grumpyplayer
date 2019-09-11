@@ -65,6 +65,13 @@ inline std::string tolower(std::string s)
     return s;
 }
 
+inline std::string toupper(std::string s) 
+{
+    std::transform(s.begin(), s.end(), s.begin(), 
+                   [](unsigned char c){ return std::toupper(c); } );
+    return s;
+}
+
 inline void split(std::vector<std::string>&v, const std::string& s, char delim, size_t maxFields)
 {
     const size_t size = s.size();
