@@ -41,6 +41,13 @@ I used and inspired myself of several projects writing the player so here are so
  
  To install ffmpeg 4:
  See: http://ubuntuhandbook.org/index.php/2018/10/install-ffmpeg-4-0-2-ubuntu-18-0416-04/
+
+<h2>Ubuntu 19.04</h2>
+
+Install dependencies:
+sudo apt install libavcodec-dev libavformat-dev libcurl4-openssl-dev libasound2-dev libboost-all-dev libglfw3-dev libfreetype6-dev libswscale-dev libglm-dev libglu1-mesa-dev
+
+
  
  <h2>Windows</h2>
  
