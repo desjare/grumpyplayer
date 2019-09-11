@@ -163,7 +163,6 @@ namespace gui
     {
         Result result;
         handle = new Handle();
-        memset(handle,0, sizeof(Handle));
 
         return result;
     }

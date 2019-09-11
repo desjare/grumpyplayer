@@ -162,7 +162,6 @@ namespace {
         if( !producer->videoFramePool->pop(frame) )
         {
             frame = new mediadecoder::VideoFrame();
-            memset(frame,0, sizeof(mediadecoder::VideoFrame));
 
             for(uint32_t i = 0; i < mediadecoder::NUM_FRAME_DATA_POINTERS; i++)
             {
@@ -184,7 +183,6 @@ namespace {
         if( !producer->videoFramePool->pop(frame) )
         {
             frame = new mediadecoder::VideoFrame();
-            memset(frame,0, sizeof(mediadecoder::VideoFrame));
 
             frame->buffers[0] = reinterpret_cast<uint8_t*>(av_malloc(bufferSize));
             frame->lineSize[0] = bufferSize / height;
@@ -786,7 +784,6 @@ namespace mediadecoder
             codecContext->thread_type = FF_THREAD_FRAME;
             
             data->videoStream = new VideoStream();
-            memset(data->videoStream, 0, sizeof(VideoStream));
             data->videoStream->codecParameters = codecParameters;
             data->videoStream->codec = codec;
             data->videoStream->codecContext = codecContext;
