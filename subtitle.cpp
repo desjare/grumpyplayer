@@ -93,24 +93,40 @@ namespace
         return seconds;
     }
 
-    glm::vec3 StyleColorToColor(const std::string& c)
+    glm::vec4 StyleColorToColor(const std::string& c)
     {
+        const uint32_t abgrSize = 10;
+        const size_t size = c.size();
+
+        float a = 1.0f;
         float r = 0.0f;
         float g = 0.0f;
         float b = 0.0f;
 
         std::string s = c;
 
-        // BBGGRR
-        // &Hffffff
         if(s.size() >= 2)
         {
             // erase &H
             s.erase(0, 2);
+        }
 
+        // alpha
+        if(size == abgrSize)
+        {
+            std::string rstr = s.substr(0,2);
+            a = strtol(rstr.c_str(), nullptr, 16) / 255.0f;
+            s.erase(0, 2); 
+        }
+
+        // BBGGRR
+        // ffffff
+        // ff
+        if(s.size() >= 2)
+        {
             // b
             std::string rstr = s.substr(0,2);
-            b = strtol(rstr.c_str(), nullptr, 16) / 255.0f;
+            b = r = g = strtol(rstr.c_str(), nullptr, 16) / 255.0f;
 
             // erase b
             s.erase(0, 2); 
@@ -133,7 +149,7 @@ namespace
             }
         }
 
-        return glm::vec3(r,g,b);
+        return glm::vec4(r,g,b,a);
     }
 
     void FetchField(const char* fieldName, std::string& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
@@ -172,7 +188,7 @@ namespace
         }
     }
 
-    void FetchField(const char* fieldName, glm::vec3& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
+    void FetchField(const char* fieldName, glm::vec4& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
     {
         auto it = pos.find(fieldName);
         if(it != pos.end())

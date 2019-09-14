@@ -27,11 +27,11 @@ namespace subtitle
         std::string name;
         std::string fontName;
         uint32_t fontSize = 0;
-        // rgb colors
-        glm::vec3 primaryColor = {1.0f, 1.0f, 1.0f};
-        glm::vec3 secondaryColor = {1.0f, 1.0f, 1.0f};
-        glm::vec3 outlineColor;
-        glm::vec3 backColor;
+        // rgba colors
+        glm::vec4 primaryColor = {1.0f, 1.0f, 1.0f, 1.0f};
+        glm::vec4 secondaryColor = {1.0f, 1.0f, 1.0f, 1.0f};
+        glm::vec4 outlineColor  {1.0f, 1.0f, 1.0f, 1.0f};
+        glm::vec4 backColor = {1.0f, 1.0f, 1.0f, 1.0f};
         bool bold = false;
         bool italic = false;
         bool underline = false;
