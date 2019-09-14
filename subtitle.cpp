@@ -119,6 +119,12 @@ namespace
             s.erase(0, 2); 
         }
 
+        // grayscale
+        if(s.size() == 1)
+        {
+            b = r = g = strtol(s.c_str(), nullptr, 16) / 255.0f;
+        }
+
         // BBGGRR
         // ffffff
         // ff
