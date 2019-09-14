@@ -165,6 +165,10 @@ namespace
         {
             field = trimeol(fields[it->second]);
         }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
+        }
     }
 
     void FetchField(const char* fieldName, uint32_t& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
@@ -173,6 +177,10 @@ namespace
         if(it != pos.end())
         {
             field = std::atoi(fields[it->second].c_str());
+        }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
         }
     }
 
@@ -192,6 +200,10 @@ namespace
             }
 
         }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
+        }
     }
 
     void FetchField(const char* fieldName, glm::vec4& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
@@ -200,6 +212,10 @@ namespace
         if(it != pos.end())
         {
             field = StyleColorToColor(fields[it->second].c_str());
+        }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
         }
     }
 
@@ -227,6 +243,10 @@ namespace
                 logger::Error("Unknown alignment field %d", v);
             }
         }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
+        }
 
     }
 
@@ -250,6 +270,10 @@ namespace
                 logger::Error("Unknown border style field %d", v);
             }
         }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
+        }
 
     }
 
@@ -260,6 +284,10 @@ namespace
         if(it != pos.end())
         {
             field = chrono::Microseconds(EventTimeToSeconds(fields[it->second]));
+        }
+        else
+        {
+            logger::Error("Could not find field %s", fieldName);
         }
     }
 
