@@ -19,6 +19,8 @@ namespace
 
     // [V4+ Styles]
     const char* SECTION_V4PSTYLES = "[V4+ Styles]";
+    // [V4 Styles]
+    const char* SECTION_V4STYLES = "[V4 Styles]";
 
     const char* STYLE_HEADER = "Style:";
 
@@ -27,6 +29,20 @@ namespace
     const char* FORMAT_PRIMARYCOLOR = "PrimaryColour";
     const char* FORMAT_SECONDARYCOLOR = "SecondaryColour";
     const char* FORMAT_OUTLINECOLOR = "OutlineColour";
+    const char* FORMAT_BACKCOLOR = "BackColour";
+    const char* FORMAT_BOLD = "Bold";
+    const char* FORMAT_ITALIC = "Italic";
+    const char* FORMAT_UNDERLINE = "Underline";
+    const char* FORMAT_STRIKEOUT = "StrikeOut";
+    const char* FORMAT_SCALEX = "ScaleX";
+    const char* FORMAT_SCALEY = "ScaleY";
+    const char* FORMAT_SPACING = "Spacing";
+    const char* FORMAT_ANGLE = "Angle";
+    const char* FORMAT_BORDERSTYLE = "BorderStyle";
+    const char* FORMAT_OUTLINE = "Outline";
+    const char* FORMAT_SHADOW = "Shadow";
+    const char* FORMAT_ALIGNMENT = "Alignment";
+    const char* FORMAT_ENCODING = "Encoding";
 
     // Events
     const char* SECTION_EVENTS = "[Events]";
@@ -39,7 +55,7 @@ namespace
     const char* FORMAT_NAME = "Name";
     const char* FORMAT_MARGINL = "MarginL";
     const char* FORMAT_MARGINR = "MarginR";
-    const char* FORMAT_MARGNIV = "MarginV";
+    const char* FORMAT_MARGINV = "MarginV";
     const char* FORMAT_EFFECT = "Effect";
     const char* FORMAT_TEXT = "Text";
 
@@ -85,17 +101,18 @@ namespace
 
         std::string s = c;
 
+        // BBGGRR
         // &Hffffff
         if(s.size() >= 2)
         {
             // erase &H
             s.erase(0, 2);
 
-            // red
+            // b
             std::string rstr = s.substr(0,2);
-            r = strtol(rstr.c_str(), nullptr, 16) / 255.0f;
+            b = strtol(rstr.c_str(), nullptr, 16) / 255.0f;
 
-            // erase r
+            // erase b
             s.erase(0, 2); 
 
             if(s.size() >= 2)
@@ -109,9 +126,9 @@ namespace
 
                 if(s.size() >= 2)
                 {
-                    // b
+                    // r
                     std::string bstr = s.substr(0,2);
-                    b = strtol(bstr.c_str(), nullptr, 16) / 255.0;
+                    r = strtol(bstr.c_str(), nullptr, 16) / 255.0;
                 }
             }
         }
@@ -137,6 +154,24 @@ namespace
         }
     }
 
+    void FetchField(const char* fieldName, bool& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
+    {
+        auto it = pos.find(fieldName);
+        if(it != pos.end())
+        {
+            int32_t v = std::atoi(fields[it->second].c_str());
+            if(v == 0)
+            {
+                field = false;
+            }
+            else
+            {
+                field = true;
+            }
+
+        }
+    }
+
     void FetchField(const char* fieldName, glm::vec3& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
     {
         auto it = pos.find(fieldName);
@@ -145,6 +180,57 @@ namespace
             field = StyleColorToColor(fields[it->second].c_str());
         }
     }
+
+    void FetchField(const char* fieldName, subtitle::Alignment& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
+    {
+        auto it = pos.find(fieldName);
+        if(it != pos.end())
+        {
+            int32_t v = std::atoi(fields[it->second].c_str());
+
+            if(v == 1)
+            {
+                field = subtitle::LEFT;
+            }
+            else if(v == 2)
+            {
+                field = subtitle::CENTERED;
+            }
+            else if(v == 3)
+            {
+                field = subtitle::RIGHT;
+            }
+            else
+            {
+                logger::Error("Unknown alignment field %d", v);
+            }
+        }
+
+    }
+
+    void FetchField(const char* fieldName, subtitle::BorderStyle& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
+    {
+        auto it = pos.find(fieldName);
+        if(it != pos.end())
+        {
+            int32_t v = std::atoi(fields[it->second].c_str());
+
+            if(v == 1)
+            {
+                field = subtitle::OUTLINE;
+            }
+            else if(v == 3)
+            {
+                field = subtitle::OPAQUE;
+            }
+            else
+            {
+                logger::Error("Unknown border style field %d", v);
+            }
+        }
+
+    }
+
 
     void FetchFieldTime(const char* fieldName, uint64_t& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
     {
@@ -155,20 +241,38 @@ namespace
         }
     }
 
-    void ParseStyle(subtitle::SubStationAlphaHeader* header, const std::string& line)
+
+    void ParseStyle(subtitle::SubStationAlphaHeader* header, subtitle::SubStationAlphaStyle* style, const std::string& line)
     {
-        std::string style = line;
-        trim(style); 
+        std::string styleLine = line;
+        trim(styleLine); 
 
         std::vector<std::string> fields;
-        boost::split(fields, style, boost::is_any_of(","));
+        boost::split(fields, styleLine, boost::is_any_of(","));
 
-        FetchField(FORMAT_NAME, header->name, header->styleFormatFieldPos, fields);
-        FetchField(FORMAT_FONTNAME, header->fontName, header->styleFormatFieldPos, fields);
-        FetchField(FORMAT_FONTSIZE, header->fontSize, header->styleFormatFieldPos, fields);
-        FetchField(FORMAT_PRIMARYCOLOR, header->primaryColor, header->styleFormatFieldPos, fields);
-        FetchField(FORMAT_SECONDARYCOLOR, header->secondaryColor, header->styleFormatFieldPos, fields);
-        FetchField(FORMAT_OUTLINECOLOR, header->outlineColor, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_NAME, style->name, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_FONTNAME, style->fontName, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_FONTSIZE, style->fontSize, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_PRIMARYCOLOR, style->primaryColor, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_SECONDARYCOLOR, style->secondaryColor, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_OUTLINECOLOR, style->outlineColor, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_BACKCOLOR, style->backColor, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_BOLD, style->bold, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_ITALIC, style->italic, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_UNDERLINE, style->underline, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_STRIKEOUT, style->strikeout, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_SCALEX, style->scaleXPercent, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_SCALEY, style->scaleYPercent, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_SPACING, style->pixelSpacing, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_ANGLE, style->degreAngle, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_BORDERSTYLE, style->borderStyle, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_OUTLINE, style->outline, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_SHADOW, style->shadow, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_ALIGNMENT, style->alignment, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_MARGINL, style->marginL, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_MARGINR, style->marginR, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_MARGINV, style->marginV, header->styleFormatFieldPos, fields);
+        FetchField(FORMAT_ENCODING, style->encoding, header->styleFormatFieldPos, fields);
     }
 }
 
@@ -230,7 +334,7 @@ namespace subtitle
         {
             auto section = *it;
  
-            if(section->name == SECTION_SCRIPT_INFO)
+            if(compare_nocase(section->name,SECTION_SCRIPT_INFO))
             {
                 for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
                 {
@@ -248,7 +352,7 @@ namespace subtitle
                     }  
                 }
             }
-            else if(section->name == SECTION_V4PSTYLES)
+            else if(compare_nocase(section->name,SECTION_V4PSTYLES) || compare_nocase(section->name,SECTION_V4STYLES))
             {
                 for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
                 {
@@ -274,7 +378,9 @@ namespace subtitle
                     if(starts_with(item, STYLE_HEADER))
                     {
                         std::string itemFields = item.substr(strlen(STYLE_HEADER));
-                        ParseStyle(header, itemFields);
+                        SubStationAlphaStyle style;
+                        ParseStyle(header, &style, itemFields);
+                        header->styles[style.name] = style;
                     }
 
                 }
@@ -320,7 +426,7 @@ namespace subtitle
     Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue)
     {
         Result result;
-        logger::Debug("Parse SSA Dialogue: %s", ssa.c_str());
+        logger::Info("Parse SSA Dialogue: %s", ssa.c_str());
 
         if(starts_with(ssa, DIALOGUE))
         {
@@ -341,7 +447,7 @@ namespace subtitle
                 FetchField(FORMAT_EFFECT, dialogue->effect, header->eventFormatFieldPos, fields);
                 FetchField(FORMAT_MARGINL, dialogue->marginL, header->eventFormatFieldPos, fields);
                 FetchField(FORMAT_MARGINR, dialogue->marginR, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_MARGNIV, dialogue->marginV, header->eventFormatFieldPos, fields);
+                FetchField(FORMAT_MARGINV, dialogue->marginV, header->eventFormatFieldPos, fields);
                 FetchField(FORMAT_STYLE, dialogue->style, header->eventFormatFieldPos, fields);
 
                 // do not support line break

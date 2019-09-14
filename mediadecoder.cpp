@@ -530,6 +530,27 @@ namespace {
                     continue;
                 }
 
+                auto it = header->styles.find(dialogue->style);
+                if(it != header->styles.end())
+                {
+                    const subtitle::SubStationAlphaStyle& style = it->second;
+                    if(!style.fontName.empty())
+                    {
+                        sub->fontName = style.fontName;
+                    }
+
+                    if(style.fontSize != 0)
+                    {
+                        sub->fontSize = style.fontSize;
+                    }
+                    sub->color = style.primaryColor;
+                }
+                else
+                {
+                    logger::Error("Subtitle style not found %s", dialogue->style.c_str());
+                }
+
+
                 sub->text += dialogue->text;
 
                 if(dialogue->startTimeUs != 0)
@@ -542,16 +563,6 @@ namespace {
                     sub->endTimeUs = dialogue->endTimeUs;
                 }
 
-                if(!header->fontName.empty())
-                {
-                    sub->fontName = header->fontName;
-                }
-
-                if(header->fontSize != 0)
-                {
-                    sub->fontSize = header->fontSize;
-                }
-                sub->color = header->primaryColor;
 
                 delete dialogue;
             }
