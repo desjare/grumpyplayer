@@ -10,5 +10,6 @@
 #undef min
 #undef max
 #undef GetCurrentTime
+#undef OPAQUE
 
 #endif
