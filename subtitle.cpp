@@ -688,10 +688,6 @@ namespace subtitle
             break;
         }
 
-        // center type
-        x = windowWidth / 2.0f - tw / 2.0f;
-        y = marginV;
-
         return result;
     }
 
