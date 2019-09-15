@@ -74,6 +74,7 @@ if (WIN32)
     add_compile_options(-I${3RDPARTY}/glm/include)
 	add_compile_options(-I${3RDPARTY}/freetype/include/)
 	add_compile_options(-I${3RDPARTY}/freetype/include/freetype2/)
+	add_compile_options(-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 
     add_definitions(-DCURL_STATICLIB)
 

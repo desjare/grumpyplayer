@@ -77,7 +77,7 @@ namespace {
             return;
         }
 
-        auto it = ChannelsToChanelMaps.find(input.size());
+        auto it = ChannelsToChanelMaps.find(static_cast<uint32_t>(input.size()));
         if( it != ChannelsToChanelMaps.end() )
         {
              const std::vector<AudioChannelList>& channelSetups = it->second;
@@ -497,11 +497,11 @@ namespace {
         // start_display_time & end_display_time in ms
         if(avSub.start_display_time != 0)
         {
-            sub->startTimeUs = sub->startTimeUs + avSub.start_display_time * 1000;
+            sub->startTimeUs = sub->startTimeUs + static_cast<uint64_t>(avSub.start_display_time) * 1000L;
         }
         if(avSub.end_display_time != 0)
         {
-            sub->endTimeUs = sub->startTimeUs + avSub.end_display_time * 1000;
+            sub->endTimeUs = sub->startTimeUs + static_cast<uint64_t>(avSub.end_display_time) * 1000;
         }
 
         for(uint32_t i = 0; i < avSub.num_rects; i++)
@@ -964,7 +964,7 @@ namespace mediadecoder
         {
             return;
         }
-        decoder->subtitleIndex = (decoder->subtitleIndex + 1) % decoder->subtitleIndexes.size();
+        decoder->subtitleIndex = (decoder->subtitleIndex + 1) % static_cast<int32_t>(decoder->subtitleIndexes.size());
         logger::Info("Subtitle set to stream index %d", decoder->subtitleIndexes[decoder->subtitleIndex]);
     }
 

@@ -105,7 +105,7 @@ namespace subtitle
 
     Result GetDisplayInfo(const SubStationAlphaHeader& header,
                           const SubStationAlphaDialogue& dialogue, 
-                          GetTextSizeCb textSizeCb,
+                          GetTextSizeCb& textSizeCb,
                           uint32_t windowWidth,
                           uint32_t windowHeight,
                           uint64_t& startTimeUs,

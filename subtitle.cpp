@@ -141,7 +141,7 @@ namespace
             {
                 // g
                 std::string gstr = s.substr(0,2);
-                g = strtol(gstr.c_str(), nullptr, 16) / 255.0;
+                g = strtol(gstr.c_str(), nullptr, 16) / 255.0f;
 
                 // erase g
                 s.erase(0, 2); 
@@ -150,7 +150,7 @@ namespace
                 {
                     // r
                     std::string bstr = s.substr(0,2);
-                    r = strtol(bstr.c_str(), nullptr, 16) / 255.0;
+                    r = strtol(bstr.c_str(), nullptr, 16) / 255.0f;
                 }
             }
         }
@@ -590,7 +590,7 @@ namespace subtitle
         return result;
     }
 
-    Result GetDisplayInfo(const SubStationAlphaHeader& header, const SubStationAlphaDialogue& dialogue, GetTextSizeCb textSizeCb,
+    Result GetDisplayInfo(const SubStationAlphaHeader& header, const SubStationAlphaDialogue& dialogue, GetTextSizeCb& textSizeCb,
                           uint32_t windowWidth, uint32_t windowHeight, uint64_t& startTimeUs, uint64_t& endTimeUs,
                           std::string& fontName, uint32_t& fontSize, glm::vec3& color, float& x, float& y)
     {
@@ -617,21 +617,21 @@ namespace subtitle
 
         auto style = styleIt->second;
         
-        float marginL = style.marginL;
-        float marginR = style.marginR;
-        float marginV = style.marginV;
+        float marginL = static_cast<float>(style.marginL);
+        float marginR = static_cast<float>(style.marginR);
+        float marginV = static_cast<float>(style.marginV);
 
         if(dialogue.marginL != 0)
         {
-            marginL = dialogue.marginL;
+            marginL = static_cast<float>(dialogue.marginL);
         }
         if(dialogue.marginR != 0)
         {
-            marginR = dialogue.marginR;
+            marginR = static_cast<float>(dialogue.marginR);
         }
         if(dialogue.marginV != 0)
         {
-            marginV = dialogue.marginV;
+            marginV = static_cast<float>(dialogue.marginV);
         }
 
         marginL *= playScaleX;
@@ -646,7 +646,11 @@ namespace subtitle
  
         float tw = 0;
         float th = 0;
-        textSizeCb(dialogue.text, fontName, fontSize, tw, th);
+        result = textSizeCb(dialogue.text, fontName, fontSize, tw, th);
+        if (!result)
+        {
+            logger::Error("Could not get text size %s", result.getError().c_str());
+        }
 
         switch(style.alignment)
         {
