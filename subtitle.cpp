@@ -238,9 +238,34 @@ namespace
             {
                 field = subtitle::RIGHT;
             }
+            else if(v == 5) // 1 + 4 for TOPTITLE
+            {
+                field = subtitle::LEFT_TOPTITLE;
+            }
+            else if(v == 6)
+            {
+                field = subtitle::CENTERED_TOPTITLE;
+            }
+            else if(v == 7)
+            {
+                field = subtitle::RIGHT_TOPTITLE;
+            }
+            else if(v == 9) // 1 + 8 for MIDDLETITLE
+            { 
+                field = subtitle::LEFT_MIDDLETITLE;
+            }
+            else if(v == 10)
+            {
+                field = subtitle::CENTERED_MIDDLETITLE;
+            }
+            else if(v == 11)
+            {
+                field = subtitle::RIGHT_MIDDLETITLE;
+            }
             else
             {
                 logger::Error("Unknown alignment field %d", v);
+                assert(0);
             }
         }
         else
@@ -268,6 +293,7 @@ namespace
             else
             {
                 logger::Error("Unknown border style field %d", v);
+                assert(0);
             }
         }
         else
@@ -323,6 +349,53 @@ namespace
         FetchField(FORMAT_MARGINR, style->marginR, header->styleFormatFieldPos, fields);
         FetchField(FORMAT_MARGINV, style->marginV, header->styleFormatFieldPos, fields);
         FetchField(FORMAT_ENCODING, style->encoding, header->styleFormatFieldPos, fields);
+
+        // unsupported
+        if(style->bold)
+        {
+            logger::Warn("Style bold unsupported");
+        }
+        if(style->italic)
+        {
+            logger::Warn("Style italic unsupported");
+        }
+        if(style->strikeout)
+        {
+            logger::Warn("Style strikeout unsupported");
+        }
+        if(style->scaleXPercent != 100)
+        {
+            logger::Warn("Style scaleXPercent unsupported");
+        }
+        if(style->scaleYPercent != 100)
+        {
+            logger::Warn("Style scaleYPercent unsupported");
+        }
+        if(style->pixelSpacing != 0)
+        {
+            logger::Warn("Style pixelSpacing unsupported");
+        }
+        if(style->degreAngle != 0)
+        {
+            logger::Warn("Style degreAngle unsupported");
+        }
+        if(style->borderStyle != subtitle::OUTLINE)
+        {
+            logger::Warn("Style borderStyle unsupported");
+        }
+        if(style->outline != 0)
+        {
+            logger::Warn("Style outline unsupported");
+        }
+        if(style->shadow != 0)
+        {
+            logger::Warn("Style shadow unsupported");
+        }
+        if(style->alphaLevel != 1.0f)
+        {
+            logger::Warn("Style alphaLevel unsupported");
+        }
+
     }
 }
 
@@ -574,6 +647,46 @@ namespace subtitle
         float tw = 0;
         float th = 0;
         textSizeCb(dialogue.text, fontName, fontSize, tw, th);
+
+        switch(style.alignment)
+        {
+            case LEFT:
+                x = marginL;
+                y = marginV;
+            break;
+            case CENTERED:
+                x = windowWidth / 2.0f - tw / 2.0f;
+                y = marginV;
+            break;
+            case RIGHT:
+                x = tw - marginR;
+                y = marginV;
+            break;
+            case LEFT_TOPTITLE:
+                x = marginL;
+                y = windowHeight - th - marginV;
+            break;
+            case CENTERED_TOPTITLE:
+                x = windowWidth / 2.0f - tw / 2.0f;
+                y = windowHeight - th - marginV;
+            break;
+            case RIGHT_TOPTITLE:
+                x = tw - marginR;
+                y = windowHeight - th - marginV;
+            break;
+            case LEFT_MIDDLETITLE:
+                x = marginL;
+                y = windowHeight / 2.0f - th / 2.0f;
+            break;
+            case RIGHT_MIDDLETITLE:
+                x = tw - marginR;
+                y = windowHeight / 2.0f - th / 2.0f;
+            break;
+            case CENTERED_MIDDLETITLE:
+                x = windowWidth / 2.0f - tw / 2.0f;
+                y = windowHeight / 2.0f - th / 2.0f;
+            break;
+        }
 
         // center type
         x = windowWidth / 2.0f - tw / 2.0f;

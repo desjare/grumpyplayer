@@ -28,7 +28,13 @@ namespace subtitle
     {
         LEFT,
         CENTERED,
-        RIGHT
+        RIGHT,
+        LEFT_TOPTITLE,
+        CENTERED_TOPTITLE,
+        RIGHT_TOPTITLE,
+        LEFT_MIDDLETITLE,
+        RIGHT_MIDDLETITLE,
+        CENTERED_MIDDLETITLE
     };
 
     // https://www.matroska.org/technical/specs/subtitles/ssa.html
