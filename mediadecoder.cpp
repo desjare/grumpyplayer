@@ -527,44 +527,13 @@ namespace {
                 if(!result)
                 {
                     logger::Error("Error parsing dialogue: %s", result.getError().c_str());
+                    delete dialogue;
                     continue;
                 }
 
-                auto it = header->styles.find(dialogue->style);
-                if(it != header->styles.end())
-                {
-                    const subtitle::SubStationAlphaStyle& style = it->second;
-                    if(!style.fontName.empty())
-                    {
-                        sub->fontName = style.fontName;
-                    }
-
-                    if(style.fontSize != 0)
-                    {
-                        sub->fontSize = style.fontSize;
-                    }
-                    sub->color = style.primaryColor;
-                }
-                else
-                {
-                    logger::Error("Subtitle style not found %s", dialogue->style.c_str());
-                }
-
-
                 sub->text += dialogue->text;
-
-                if(dialogue->startTimeUs != 0)
-                {
-                    sub->startTimeUs = dialogue->startTimeUs;
-                }
-
-                if(dialogue->endTimeUs != 0)
-                {
-                    sub->endTimeUs = dialogue->endTimeUs;
-                }
-
-
-                delete dialogue;
+                sub->header = header;
+                sub->dialogue = dialogue;
             }
             else
             {
@@ -1238,6 +1207,7 @@ namespace mediadecoder
 
     void Release(Producer* producer, Subtitle* subtitle)
     {
+        delete subtitle->dialogue;
         delete subtitle;
     }
     

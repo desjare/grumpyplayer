@@ -15,7 +15,7 @@ namespace
     const char* SECTION_SCRIPT_INFO = "[Script Info]";
 
     const char* PLAYRESX = "PlayResX:";
-    const char* PLAYRESY = "PlayResX:";
+    const char* PLAYRESY = "PlayResY:";
 
     // [V4+ Styles]
     const char* SECTION_V4PSTYLES = "[V4+ Styles]";
@@ -513,6 +513,71 @@ namespace subtitle
             result = Result(false, "Dialogue not found in events.");
         }
 
+
+        return result;
+    }
+
+    Result GetDisplayInfo(const SubStationAlphaHeader& header, const SubStationAlphaDialogue& dialogue, GetTextSizeCb textSizeCb,
+                          uint32_t windowWidth, uint32_t windowHeight, uint64_t& startTimeUs, uint64_t& endTimeUs,
+                          std::string& fontName, uint32_t& fontSize, glm::vec3& color, float& x, float& y)
+    {
+        Result result;
+
+        const float playScaleX = static_cast<float>(windowWidth) / static_cast<float>(header.playResX);
+        const float playScaleY = static_cast<float>(windowHeight) / static_cast<float>(header.playResY);
+
+        if(dialogue.startTimeUs != 0)
+        {
+            startTimeUs = dialogue.startTimeUs;
+        }
+
+        if(dialogue.endTimeUs != 0)
+        {
+            endTimeUs = dialogue.endTimeUs;
+        }
+
+        auto styleIt = header.styles.find(dialogue.style);
+        if(styleIt == header.styles.end())
+        {
+            return Result(false, "Style not found %s", dialogue.style.c_str());
+        }
+
+        auto style = styleIt->second;
+        
+        float marginL = style.marginL;
+        float marginR = style.marginR;
+        float marginV = style.marginV;
+
+        if(dialogue.marginL != 0)
+        {
+            marginL = dialogue.marginL;
+        }
+        if(dialogue.marginR != 0)
+        {
+            marginR = dialogue.marginR;
+        }
+        if(dialogue.marginV != 0)
+        {
+            marginV = dialogue.marginV;
+        }
+
+        marginL *= playScaleX;
+        marginR *= playScaleX;
+        marginV *= playScaleY;
+
+        fontName = style.fontName;
+        fontSize = style.fontSize;
+        color = style.primaryColor;
+        fontSize = static_cast<uint32_t>(ceil(static_cast<float>(fontSize) * playScaleY));
+
+ 
+        float tw = 0;
+        float th = 0;
+        textSizeCb(dialogue.text, fontName, fontSize, tw, th);
+
+        // center type
+        x = windowWidth / 2.0f - tw / 2.0f;
+        y = marginV;
 
         return result;
     }

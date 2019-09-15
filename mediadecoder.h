@@ -110,6 +110,11 @@ namespace mediadecoder
 
     struct Subtitle
     {
+        // ass subtitle
+        subtitle::SubStationAlphaHeader* header = nullptr;
+        subtitle::SubStationAlphaDialogue* dialogue = nullptr;
+        
+        // text subtitle
         std::string text;
         uint64_t startTimeUs = 0;
         uint64_t endTimeUs = 0;
@@ -117,6 +122,9 @@ namespace mediadecoder
         std::string fontName = "Arial";
         uint32_t fontSize = 16;
         glm::vec3 color = {1.0f, 1.0f, 1.0f};
+
+        float x = 0.0f;
+        float y = 0.0f;
     };
 
     template<typename T>

@@ -5,6 +5,8 @@
 #include "logger.h"
 #include "scopeguard.h"
 
+#include <boost/bind.hpp>
+
 namespace {
     const int64_t queueFullSleepTimeMs = 100;
     const int64_t pauseSleepTimeMs = 500;
@@ -162,22 +164,40 @@ namespace {
 
              if(inSubtitleTime)
              {
+                 mediadecoder::Subtitle* sub = player->subtitle;
+
                  float tw = 0.0f;
                  float th = 0.0f;
-                 uint32_t w = 0;
-                 uint32_t h = 0;
-                 
-                 uint32_t fontSize = player->subtitle->fontSize;
-                 const std::string& fontName = player->subtitle->fontName;
 
-                 videodevice::GetTextSize(player->videoDevice, player->subtitle->text, fontName, fontSize, tw, th);
-                 videodevice::GetWindowSize(player->videoDevice, w, h);
+                 uint32_t width = 0;
+                 uint32_t height = 0;
 
-                 // center type
-                 float x = w / 2.0f - tw / 2.0f;
-                 float y = 50.0f;
+                 videodevice::GetWindowSize(player->videoDevice, width, height);
 
-                 videodevice::DrawText(player->videoDevice, player->subtitle->text, fontName, fontSize, x, y, 1, player->subtitle->color);
+                 // ass header
+                 if(sub->header && sub->dialogue)
+                 {
+                     subtitle::GetTextSizeCb textSizeCb = boost::bind(videodevice::GetTextSize, player->videoDevice, _1, _2, _3, _4, _5);
+                     
+                     Result result = subtitle::GetDisplayInfo(*sub->header, *sub->dialogue, textSizeCb, width, height, sub->startTimeUs, sub->endTimeUs, 
+                                                              sub->fontName, sub->fontSize, sub->color, sub->x, sub->y);
+
+                     if(!result)
+                     {
+                        logger::Error("Error getting subtitle display info: %s", result.getError().c_str());
+                        return;
+                     }
+                 }
+                 else
+                 {
+                    videodevice::GetTextSize(player->videoDevice, sub->text, sub->fontName, sub->fontSize, tw, th);
+
+                    // center text
+                    sub->x = width / 2.0f - tw / 2.0f;
+                    sub->y = 50.0f;
+                 }
+
+                 videodevice::DrawText(player->videoDevice, sub->text, sub->fontName, sub->fontSize, sub->x, sub->y, 1, sub->color);
              }
 
              if(subtitleWait < -subtitleDuration)

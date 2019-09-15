@@ -1,5 +1,14 @@
 #pragma once
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#endif
+#include <boost/function.hpp>
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
+
 #include <glm/glm.hpp>
 #include <map>
 
@@ -7,6 +16,8 @@
 
 namespace subtitle
 {
+    typedef boost::function<Result (const std::string& text, const std::string& fontName, uint32_t fontSize, float& w, float& h)> GetTextSizeCb;
+
     enum BorderStyle
     {
         OUTLINE,
@@ -85,5 +96,17 @@ namespace subtitle
 
     Result Parse(const std::string& ssa, SubStationAlphaHeader*& header);
     Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue);
+
+    Result GetDisplayInfo(const SubStationAlphaHeader& header,
+                          const SubStationAlphaDialogue& dialogue, 
+                          GetTextSizeCb textSizeCb,
+                          uint32_t windowWidth,
+                          uint32_t windowHeight,
+                          uint64_t& startTimeUs,
+                          uint64_t& endTimeUs,
+                          std::string& fontName,
+                          uint32_t& fontSize,
+                          glm::vec3& color, 
+                          float& x, float& y);
 
 };
