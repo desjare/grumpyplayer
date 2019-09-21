@@ -99,6 +99,17 @@ namespace subtitle
         std::string effect;
     };
 
+    struct SubStationAlphaLine
+    {
+        std::string text;
+        float x = 0.0f;
+        float y = 0.0f;
+        float w = 0.0f;
+        float h = 0.0f;
+    };
+
+    typedef std::vector<SubStationAlphaLine> SubStationAlphaLineList;
+
 
     Result Parse(const std::string& ssa, SubStationAlphaHeader*& header);
     Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue);
@@ -113,6 +124,6 @@ namespace subtitle
                           std::string& fontName,
                           uint32_t& fontSize,
                           glm::vec3& color, 
-                          float& x, float& y);
+                          SubStationAlphaLineList& lines);
 
 };

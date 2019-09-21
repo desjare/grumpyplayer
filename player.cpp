@@ -166,9 +166,6 @@ namespace {
              {
                  mediadecoder::Subtitle* sub = player->subtitle;
 
-                 float tw = 0.0f;
-                 float th = 0.0f;
-
                  uint32_t width = 0;
                  uint32_t height = 0;
 
@@ -178,26 +175,35 @@ namespace {
                  if(sub->header && sub->dialogue)
                  {
                      subtitle::GetTextSizeCb textSizeCb = boost::bind(videodevice::GetTextSize, player->videoDevice, _1, _2, _3, _4, _5);
+                     subtitle::SubStationAlphaLineList lines;
                      
                      Result result = subtitle::GetDisplayInfo(*sub->header, *sub->dialogue, textSizeCb, width, height, sub->startTimeUs, sub->endTimeUs, 
-                                                              sub->fontName, sub->fontSize, sub->color, sub->x, sub->y);
+                                                               sub->fontName, sub->fontSize, sub->color, lines);
 
                      if(!result)
                      {
                         logger::Error("Error getting subtitle display info: %s", result.getError().c_str());
                         return;
                      }
+
+                     for(auto it = lines.begin(); it != lines.end(); ++it)
+                     {
+                        videodevice::DrawText(player->videoDevice, (*it).text, sub->fontName, sub->fontSize, (*it).x, (*it).y, 1, sub->color);
+                     }
                  }
                  else
                  {
+                    float tw = 0.0f;
+                    float th = 0.0f;
                     videodevice::GetTextSize(player->videoDevice, sub->text, sub->fontName, sub->fontSize, tw, th);
 
                     // center text
                     sub->x = width / 2.0f - tw / 2.0f;
                     sub->y = 50.0f;
+
+                    videodevice::DrawText(player->videoDevice, sub->text, sub->fontName, sub->fontSize, sub->x, sub->y, 1, sub->color);
                  }
 
-                 videodevice::DrawText(player->videoDevice, sub->text, sub->fontName, sub->fontSize, sub->x, sub->y, 1, sub->color);
              }
 
              if(subtitleWait < -subtitleDuration)

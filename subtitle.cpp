@@ -6,6 +6,9 @@
 #include "logger.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/regex.hpp>
+#include <boost/regex.hpp>
+
 #include <vector>
 #include <sstream>
 
@@ -572,9 +575,6 @@ namespace subtitle
                 FetchField(FORMAT_MARGINR, dialogue->marginR, header->eventFormatFieldPos, fields);
                 FetchField(FORMAT_MARGINV, dialogue->marginV, header->eventFormatFieldPos, fields);
                 FetchField(FORMAT_STYLE, dialogue->style, header->eventFormatFieldPos, fields);
-
-                // do not support line break
-                dialogue->text = replace_all(dialogue->text, "\\N", " ");
             }
             else
             {
@@ -592,12 +592,18 @@ namespace subtitle
 
     Result GetDisplayInfo(const SubStationAlphaHeader& header, const SubStationAlphaDialogue& dialogue, GetTextSizeCb& textSizeCb,
                           uint32_t windowWidth, uint32_t windowHeight, uint64_t& startTimeUs, uint64_t& endTimeUs,
-                          std::string& fontName, uint32_t& fontSize, glm::vec3& color, float& x, float& y)
+                          std::string& fontName, uint32_t& fontSize, glm::vec3& color, 
+                          SubStationAlphaLineList& sublines)
     {
         Result result;
 
         const float playScaleX = static_cast<float>(windowWidth) / static_cast<float>(header.playResX);
         const float playScaleY = static_cast<float>(windowHeight) / static_cast<float>(header.playResY);
+
+        float tw = 0.0f;
+        float th = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
 
         if(dialogue.startTimeUs != 0)
         {
@@ -642,14 +648,31 @@ namespace subtitle
         fontSize = style.fontSize;
         color = style.primaryColor;
         fontSize = static_cast<uint32_t>(ceil(static_cast<float>(fontSize) * playScaleY));
-
  
-        float tw = 0;
-        float th = 0;
-        result = textSizeCb(dialogue.text, fontName, fontSize, tw, th);
-        if (!result)
+        std::vector<std::string> lines;
+        auto regex =  boost::regex(R"(\\N)", boost::regex_constants::perl | boost::regex::no_mod_s | boost::regex::no_mod_m | boost::regex_constants::mod_x);
+        boost::algorithm::split_regex(lines, dialogue.text, regex);
+        assert(lines.size() > 0);
+
+        sublines.clear();
+        sublines.reserve(lines.size());
+        const float hspacing = 3.0f;
+       
+        for(auto it = lines.begin(); it != lines.end(); ++it)
         {
-            logger::Error("Could not get text size %s", result.getError().c_str());
+            SubStationAlphaLine subline;
+            subline.text = *it;
+
+            result = textSizeCb(subline.text, fontName, fontSize, subline.w, subline.h);
+            if (!result)
+            {
+                logger::Error("Could not get text size %s", result.getError().c_str());
+            }
+
+            th += subline.h + hspacing;
+            tw = std::max(tw, subline.w);
+
+            sublines.push_back(subline);
         }
 
         switch(style.alignment)
@@ -690,6 +713,18 @@ namespace subtitle
                 x = windowWidth / 2.0f - tw / 2.0f;
                 y = windowHeight / 2.0f - th / 2.0f;
             break;
+        }
+
+        for(size_t i = 0; i < sublines.size(); i++)
+        {
+            SubStationAlphaLine& subline = sublines[i];
+            subline.x = x;
+            subline.y = y;
+            for(size_t j = i + 1; j < sublines.size(); j++)
+            {
+                SubStationAlphaLine& sublineBelow = sublines[j];
+                subline.y += sublineBelow.h + hspacing;
+            }
         }
 
         return result;
