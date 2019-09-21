@@ -2,3 +2,7 @@
 *.lib filter=lfs diff=lfs merge=lfs -text
 *.ico filter=lfs diff=lfs merge=lfs -text
 *.doc filter=lfs diff=lfs merge=lfs -text
+3rdparty/boost/lib/win64/libboost_regex-vc142-mt-gd-x64-1_70.lib filter=lfs diff=lfs merge=lfs -text
+3rdparty/boost/lib/win64/libboost_regex-vc142-mt-sgd-x64-1_70.lib filter=lfs diff=lfs merge=lfs -text
+3rdparty/boost/lib/win64/libboost_regex-vc142-mt-s-x64-1_70.lib filter=lfs diff=lfs merge=lfs -text
+3rdparty/boost/lib/win64/libboost_regex-vc142-mt-x64-1_70.lib filter=lfs diff=lfs merge=lfs -text
