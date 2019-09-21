@@ -414,7 +414,7 @@ namespace subtitle
     {
         Result result;
 
-        logger::Info("SSA Header\n%s", ssa.c_str());
+        logger::Debug("SSA Header\n%s", ssa.c_str());
 
         std::vector<SubStationAlphaHeaderSection*> sections;
         SubStationAlphaHeaderSection* section = nullptr;
@@ -552,7 +552,7 @@ namespace subtitle
     Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue)
     {
         Result result;
-        logger::Info("Parse SSA Dialogue: %s", ssa.c_str());
+        logger::Debug("Parse SSA Dialogue: %s", ssa.c_str());
 
         if(starts_with(ssa, DIALOGUE))
         {

@@ -515,7 +515,7 @@ namespace {
 
             if(rect->type == SUBTITLE_TEXT)
             {
-                logger::Info("Text Sub %s", sub->text.c_str());
+                logger::Debug("Text Sub %s", sub->text.c_str());
                 sub->text += rect->text;
             }
             else if(rect->type == SUBTITLE_ASS)
@@ -541,7 +541,7 @@ namespace {
             }
         }
 
-        logger::Info("Got subtitle on index %d: %s", stream->streamIndex, sub->text.c_str());
+        logger::Debug("Got subtitle on index %d: %s", stream->streamIndex, sub->text.c_str());
 
         producer->subtitleQueue->push(sub);
 
@@ -1093,7 +1093,7 @@ namespace mediadecoder
                 int32_t subtitleStreamIndex = producer->decoder->subtitleIndexes[producer->decoder->subtitleIndex];
                 if(packet->stream_index == subtitleStreamIndex )
                 {
-                    logger::Info("Got subtitle decoder index %d index %d", producer->decoder->subtitleIndex, subtitleStreamIndex);
+                    logger::Debug("Got subtitle decoder index %d index %d", producer->decoder->subtitleIndex, subtitleStreamIndex);
                     stream->processCallback(stream, producer, frame, packet);
                 }
             }

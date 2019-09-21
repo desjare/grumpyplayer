@@ -29,6 +29,7 @@ namespace player
         mediadecoder::Producer* producer = nullptr;
         mediadecoder::VideoFrame* videoFrame = nullptr;
         mediadecoder::Subtitle* subtitle = nullptr;
+        mediadecoder::Subtitle* nextSubtitle = nullptr;
 
         audiodevice::Device* audioDevice = nullptr;
         videodevice::Device* videoDevice = nullptr;

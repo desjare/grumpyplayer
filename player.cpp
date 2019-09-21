@@ -154,6 +154,16 @@ namespace {
 
     void DrawSubtitle(player::Player* player)
     {
+         if(!player->subtitle)
+         {
+             mediadecoder::Consume(player->producer, player->subtitle);
+         }
+
+         if(!player->nextSubtitle)
+         {
+             mediadecoder::Consume(player->producer, player->nextSubtitle);
+         }
+
          // subtitle
          if(player->subtitle)
          {
@@ -203,13 +213,35 @@ namespace {
 
                     videodevice::DrawText(player->videoDevice, sub->text, sub->fontName, sub->fontSize, sub->x, sub->y, 1, sub->color);
                  }
-
              }
 
              if(subtitleWait < -subtitleDuration)
              {
                  mediadecoder::Release(player->producer, player->subtitle);
-                 player->subtitle = nullptr;
+
+                 // go to next subtitle
+                 player->subtitle = player->nextSubtitle;
+                 player->nextSubtitle = nullptr;
+             }
+
+             // duration is not always provided and a default duration is set to subtitle
+             // verify that the next subtitle should not be displaying
+             if(player->nextSubtitle)
+             {
+                 const int64_t nextSubtitleDuration = player->nextSubtitle->endTimeUs - player->nextSubtitle->startTimeUs;
+                 int64_t nextSubtitleWait = chrono::Wait(player->playbackStartTimeUs, player->nextSubtitle->startTimeUs);
+                 
+                 const bool inNextSubtitleTime = (nextSubtitleWait <= 0 && nextSubtitleWait >= -nextSubtitleDuration);
+                 if(inNextSubtitleTime)
+                 {
+                     logger::Info("Player: switching to next subtitle: %s", player->nextSubtitle->text.c_str());
+                     if(player->subtitle)
+                     {
+                         mediadecoder::Release(player->producer, player->subtitle);
+                     }
+                     player->subtitle = player->nextSubtitle;
+                     player->nextSubtitle = nullptr;
+                 }
              }
          }
     }
@@ -450,11 +482,6 @@ namespace player
          if(!player->videoFrame)
          {
              mediadecoder::Consume(player->producer, player->videoFrame);
-         }
-
-         if(!player->subtitle)
-         {
-             mediadecoder::Consume(player->producer, player->subtitle);
          }
 
          if( player->videoFrame  )
