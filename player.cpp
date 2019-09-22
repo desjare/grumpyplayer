@@ -319,12 +319,11 @@ namespace player
                           mediadecoder::GetVideoHeight(player->decoder));
         }
 
-        if(player->decoder->audioStream)
+        if(mediadecoder::GetHaveAudio(player->decoder))
         {
-            mediadecoder::AudioStream* audioStream = player->decoder->audioStream;
-            const uint32_t channels = audioStream->channels;
-            const uint32_t sampleRate = audioStream->sampleRate;
-            const SampleFormat sampleFormat = audioStream->sampleFormat;
+            const uint32_t channels = mediadecoder::GetAudioNumChannels(player->decoder);
+            const uint32_t sampleRate = mediadecoder::GetAudioSampleRate(player->decoder);
+            const SampleFormat sampleFormat = mediadecoder::GetAudioSampleFormat(player->decoder);
 
             result = audiodevice::SetInputFormat(player->audioDevice,channels,sampleRate,sampleFormat);
             if(!result)

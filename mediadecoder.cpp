@@ -963,6 +963,33 @@ namespace mediadecoder
         return decoder->videoStream->height;
     }
 
+    uint32_t GetAudioNumChannels(Decoder* decoder)
+    {
+        if(!decoder || !decoder->audioStream)
+        {
+            return 0;
+        }
+        return decoder->audioStream->channels;
+    }
+
+    uint32_t GetAudioSampleRate(Decoder* decoder)
+    {
+        if(!decoder || !decoder->audioStream)
+        {
+            return 0;
+        }
+        return decoder->audioStream->sampleRate;
+    }
+
+    SampleFormat GetAudioSampleFormat(Decoder* decoder)
+    {
+        if(!decoder || !decoder->audioStream)
+        {
+            return SF_FMT_INVALID;
+        }
+        return decoder->audioStream->sampleFormat;
+    }
+
     uint64_t GetDuration(Decoder* decoder)
     {
         if(!decoder)

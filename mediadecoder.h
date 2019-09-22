@@ -193,19 +193,25 @@ namespace mediadecoder
     Result   Create(Decoder*& decoder);
     Result   Open(Decoder*& decoder, const std::string& filename);
 
+    // video format
     VideoFormat GetOutputFormat(Decoder*);
     uint32_t    GetVideoWidth(Decoder* decoder);
     uint32_t    GetVideoHeight(Decoder* decoder);
-
-    uint64_t    GetDuration(Decoder* decoder);
     uint32_t    GetFramesPerSecond(Decoder* decoder);
 
-    bool        GetHaveAudio(Decoder* decoder);
-    bool        GetHaveVideo(Decoder* decoder);
+    // audio format
+    uint32_t    GetAudioNumChannels(Decoder*);
+    uint32_t    GetAudioSampleRate(Decoder*);
+    SampleFormat GetAudioSampleFormat(Decoder*);
 
-    void        ToggleSubtitle(Decoder*);
+    uint64_t GetDuration(Decoder* decoder);
 
-    void     Destroy(Decoder*&);
+    bool GetHaveAudio(Decoder* decoder);
+    bool GetHaveVideo(Decoder* decoder);
+
+    void ToggleSubtitle(Decoder*);
+
+    void Destroy(Decoder*&);
 
     // producer / consumer
     Result Create(Producer*& producer, Decoder*);
