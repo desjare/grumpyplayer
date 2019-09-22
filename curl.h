@@ -23,7 +23,7 @@
 
 namespace curl
 {
-    static const uint32_t MAX_BUFFER_SIZE = 50 * 1024 * 1024;
+    static const uint32_t MAX_BUFFER_SIZE = 100 * 1024 * 1024;
     static const uint32_t MIN_BUFFER_SIZE = 20 * 1024 * 1024;
 
     struct Session
@@ -32,6 +32,7 @@ namespace curl
 
         std::mutex mutex;
         std::deque<uint8_t> buffer;
+        std::atomic<uint64_t> pos = 0;
         std::atomic<uint64_t> offset = 0;
 
         std::atomic<uint64_t> totalBytes = 0;

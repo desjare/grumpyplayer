@@ -118,8 +118,6 @@ namespace curl
         const size_t bufferSize = session->buffer.size();
         session->mutex.unlock();
  
-// TBM_desjare: make this work
-#if 0
         // we have too much buffer, stop downloading
         if(bufferSize >= MAX_BUFFER_SIZE && !session->cancel && session->curl != nullptr)
         {
@@ -129,16 +127,16 @@ namespace curl
         // we do not have enough bufer, restart download
         else if(bufferSize <= MIN_BUFFER_SIZE && session->curl == nullptr)
         {
-            logger::Info("Curl: downloading after hitting min buffer offset %ld size: %ld", session->offset.load(), bufferSize);
-            StartSession(session,session->offset + bufferSize, false);
+            logger::Info("Curl: downloading after hitting min buffer offset %ld size: %ld", session->offset.load() + session->pos.load(), bufferSize);
+            StartSession(session,session->pos + session->offset + bufferSize, false);
         }
-#endif
 
         return size;
     }
 
     size_t Seek(Session* session, uint64_t offset)
     {
+        logger::Info("Curl: seek %ld", offset);
         std::deque<uint8_t>& buffer = session->buffer;
         size_t position = 0;
 
@@ -157,6 +155,8 @@ namespace curl
             Cancel(session, true);
             StartSession(session,offset, true);
         }
+
+        session->pos = offset;
 
         return position;
     }

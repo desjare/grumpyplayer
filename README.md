@@ -63,4 +63,3 @@ All 3rdparty libs are included in 3rdparty folder fox x64 architecture. Binary f
 
 * Below two audio channels, the audio channel mapping has not been tested. It is currently configured according to pulse and XAudio2 configuration but no tests has been done beside the stereo mix. The player is able to play 5.1 audio on stereo on linux but has not been tested beyond that.
 * The player pre-buffer a lot of frames and is consuming a lot of memory.
-* When streaming video, it will buffer the entire file and release bytes as they are read.
