@@ -163,6 +163,22 @@ namespace {
         }
     }
 
+    void PauseAudio(player::Player* player)
+    {
+        if(mediadecoder::GetHaveAudio(player->decoder))
+        {
+            audiodevice::Pause(player->audioDevice);
+        }
+    }
+
+    void ResumeAudio(player::Player* player)
+    {
+        if(mediadecoder::GetHaveAudio(player->decoder))
+        {
+            audiodevice::Resume(player->audioDevice);
+        }
+    }
+
     void DrawSubtitle(player::Player* player)
     {
          if(!player->subtitle)
@@ -397,11 +413,7 @@ namespace player
         }
         else
         {
-            if(mediadecoder::GetHaveAudio(player->decoder))
-            {
-                audiodevice::Resume(player->audioDevice);
-            }
-
+            ResumeAudio(player);
             player->pause = false;
         }
 
@@ -454,10 +466,7 @@ namespace player
         player->playing = false;
         player->pause = true;
 
-        if(mediadecoder::GetHaveAudio(player->decoder))
-        {
-            audiodevice::Pause(player->audioDevice);
-        }
+        PauseAudio(player);
     }
 
     bool IsPlaying(Player* player)
