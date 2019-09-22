@@ -260,17 +260,6 @@ namespace player
     {
         Result result;
         player = new Player();
-        player->decoder = nullptr;
-        player->producer = nullptr;
-        player->videoFrame = nullptr;
-        player->audioDevice = nullptr;
-        player->videoDevice = nullptr ;
-        player->playbackStartTimeUs = 0;
-        player->currentTimeUs = 0;
-        player->playing = false;
-        player->pause = false;
-        player->buffering = false;
-        player->queueAudio = false;
 
         result = audiodevice::Create(player->audioDevice);
         if(!result)
@@ -508,6 +497,7 @@ namespace player
                  // draw frame
                  videodevice::DrawFrame(player->videoDevice, &fb);
 
+                 // draw subtitle
                  DrawSubtitle(player);
 
                  // swap buffer

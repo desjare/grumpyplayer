@@ -37,11 +37,11 @@ namespace player
         uint64_t playbackStartTimeUs = 0;
         uint64_t currentTimeUs = 0;
 
-        std::atomic<bool> playing;
-        std::atomic<bool> pause;
-        std::atomic<bool> buffering;
+        std::atomic<bool> playing = false;
+        std::atomic<bool> pause = false;
+        std::atomic<bool> buffering = false;
 
-        std::atomic<bool> queueAudio;
+        std::atomic<bool> queueAudio = false;;
         std::thread audioThread;
     };
 

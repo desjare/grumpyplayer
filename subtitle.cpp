@@ -656,7 +656,6 @@ namespace subtitle
 
         sublines.clear();
         sublines.reserve(lines.size());
-        const float hspacing = 3.0f;
        
         for(auto it = lines.begin(); it != lines.end(); ++it)
         {
@@ -669,7 +668,7 @@ namespace subtitle
                 logger::Error("Could not get text size %s", result.getError().c_str());
             }
 
-            th += subline.h + hspacing;
+            th += subline.h;
             tw = std::max(tw, subline.w);
 
             sublines.push_back(subline);
@@ -723,7 +722,7 @@ namespace subtitle
             for(size_t j = i + 1; j < sublines.size(); j++)
             {
                 SubStationAlphaLine& sublineBelow = sublines[j];
-                subline.y += sublineBelow.h + hspacing;
+                subline.y += sublineBelow.h;
             }
         }
 
