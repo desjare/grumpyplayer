@@ -126,9 +126,15 @@ namespace {
 
     Result StartAudioPlayback(player::Player* player)
     {
+        Result result;
+        if(!mediadecoder::GetHaveAudio(player->decoder))
+        {
+            return result;
+        }
+
         StartAudioThread(player);
 
-        Result result = audiodevice::StartWhenReady(player->audioDevice);
+        result = audiodevice::StartWhenReady(player->audioDevice);
         if(!result)
         {
             return result;
@@ -139,6 +145,11 @@ namespace {
 
     void StopAudio(player::Player* player, bool drop)
     {
+        if(!mediadecoder::GetHaveAudio(player->decoder))
+        {
+            return;
+        }
+
         player->queueAudio = false;
 
         if( player->audioThread.joinable() )
@@ -386,7 +397,11 @@ namespace player
         }
         else
         {
-            audiodevice::Resume(player->audioDevice);
+            if(mediadecoder::GetHaveAudio(player->decoder))
+            {
+                audiodevice::Resume(player->audioDevice);
+            }
+
             player->pause = false;
         }
 
@@ -438,7 +453,11 @@ namespace player
         }
         player->playing = false;
         player->pause = true;
-        audiodevice::Pause(player->audioDevice);
+
+        if(mediadecoder::GetHaveAudio(player->decoder))
+        {
+            audiodevice::Pause(player->audioDevice);
+        }
     }
 
     bool IsPlaying(Player* player)
