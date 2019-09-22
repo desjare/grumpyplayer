@@ -39,24 +39,35 @@ namespace {
         return 0;
     }
 
-    void Cancel(curl::Session* session)
+    void Cancel(curl::Session* session, bool clear)
     {
+        logger::Info("Curl cancel session clear %d", clear);
+
         session->cancel = true;
-        session->thread.join();
+        if(session->thread.joinable())
+        {
+            session->thread.join();
+        }
 
-        session->buffer.clear();
-        session->totalBytes = 0;
-        session->offset = 0;
+        if(clear)
+        {
+            session->buffer.clear();
+            session->totalBytes = 0;
+            session->offset = 0;
+        }
 
-        curl_easy_cleanup(session->curl);
+        if(session->curl)
+        {
+            curl_easy_cleanup(session->curl);
+        }
+
         session->curl = nullptr;
         session->cancel = false;
         session->done = false;
         session->result = CURLE_OK;
-
     }
 
-    void StartSession(curl::Session* session, uint64_t offset)
+    void StartSession(curl::Session* session, uint64_t offset, bool clear)
     {
         session->curl = curl_easy_init();
         curl_easy_setopt(session->curl, CURLOPT_URL, session->url.c_str());
@@ -67,13 +78,17 @@ namespace {
         curl_easy_setopt(session->curl, CURLOPT_PROGRESSDATA, session);
         curl_easy_setopt(session->curl, CURLOPT_RESUME_FROM_LARGE, offset); 
 
-        logger::Info("Curl Session Started %s offset %ld", session->url.c_str(), offset);
+        logger::Info("Curl Session Started %s offset %ld clear %d", session->url.c_str(), offset, clear);
 
-        session->totalBytes = 0;
         session->cancel = false;
-        session->done = false;
         session->result = CURLE_OK;
-        session->offset = 0;
+
+        if(clear)
+        {
+            session->totalBytes = 0;
+            session->done = false;
+            session->offset = 0;
+        }
         session->thread = std::thread(DownloadThread, session);
     }
  
@@ -87,20 +102,37 @@ namespace curl
         session = new Session;
         session->url = url;
         
-        StartSession(session, offset);
+        StartSession(session, offset, true);
 
         return result;
     }
 
     size_t Read(Session* session, uint8_t* readbuf, size_t size)
     {
-        std::scoped_lock<std::mutex> guard(session->mutex);
-
+        session->mutex.lock();
         std::deque<uint8_t>& buffer = session->buffer;
         size = std::min(size, buffer.size());
         std::copy_n(buffer.begin(), size, readbuf);
         buffer.erase(buffer.begin(), buffer.begin()+size);
         session->offset += static_cast<uint64_t>(size);
+        const size_t bufferSize = session->buffer.size();
+        session->mutex.unlock();
+ 
+// TBM_desjare: make this work
+#if 0
+        // we have too much buffer, stop downloading
+        if(bufferSize >= MAX_BUFFER_SIZE && !session->cancel && session->curl != nullptr)
+        {
+            logger::Info("Curl: downloaded max buffer size %ld", bufferSize);
+            Cancel(session, false);
+        }
+        // we do not have enough bufer, restart download
+        else if(bufferSize <= MIN_BUFFER_SIZE && session->curl == nullptr)
+        {
+            logger::Info("Curl: downloading after hitting min buffer offset %ld size: %ld", session->offset.load(), bufferSize);
+            StartSession(session,session->offset + bufferSize, false);
+        }
+#endif
 
         return size;
     }
@@ -122,8 +154,8 @@ namespace curl
         }
         else
         {
-            Cancel(session);
-            StartSession(session,offset);
+            Cancel(session, true);
+            StartSession(session,offset, true);
         }
 
         return position;
@@ -136,7 +168,7 @@ namespace curl
             return;
         }
 
-        Cancel(session);
+        Cancel(session, true);
         delete session;
     }
 

@@ -23,18 +23,21 @@
 
 namespace curl
 {
+    static const uint32_t MAX_BUFFER_SIZE = 50 * 1024 * 1024;
+    static const uint32_t MIN_BUFFER_SIZE = 20 * 1024 * 1024;
+
     struct Session
     {
         CURL* curl = nullptr;
 
         std::mutex mutex;
         std::deque<uint8_t> buffer;
-        std::atomic<uint64_t> offset;
+        std::atomic<uint64_t> offset = 0;
 
-        std::atomic<uint64_t> totalBytes;
+        std::atomic<uint64_t> totalBytes = 0;
 
-        std::atomic<bool> cancel;
-        std::atomic<bool> done;
+        std::atomic<bool> cancel = false;
+        std::atomic<bool> done = false;
 
         CURLcode result = CURLE_OK;
         
