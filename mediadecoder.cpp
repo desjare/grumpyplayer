@@ -943,7 +943,24 @@ namespace mediadecoder
             return VF_INVALID;
         }
         return decoder->videoStream->outputFormat;
+    }
 
+    uint32_t GetVideoWidth(Decoder* decoder)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return 0;
+        }
+        return decoder->videoStream->width;
+    }
+
+    uint32_t GetVideoHeight(Decoder* decoder)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return 0;
+        }
+        return decoder->videoStream->height;
     }
 
     uint64_t GetDuration(Decoder* decoder)

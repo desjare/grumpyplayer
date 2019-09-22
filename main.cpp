@@ -31,7 +31,7 @@ namespace {
         {
             if( !gui::IsFullScreen(handle) && mediadecoder::GetHaveVideo(player->decoder))
             {
-                gui::SetWindowSize(handle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+                gui::SetWindowSize(handle, mediadecoder::GetVideoWidth(player->decoder), mediadecoder::GetVideoHeight(player->decoder));
             }
             player::Play(player);
         }
@@ -292,7 +292,10 @@ int main(int argc, char** argv)
         }
 
         // resize window to media size
-        gui::SetWindowSize(uiHandle, player->decoder->videoStream->width, player->decoder->videoStream->height);
+        if(mediadecoder::GetHaveVideo(player->decoder))
+        {
+            gui::SetWindowSize(uiHandle, mediadecoder::GetVideoWidth(player->decoder), mediadecoder::GetVideoHeight(player->decoder));
+        }
     }
     else
     {

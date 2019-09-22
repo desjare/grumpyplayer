@@ -194,8 +194,12 @@ namespace mediadecoder
     Result   Open(Decoder*& decoder, const std::string& filename);
 
     VideoFormat GetOutputFormat(Decoder*);
+    uint32_t    GetVideoWidth(Decoder* decoder);
+    uint32_t    GetVideoHeight(Decoder* decoder);
+
     uint64_t    GetDuration(Decoder* decoder);
     uint32_t    GetFramesPerSecond(Decoder* decoder);
+
     bool        GetHaveAudio(Decoder* decoder);
     bool        GetHaveVideo(Decoder* decoder);
 

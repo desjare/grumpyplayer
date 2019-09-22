@@ -306,13 +306,17 @@ namespace player
 
         if(mediadecoder::GetHaveVideo(player->decoder))
         {
-            result = videodevice::SetTextureSize(player->videoDevice, player->decoder->videoStream->width, player->decoder->videoStream->height);
+            result = videodevice::SetTextureSize(player->videoDevice, 
+                                                 mediadecoder::GetVideoWidth(player->decoder), 
+                                                 mediadecoder::GetVideoHeight(player->decoder));
             if(!result)
             {
                 return result;
             }
 
-            SetWindowSize(player, player->decoder->videoStream->width, player->decoder->videoStream->height);
+            SetWindowSize(player, 
+                          mediadecoder::GetVideoWidth(player->decoder),
+                          mediadecoder::GetVideoHeight(player->decoder));
         }
 
         if(player->decoder->audioStream)
