@@ -944,8 +944,6 @@ namespace {
             for (c = wtext.begin(); c != wtext.end(); c++)
             { 
                 TextCharacter ch = GetTextCharacter(font, fontSize, *c);
-
-                //h = std::max(h, static_cast<float>(ch.size.y));
                 w += (ch.advance >> 6); // Bitshift by 6 to get value in pixels (2^6 = 64)
             }
 
