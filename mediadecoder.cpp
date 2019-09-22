@@ -760,38 +760,44 @@ namespace mediadecoder
                 return Result(false, "avcodec_open2 error %s\n", error.c_str());
             }
 
-            codecContext->thread_count = 8;
-            codecContext->thread_type = FF_THREAD_FRAME;
-            
-            data->videoStream = new VideoStream();
-            data->videoStream->codecParameters = codecParameters;
-            data->videoStream->codec = codec;
-            data->videoStream->codecContext = codecContext;
-            data->videoStream->stream = stream;
-            data->videoStream->streamIndex = index;
-
-            AVPixelFormat outputPixelFormat;
-            data->videoStream->outputFormat = GetOutputFormat(codecContext->pix_fmt, outputPixelFormat);
-            data->videoStream->dstFormat = outputPixelFormat;
-
-            if(codecContext->pix_fmt != outputPixelFormat)
+            uint32_t framesPerSecond = GetStreamFrameRate(codecContext, stream);
+            if(framesPerSecond <= MAX_FRAME_RATE)
             {
-                data->videoStream->reformatBufferSize = av_image_get_buffer_size(outputPixelFormat, codecContext->width, codecContext->height, 32);
-                data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
-                                                              codecContext->pix_fmt, codecContext->width, codecContext->height,
-                                                              outputPixelFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
+                codecContext->thread_count = 8;
+                codecContext->thread_type = FF_THREAD_FRAME;
+                
+                data->videoStream = new VideoStream();
+                data->videoStream->codecParameters = codecParameters;
+                data->videoStream->codec = codec;
+                data->videoStream->codecContext = codecContext;
+                data->videoStream->stream = stream;
+                data->videoStream->streamIndex = index;
+
+                AVPixelFormat outputPixelFormat;
+                data->videoStream->outputFormat = GetOutputFormat(codecContext->pix_fmt, outputPixelFormat);
+                data->videoStream->dstFormat = outputPixelFormat;
+
+                if(codecContext->pix_fmt != outputPixelFormat)
+                {
+                    data->videoStream->reformatBufferSize = av_image_get_buffer_size(outputPixelFormat, codecContext->width, codecContext->height, 32);
+                    data->videoStream->swsContext = sws_getContext(codecContext->width, codecContext->height,
+                                                                  codecContext->pix_fmt, codecContext->width, codecContext->height,
+                                                                  outputPixelFormat, SWS_BICUBIC, nullptr, nullptr, nullptr);
+                }
+
+                data->videoStream->processCallback = VideoDecoderCallback;
+                data->videoStream->width = codecContext->width;
+                data->videoStream->height = codecContext->height;
+                data->videoStream->framesPerSecond = framesPerSecond;
+
+                PrintStream(*data->videoStream);
             }
-
-            data->videoStream->processCallback = VideoDecoderCallback;
-            data->videoStream->width = codecContext->width;
-            data->videoStream->height = codecContext->height;
-            data->videoStream->framesPerSecond = GetStreamFrameRate(codecContext, stream);
-
-            PrintStream(*data->videoStream);
-        }
-        else
-        {
-            return Result(false, "Cannot find best video stream");
+            else
+            {
+                avcodec_close(codecContext);
+                avcodec_free_context(&codecContext);
+                logger::Warn("Decoder skipping video stream frame rate %d", framesPerSecond);
+            }
         }
 
         index = av_find_best_stream(data->avFormatContext, AVMEDIA_TYPE_AUDIO, -1, -1, nullptr, 0);
@@ -958,6 +964,25 @@ namespace mediadecoder
         return decoder->videoStream->framesPerSecond;
     }
 
+    bool GetHaveAudio(Decoder* decoder)
+    {
+        if(!decoder || !decoder->audioStream)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool GetHaveVideo(Decoder* decoder)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return false;
+        }
+        return true;
+    }
+
+
     void ToggleSubtitle(Decoder* decoder)
     {
         if(!decoder || !decoder->videoStream)
@@ -976,12 +1001,19 @@ namespace mediadecoder
         }
 
         curl::Destroy(decoder->curl);
-        sws_freeContext(decoder->videoStream->swsContext);
 
-        avcodec_close(decoder->videoStream->codecContext);
-        avcodec_close(decoder->audioStream->codecContext);
-        avcodec_free_context(&decoder->videoStream->codecContext);
-        avcodec_free_context(&decoder->audioStream->codecContext);
+        if(decoder->videoStream)
+        {
+            sws_freeContext(decoder->videoStream->swsContext);
+
+            avcodec_close(decoder->videoStream->codecContext);
+            avcodec_free_context(&decoder->videoStream->codecContext);
+        }
+        if(decoder->audioStream)
+        {
+            avcodec_close(decoder->audioStream->codecContext);
+            avcodec_free_context(&decoder->audioStream->codecContext);
+        }
         avformat_free_context(decoder->avFormatContext);
 
         delete decoder;
@@ -990,8 +1022,8 @@ namespace mediadecoder
 
     bool ContinueDecoding(Producer* producer)
     {
-        const bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity;
-        const bool audioFull = producer->audioQueueSize >= producer->audioQueueCapacity;
+        const bool videoFull = producer->videoQueueSize >= producer->videoQueueCapacity && GetHaveVideo(producer->decoder);
+        const bool audioFull = producer->audioQueueSize >= producer->audioQueueCapacity && GetHaveAudio(producer->decoder);
         const bool continueDecoding = !(videoFull || audioFull);
 
         if(!continueDecoding)
@@ -1021,7 +1053,6 @@ namespace mediadecoder
                 ::Seek(producer);
             }
 
-            
             AVPacket* packet = av_packet_alloc();
             AVFrame* frame = av_frame_alloc();
 
@@ -1114,7 +1145,6 @@ namespace mediadecoder
         const uint32_t audioQueueSize = 32768u;
         const uint32_t subtitleQueueSize = 32768u;
 
-        assert(videoQueueSize > 0);
         assert(!decoder->producer);
 
         if( decoder->producer != nullptr )
@@ -1124,25 +1154,38 @@ namespace mediadecoder
 
         producer = new Producer();
         producer->decoder = decoder;
-        producer->videoQueue = new VideoQueue(videoQueueSize);
-        producer->audioQueue = new AudioQueue(audioQueueSize);
-        producer->videoFramePool = new VideoQueue(videoQueueSize);
-        producer->audioFramePool = new AudioQueue(audioQueueSize);
-        producer->videoQueueCapacity = videoQueueSize;
-        producer->audioQueueCapacity = audioQueueSize;
+
+        if(decoder->videoStream != nullptr)
+        {
+            producer->videoQueue = new VideoQueue(videoQueueSize);
+            producer->videoFramePool = new VideoQueue(videoQueueSize);
+            producer->videoQueueCapacity = videoQueueSize;
+        }
+        if(decoder->audioStream != nullptr)
+        {
+            producer->audioQueue = new AudioQueue(audioQueueSize);
+            producer->audioFramePool = new AudioQueue(audioQueueSize);
+            producer->audioQueueCapacity = audioQueueSize;
+        }
 
         producer->subtitleQueue = new SubtitleQueue(subtitleQueueSize);
-
         producer->streams.resize(decoder->avFormatContext->nb_streams);
-        producer->streams[decoder->videoStream->streamIndex] = decoder->videoStream;
-        producer->streams[decoder->audioStream->streamIndex] = decoder->audioStream;
+        
+        if(decoder->videoStream != nullptr)
+        {
+            producer->streams[decoder->videoStream->streamIndex] = decoder->videoStream;
+        }
+        if(decoder->audioStream != nullptr)
+        {
+            producer->streams[decoder->audioStream->streamIndex] = decoder->audioStream;
+        }
+
         for(auto streamIt = decoder->subtitleStreams.begin(); streamIt != decoder->subtitleStreams.end(); ++streamIt)
         {
             producer->streams[(*streamIt)->streamIndex] = *streamIt;
         }
 
         producer->quitting = false;
-
         producer->thread = std::thread(DecoderThread, producer);
 
         return result;
@@ -1213,17 +1256,27 @@ namespace mediadecoder
     
     bool Consume(Producer* producer, VideoFrame*& videoFrame)
     {
-         videoFrame = nullptr;
-         if( producer->videoQueue->pop(videoFrame) )
-         {
-             producer->videoQueueSize--;
-         }
-         return videoFrame != nullptr;
+        videoFrame = nullptr;
+        if(!GetHaveVideo(producer->decoder))
+        {
+            return false;
+        }
+
+        if( producer->videoQueue->pop(videoFrame) )
+        {
+            producer->videoQueueSize--;
+        }
+        return videoFrame != nullptr;
     }
 
     bool Consume(Producer* producer,AudioFrame*& audioFrame)
     {
         audioFrame = nullptr;
+        if(!GetHaveAudio(producer->decoder))
+        {
+            return false;
+        }
+
         if( producer->audioQueue->pop(audioFrame) )
         {
             producer->audioQueueSize--;
@@ -1242,6 +1295,11 @@ namespace mediadecoder
 
     void WaitForPlayback(Producer* producer)
     {
+        if(!GetHaveVideo(producer->decoder))
+        {
+            return;
+        }
+
         // Wait for half a second playback before starting to play
         const uint32_t nbBufferForPlayback = GetFramesPerSecond(producer->decoder) / 2;
         bool haveVideo = producer->videoQueueSize > nbBufferForPlayback;

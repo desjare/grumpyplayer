@@ -286,11 +286,14 @@ namespace player
             return result;
         }
 
-        result = videodevice::Create(player->videoDevice, mediadecoder::GetOutputFormat(player->decoder));
-        if(!result)
+        if(mediadecoder::GetHaveVideo(player->decoder))
         {
-            result = Result(false, result.getError());
-            return result;
+            result = videodevice::Create(player->videoDevice, mediadecoder::GetOutputFormat(player->decoder));
+            if(!result)
+            {
+                result = Result(false, result.getError());
+                return result;
+            }
         }
 
         player->path = filename;
@@ -301,23 +304,29 @@ namespace player
             return result;
         }
 
-        result = videodevice::SetTextureSize(player->videoDevice, player->decoder->videoStream->width, player->decoder->videoStream->height);
-        if(!result)
+        if(mediadecoder::GetHaveVideo(player->decoder))
         {
-            return result;
+            result = videodevice::SetTextureSize(player->videoDevice, player->decoder->videoStream->width, player->decoder->videoStream->height);
+            if(!result)
+            {
+                return result;
+            }
+
+            SetWindowSize(player, player->decoder->videoStream->width, player->decoder->videoStream->height);
         }
 
-        SetWindowSize(player, player->decoder->videoStream->width, player->decoder->videoStream->height);
-
-        mediadecoder::AudioStream* audioStream = player->decoder->audioStream;
-        const uint32_t channels = audioStream->channels;
-        const uint32_t sampleRate = audioStream->sampleRate;
-        const SampleFormat sampleFormat = audioStream->sampleFormat;
-
-        result = audiodevice::SetInputFormat(player->audioDevice,channels,sampleRate,sampleFormat);
-        if(!result)
+        if(player->decoder->audioStream)
         {
-            return result;
+            mediadecoder::AudioStream* audioStream = player->decoder->audioStream;
+            const uint32_t channels = audioStream->channels;
+            const uint32_t sampleRate = audioStream->sampleRate;
+            const SampleFormat sampleFormat = audioStream->sampleFormat;
+
+            result = audiodevice::SetInputFormat(player->audioDevice,channels,sampleRate,sampleFormat);
+            if(!result)
+            {
+                return result;
+            }
         }
 
         return result;

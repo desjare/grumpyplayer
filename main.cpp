@@ -29,7 +29,7 @@ namespace {
         Result result = player::Open(player, filename);
         if(result)
         {
-            if( !gui::IsFullScreen(handle) )
+            if( !gui::IsFullScreen(handle) && mediadecoder::GetHaveVideo(player->decoder))
             {
                 gui::SetWindowSize(handle, player->decoder->videoStream->width, player->decoder->videoStream->height);
             }
