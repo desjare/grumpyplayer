@@ -32,7 +32,7 @@ namespace filesystem
         return it == end ? boost::optional<boost::filesystem::path>() : it->path();
     }
 
-    inline Result ReadTextFile(const std::string& path, std::string& utf8)
+    inline Result ReadTextFileToUTF8(const std::string& path, std::string& utf8)
     {
         Result result;
         std::ifstream is(path, std::ifstream::in | std::ifstream::binary);

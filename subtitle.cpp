@@ -4,16 +4,21 @@
 #include "stringext.h"
 #include "chrono.h"
 #include "logger.h"
+#include "filesystem.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 
 #include <vector>
+#include <iostream>
+#include <fstream>
 #include <sstream>
 
 namespace
 {
+    // https://www.matroska.org/technical/specs/subtitles/ssa.html
+
     // Script Info
     const char* SECTION_SCRIPT_INFO = "[Script Info]";
 
@@ -306,7 +311,6 @@ namespace
 
     }
 
-
     void FetchFieldTime(const char* fieldName, uint64_t& field, std::map<std::string, uint32_t>& pos, std::vector<std::string>& fields)
     {
         auto it = pos.find(fieldName);
@@ -319,7 +323,6 @@ namespace
             logger::Error("Could not find field %s", fieldName);
         }
     }
-
 
     void ParseStyle(subtitle::SubStationAlphaHeader* header, subtitle::SubStationAlphaStyle* style, const std::string& line)
     {
@@ -398,8 +401,75 @@ namespace
         {
             logger::Warn("Style alphaLevel unsupported");
         }
-
     }
+
+    // .srt files https://en.wikipedia.org/wiki/SubRip
+    Result ParseSubRipTime(const std::string& t, uint64_t& timeUs)
+    {
+        Result result;
+        // format 00:00:00.000
+        std::vector<std::string> fields;
+        boost::split(fields, t, boost::is_any_of(":"));
+
+        if(fields.size() == 3)
+        {
+            int32_t hour = std::atoi(fields[0].c_str());
+            int32_t min = std::atoi(fields[1].c_str());
+
+            std::vector<std::string> secondsFields;
+            boost::split(secondsFields, fields[2], boost::is_any_of(","));
+
+            int32_t sec = std::atoi(secondsFields[0].c_str());
+            int32_t milli = 0;
+            if(secondsFields.size() > 1)
+            {
+                milli = std::atoi(secondsFields[1].c_str());
+            }
+
+            timeUs = hour * 60 * 60 * 1000000;
+            timeUs += min * 60 * 1000000;
+            timeUs += sec * 1000000;
+            timeUs += milli * 1000;
+        }
+        else
+        {
+            return Result(false, "ParseSubRipTime invalid format %s", t.c_str());
+        }
+
+
+        return result;
+    }
+
+    Result ParseSubRipTime(const std::string& line, uint64_t& startTimeUs, uint64_t& endTimeUs)
+    {
+        Result result;
+
+        std::vector<std::string> times;
+        auto regex =  boost::regex(R"(-->)", boost::regex_constants::perl | boost::regex::no_mod_s | boost::regex::no_mod_m | boost::regex_constants::mod_x);
+        boost::algorithm::split_regex(times, line, regex);
+        if(times.size() != 2)
+        {
+            return Result(false, "ParseSubRipTime invalid format %s", line.c_str());
+        }
+
+        std::string startTimeStr = trim(times[0]);
+        std::string endTimeStr = trim(times[1]);
+
+        result = ParseSubRipTime(startTimeStr, startTimeUs);
+        if(!result)
+        {
+            return result;
+        }
+
+        result = ParseSubRipTime(endTimeStr, endTimeUs);
+        if(!result)
+        {
+            return result;
+        }
+
+        return result;
+    }
+
 }
 
 namespace subtitle
@@ -590,54 +660,71 @@ namespace subtitle
         return result;
     }
 
-    Result GetDisplayInfo(const SubStationAlphaHeader& header, const SubStationAlphaDialogue& dialogue, GetTextSizeCb& textSizeCb,
-                          uint32_t windowWidth, uint32_t windowHeight, uint64_t& startTimeUs, uint64_t& endTimeUs,
-                          std::string& fontName, uint32_t& fontSize, glm::vec3& color, 
-                          SubStationAlphaLineList& sublines)
+    Result GetDisplayInfo(const std::vector<std::string>& lines,
+                          GetTextSizeCb& textSizeCb,
+                          uint32_t windowWidth,
+                          uint32_t windowHeight,
+                          SubStationAlphaHeader* header,
+                          SubStationAlphaDialogue* dialogue, 
+                          uint64_t& startTimeUs,
+                          uint64_t& endTimeUs,
+                          std::string& fontName,
+                          uint32_t& fontSize,
+                          glm::vec3& color, 
+                          SubLineList& sublines)
     {
         Result result;
 
-        const float playScaleX = static_cast<float>(windowWidth) / static_cast<float>(header.playResX);
-        const float playScaleY = static_cast<float>(windowHeight) / static_cast<float>(header.playResY);
+        const float playScaleX = static_cast<float>(windowWidth) / static_cast<float>(header != nullptr ? header->playResX : 1.0f);
+        const float playScaleY = static_cast<float>(windowHeight) / static_cast<float>(header != nullptr ? header->playResY : 1.0f);
 
         float tw = 0.0f;
         float th = 0.0f;
         float x = 0.0f;
         float y = 0.0f;
 
-        if(dialogue.startTimeUs != 0)
+        if(dialogue && dialogue->startTimeUs != 0)
         {
-            startTimeUs = dialogue.startTimeUs;
+            startTimeUs = dialogue->startTimeUs;
         }
 
-        if(dialogue.endTimeUs != 0)
+        if(dialogue && dialogue->endTimeUs != 0)
         {
-            endTimeUs = dialogue.endTimeUs;
+            endTimeUs = dialogue->endTimeUs;
         }
 
-        auto styleIt = header.styles.find(dialogue.style);
-        if(styleIt == header.styles.end())
+        static SubStationAlphaStyle defaultStyle;
+        SubStationAlphaStyle& style = defaultStyle; 
+
+        if(header != nullptr)
         {
-            return Result(false, "Style not found %s", dialogue.style.c_str());
+            auto styleIt = header->styles.find(dialogue->style);
+            if(styleIt == header->styles.end())
+            {
+                return Result(false, "Style not found %s", dialogue->style.c_str());
+            }
+            else
+            {
+                style = styleIt->second;
+            }
         }
 
-        auto style = styleIt->second;
         
         float marginL = static_cast<float>(style.marginL);
         float marginR = static_cast<float>(style.marginR);
         float marginV = static_cast<float>(style.marginV);
 
-        if(dialogue.marginL != 0)
+        if(dialogue && dialogue->marginL != 0)
         {
-            marginL = static_cast<float>(dialogue.marginL);
+            marginL = static_cast<float>(dialogue->marginL);
         }
-        if(dialogue.marginR != 0)
+        if(dialogue && dialogue->marginR != 0)
         {
-            marginR = static_cast<float>(dialogue.marginR);
+            marginR = static_cast<float>(dialogue->marginR);
         }
-        if(dialogue.marginV != 0)
+        if(dialogue && dialogue->marginV != 0)
         {
-            marginV = static_cast<float>(dialogue.marginV);
+            marginV = static_cast<float>(dialogue->marginV);
         }
 
         marginL *= playScaleX;
@@ -648,18 +735,23 @@ namespace subtitle
         fontSize = style.fontSize;
         color = style.primaryColor;
         fontSize = static_cast<uint32_t>(ceil(static_cast<float>(fontSize) * playScaleY));
- 
-        std::vector<std::string> lines;
-        auto regex =  boost::regex(R"(\\N)", boost::regex_constants::perl | boost::regex::no_mod_s | boost::regex::no_mod_m | boost::regex_constants::mod_x);
-        boost::algorithm::split_regex(lines, dialogue.text, regex);
-        assert(lines.size() > 0);
 
-        sublines.clear();
-        sublines.reserve(lines.size());
-       
+        std::vector<std::string> allLines;
+
         for(auto it = lines.begin(); it != lines.end(); ++it)
         {
-            SubStationAlphaLine subline;
+            std::vector<std::string> splitlines;
+            auto regex =  boost::regex(R"(\\N)", boost::regex_constants::perl | boost::regex::no_mod_s | boost::regex::no_mod_m | boost::regex_constants::mod_x);
+            boost::algorithm::split_regex(splitlines, *it, regex);
+            allLines.insert(allLines.end(), splitlines.begin(), splitlines.end());
+        }
+ 
+        sublines.clear();
+        sublines.reserve(allLines.size());
+       
+        for(auto it = allLines.begin(); it != allLines.end(); ++it)
+        {
+            Line subline;
             subline.text = *it;
 
             result = textSizeCb(subline.text, fontName, fontSize, subline.w, subline.h);
@@ -716,12 +808,12 @@ namespace subtitle
 
         for(size_t i = 0; i < sublines.size(); i++)
         {
-            SubStationAlphaLine& subline = sublines[i];
+            Line& subline = sublines[i];
             subline.x = x;
             subline.y = y;
             for(size_t j = i + 1; j < sublines.size(); j++)
             {
-                SubStationAlphaLine& sublineBelow = sublines[j];
+                Line& sublineBelow = sublines[j];
                 subline.y += sublineBelow.h;
             }
         }
@@ -729,4 +821,71 @@ namespace subtitle
         return result;
     }
 
+    Result Parse(const std::string& path, SubRip*& subRip)
+    {
+        Result result;
+        std::string utf8;
+         
+        result = filesystem::ReadTextFileToUTF8(path, utf8);
+        if(!result)
+        {
+            return result;
+        }
+
+        std::istringstream file(utf8);
+        std::string line;
+        subRip = new SubRip();
+
+        // Example format
+
+        // 168
+        // 00:20:41,150 --> 00:20:45,109
+        // - How did he do that?
+        // - Made him an offer he couldn't refuse.
+        while( getline(file, line) )
+        {
+            line = trim(line);
+            if(line.empty())
+            {
+                continue;
+            }
+
+            SubRipDialogue diag;
+            diag.counter = std::atoi(line.c_str());
+
+            if(getline(file,line))
+            {
+                line = trim(line);
+                result = ParseSubRipTime(line, diag.startTimeUs, diag.endTimeUs);
+                if(!result)
+                {
+                    return result;
+                }
+            }
+            else
+            {
+                return Result(false, "Invalid format. Expecting a time range.");
+            }
+
+            while( getline(file, line) )
+            {
+                line = trim(line);
+                if(line.empty())
+                {
+                    break;
+                }
+                auto regex =  boost::regex(R"(<b>|</b>|<i>|</i>|<u>|</u>)", boost::regex_constants::perl | 
+                                                                            boost::regex::no_mod_s | boost::regex::no_mod_m | 
+                                                                            boost::regex_constants::mod_x);
+                line = boost::regex_replace(line, regex, "");
+
+                Line diagLine;
+                diagLine.text = line;
+                diag.lines.push_back(diagLine);
+            }
+            subRip->diags.push_back(diag);
+        }
+
+        return result;
+    }
 }
