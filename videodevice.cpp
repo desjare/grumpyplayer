@@ -935,7 +935,7 @@ namespace {
             FT_Set_Pixel_Sizes(font.face, 0, fontSize);
 
             w = 0.0f;
-            h = font.face->size->metrics.height >> 6;
+            h = static_cast<float>(font.face->size->metrics.height >> 6);
 
             const std::wstring wtext = utf8towstring(text);
 
