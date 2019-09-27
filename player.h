@@ -50,6 +50,7 @@ namespace player
     Result   Open(Player*, const std::string& filename);
     void     SetWindowSize(Player*,uint32_t, uint32_t);
     void     ToggleSubtitleTrack(Player*);
+    void     AddSubtitleTrack(Player*, std::shared_ptr<subtitle::SubRip> srt);
 
     void     Play(Player*);
     void     Seek(Player*, uint64_t timeUs);

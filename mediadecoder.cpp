@@ -1036,6 +1036,20 @@ namespace mediadecoder
         logger::Info("Subtitle set to stream index %d", decoder->subtitleIndexes[decoder->subtitleIndex]);
     }
 
+    void AddSubtitleTrack(Decoder* decoder, std::shared_ptr<subtitle::SubRip> track)
+    {
+        if(!decoder || !decoder->videoStream)
+        {
+            return;
+        }
+        
+        SubtitleSubRip subRip;
+        subRip.subs = track;
+        subRip.posIt = track->diags.begin();
+
+        decoder->subRips[decoder->nextSubtitleIndex++] = subRip;
+    }
+
     void Destroy(Decoder*& decoder)
     {  
         if(!decoder)

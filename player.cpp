@@ -366,6 +366,14 @@ namespace player
         }
     }
 
+    void AddSubtitleTrack(Player* player, std::shared_ptr<subtitle::SubRip> srt)
+    {
+        if(player && player->decoder)
+        {
+            mediadecoder::AddSubtitleTrack(player->decoder, srt);
+        }
+    }
+
     void Play(Player* player)
     {
         logger::Info("Play");

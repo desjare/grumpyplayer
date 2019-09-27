@@ -311,6 +311,12 @@ int main(int argc, char** argv)
             return 1;
         }
 
+        // Add subtitle track
+        if(srt)
+        {
+            player::AddSubtitleTrack(player, srt);
+        }
+
         // resize window to media size
         if(mediadecoder::GetHaveVideo(player->decoder))
         {
