@@ -563,11 +563,28 @@ namespace {
             }
         }
 
+        // seek subtitles
+        for(auto it = producer->decoder->subRips.begin(); it != producer->decoder->subRips.end(); ++it)
+        {
+            mediadecoder::SubtitleSubRip& srt = it->second;
+
+            for( srt.posIt = srt.subs->diags.begin() ; srt.posIt != srt.subs->diags.end() && producer->seekTime != 0; ++srt.posIt)
+            {
+                const subtitle::SubRipDialogue& d = *srt.posIt;
+                if(d.startTimeUs > producer->seekTime)
+                {
+                    logger::Info("Done Seek subtitle at %f seconds", chrono::Seconds(d.startTimeUs));
+                    break;
+                }
+            }
+        }
+
         ::Release(producer, producer->videoQueue);
         ::Release(producer, producer->audioQueue);
         ::Release(producer, producer->subtitleQueue);
         producer->videoQueueSize = 0;
         producer->audioQueueSize = 0;
+        producer->subtitleQueueSize = 0;
 
         producer->seekTime = 0;
         producer->seeking = false;
@@ -1096,6 +1113,7 @@ namespace mediadecoder
     void ProcessSrt(Producer* producer)
     {
         const uint32_t MAX_SUBTITLE_QUEUE_SIZE = 100;
+
         Decoder* decoder = producer->decoder;
 
         if(producer->subtitleQueueSize >= MAX_SUBTITLE_QUEUE_SIZE)
@@ -1111,8 +1129,9 @@ namespace mediadecoder
 
             if(srt.posIt != srt.subs->diags.end())
             {
-                mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
+               
                 const subtitle::SubRipDialogue& d = *srt.posIt;
+                mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
                 for(auto it = d.lines.begin(); it != d.lines.end(); ++it)
                 {
                     sub->text.push_back((*it).text);

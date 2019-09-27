@@ -411,16 +411,18 @@ namespace
         std::vector<std::string> fields;
         boost::split(fields, t, boost::is_any_of(":"));
 
+        timeUs = 0;
+
         if(fields.size() == 3)
         {
-            int32_t hour = std::atoi(fields[0].c_str());
-            int32_t min = std::atoi(fields[1].c_str());
+            uint64_t hour = std::atoi(fields[0].c_str());
+            uint64_t min = std::atoi(fields[1].c_str());
 
             std::vector<std::string> secondsFields;
             boost::split(secondsFields, fields[2], boost::is_any_of(","));
 
-            int32_t sec = std::atoi(secondsFields[0].c_str());
-            int32_t milli = 0;
+            uint64_t sec = std::atoi(secondsFields[0].c_str());
+            uint64_t milli = 0;
             if(secondsFields.size() > 1)
             {
                 milli = std::atoi(secondsFields[1].c_str());
@@ -430,6 +432,11 @@ namespace
             timeUs += min * 60 * 1000000;
             timeUs += sec * 1000000;
             timeUs += milli * 1000;
+
+            if( chrono::Seconds(timeUs) > 20000) 
+            {
+            logger::Info("shit");
+            }
         }
         else
         {
