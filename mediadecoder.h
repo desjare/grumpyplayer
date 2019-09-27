@@ -163,9 +163,9 @@ namespace mediadecoder
         VideoQueue* videoQueue = nullptr;
         AudioQueue* audioQueue = nullptr;
 
-        std::atomic<uint32_t> videoQueueSize;
-        std::atomic<uint32_t> audioQueueSize;
-        std::atomic<uint32_t> subtitleQueueSize;
+        std::atomic<uint32_t> videoQueueSize = 0;
+        std::atomic<uint32_t> audioQueueSize = 0;
+        std::atomic<uint32_t> subtitleQueueSize = 0;
 
         uint32_t videoQueueCapacity = 0;
         uint32_t audioQueueCapacity = 0;

@@ -675,8 +675,8 @@ namespace subtitle
     {
         Result result;
 
-        const float playScaleX = static_cast<float>(windowWidth) / static_cast<float>(header != nullptr ? header->playResX : 1.0f);
-        const float playScaleY = static_cast<float>(windowHeight) / static_cast<float>(header != nullptr ? header->playResY : 1.0f);
+        const float playScaleX = static_cast<float>(windowWidth) / static_cast<float>(header != nullptr ? header->playResX : windowWidth);
+        const float playScaleY = static_cast<float>(windowHeight) / static_cast<float>(header != nullptr ? header->playResY : windowHeight);
 
         float tw = 0.0f;
         float th = 0.0f;

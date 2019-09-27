@@ -199,6 +199,8 @@ namespace {
              
              const bool inSubtitleTime = (subtitleWait <= 0 && subtitleWait >= -subtitleDuration);
 
+             logger::Info("subtitle wait %lf %s", chrono::Seconds(subtitleWait), player->subtitle->text[0].c_str());
+
              if(inSubtitleTime)
              {
                  mediadecoder::Subtitle* sub = player->subtitle;
@@ -209,24 +211,21 @@ namespace {
                  videodevice::GetWindowSize(player->videoDevice, width, height);
 
                  // ass header
-                 if(sub->header && sub->dialogue)
+                 subtitle::GetTextSizeCb textSizeCb = boost::bind(videodevice::GetTextSize, player->videoDevice, _1, _2, _3, _4, _5);
+                 subtitle::SubLineList lines;
+                 
+                 Result result = subtitle::GetDisplayInfo(sub->text, textSizeCb, width, height, sub->header, sub->dialogue, sub->startTimeUs, sub->endTimeUs, 
+                                                           sub->fontName, sub->fontSize, sub->color, lines);
+
+                 if(!result)
                  {
-                     subtitle::GetTextSizeCb textSizeCb = boost::bind(videodevice::GetTextSize, player->videoDevice, _1, _2, _3, _4, _5);
-                     subtitle::SubLineList lines;
-                     
-                     Result result = subtitle::GetDisplayInfo(sub->text, textSizeCb, width, height, sub->header, sub->dialogue, sub->startTimeUs, sub->endTimeUs, 
-                                                               sub->fontName, sub->fontSize, sub->color, lines);
+                    logger::Error("Error getting subtitle display info: %s", result.getError().c_str());
+                    return;
+                 }
 
-                     if(!result)
-                     {
-                        logger::Error("Error getting subtitle display info: %s", result.getError().c_str());
-                        return;
-                     }
-
-                     for(auto it = lines.begin(); it != lines.end(); ++it)
-                     {
-                        videodevice::DrawText(player->videoDevice, (*it).text, sub->fontName, sub->fontSize, (*it).x, (*it).y, 1, sub->color);
-                     }
+                 for(auto it = lines.begin(); it != lines.end(); ++it)
+                 {
+                    videodevice::DrawText(player->videoDevice, (*it).text, sub->fontName, sub->fontSize, (*it).x, (*it).y, 1, sub->color);
                  }
              }
 

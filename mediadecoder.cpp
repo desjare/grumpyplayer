@@ -1098,8 +1098,14 @@ namespace mediadecoder
         const uint32_t MAX_SUBTITLE_QUEUE_SIZE = 100;
         Decoder* decoder = producer->decoder;
 
-        auto it = decoder->subRips.find(decoder->subtitleIndex);
-        if(it != decoder->subRips.end() && producer->subtitleQueueSize < MAX_SUBTITLE_QUEUE_SIZE)
+        if(producer->subtitleQueueSize >= MAX_SUBTITLE_QUEUE_SIZE)
+        {
+            return;
+        }
+
+        int32_t subtitleStreamIndex = decoder->subtitleIndexes[decoder->subtitleIndex];
+        auto it = decoder->subRips.find(subtitleStreamIndex);
+        if(it != decoder->subRips.end())
         {
             SubtitleSubRip& srt = it->second;
 
@@ -1118,7 +1124,6 @@ namespace mediadecoder
                 producer->subtitleQueueSize++;
                 srt.posIt++;
             }
-        
         }
     }
 
@@ -1379,8 +1384,10 @@ namespace mediadecoder
     bool Consume(Producer* producer, Subtitle*& subtitle)
     {
          subtitle = nullptr;
-         producer->subtitleQueue->pop(subtitle);
-         producer->subtitleQueueSize--;
+         if( producer->subtitleQueue->pop(subtitle) )
+         {
+             producer->subtitleQueueSize--;
+         }
 
          return subtitle != nullptr;
     }

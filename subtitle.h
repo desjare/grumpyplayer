@@ -53,8 +53,8 @@ namespace subtitle
     {
         // style
         std::string name;
-        std::string fontName;
-        uint32_t fontSize = 0;
+        std::string fontName = "Arial";
+        uint32_t fontSize = 48;
         // rgba colors
         glm::vec4 primaryColor = {1.0f, 1.0f, 1.0f, 1.0f};
         glm::vec4 secondaryColor = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -72,9 +72,9 @@ namespace subtitle
         uint32_t outline = 0;
         uint32_t shadow = 0;
         Alignment alignment = CENTERED;
-        uint32_t marginL = 0;
-        uint32_t marginR = 0;
-        uint32_t marginV = 0;
+        uint32_t marginL = 10;
+        uint32_t marginR = 10;
+        uint32_t marginV = 10;
         float alphaLevel = 1.0f;
         std::string encoding;
     };
