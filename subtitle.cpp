@@ -6,9 +6,17 @@
 #include "logger.h"
 #include "filesystem.h"
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#pragma warning( disable : 26451) // cast
+#endif
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
 
 #include <vector>
 #include <iostream>

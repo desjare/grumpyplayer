@@ -1,9 +1,16 @@
 
 #pragma once
 
+#ifdef WIN32
+#pragma warning( push )
+#pragma warning( disable : 26495) // uninitialized variable
+#endif
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 #include <boost/locale.hpp>
+#ifdef WIN32
+#pragma warning( pop ) 
+#endif
 
 #include <algorithm>
 #include <iostream>

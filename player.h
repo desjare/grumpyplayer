@@ -63,7 +63,6 @@ namespace player
 
     const std::string& GetPath(Player*);
 
-    
     void     Present(Player*);
     
     void     Close(Player*);

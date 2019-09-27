@@ -748,7 +748,7 @@ namespace {
 
         struct TextFont
         {
-            FT_Face face;
+            FT_Face face = nullptr;
             TextCharacterFontSizeMap chars;
         };
 
@@ -1050,7 +1050,7 @@ namespace {
         }
 
     private:
-        FT_Library ft;
+        FT_Library ft = nullptr;
 
         GLuint textProgram = 0;
         GLuint textVertexBuffer = 0;
