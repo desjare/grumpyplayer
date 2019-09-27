@@ -1,6 +1,6 @@
 # grumpyplayer
 
-Experimental linux & windows video player video player based on glfw, OpenGL, ALSA, XAudio2, ffmpeg, boost and curl. It supports full screen mode (double click), drag & drop, bicubic gpu resizing & ssa/ass subtitles. It is also possible to launch it with a URL and the video will be streamed.
+Experimental linux & windows video player video player based on glfw, OpenGL, ALSA, XAudio2, ffmpeg, boost and curl. It supports full screen mode (double click), drag & drop, bicubic gpu resizing & ssa/ass and srt subtitles. It is also possible to launch it with a URL and the video will be streamed.
 
 This is a proof of concept of how to design a player with modules having very little coupling together. It is written in C++ but with the Go language approach in mind. While the implementation uses encapsulation & structure, data definitions are public and accessible. It relies heavily on C++ standard library or boost but it uses a more a C style design approach in the implementation and APIs. PEP-20 states that explicit is better than implicit and beautiful is better than ugly. These principles should apply to C++ as well and I often see overly complicated class hirarchies that are difficult to maintain. The player was written with that in mind.
 
@@ -13,7 +13,7 @@ Main modules are:
 * mediadecoder (ffmpeg)
 * gui (glfw3)
 * streamer (curl)
-* subtitle (ssa/ass)
+* subtitle (ssa/ass,srt)
 
 Overall I think it is a good example of how to use ffmpeg to decode a video from file or stream and use the video and audio media for playback.
 
@@ -35,6 +35,7 @@ I used and inspired myself of several projects writing the player so here are so
  * glfw3 lib
  * curl lib
  * freetype2 lib
+ * boost libs
  * cmake
  
  <h2>Ubuntu 18.04</h2>
