@@ -440,11 +440,6 @@ namespace
             timeUs += min * 60 * 1000000;
             timeUs += sec * 1000000;
             timeUs += milli * 1000;
-
-            if( chrono::Seconds(timeUs) > 20000) 
-            {
-            logger::Info("shit");
-            }
         }
         else
         {
