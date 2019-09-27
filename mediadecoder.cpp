@@ -542,6 +542,7 @@ namespace {
         }
 
         producer->subtitleQueue->push(sub);
+        producer->subtitleQueueSize++;
 
         avsubtitle_free(&avSub);
     }
@@ -1047,6 +1048,7 @@ namespace mediadecoder
         subRip.subs = track;
         subRip.posIt = track->diags.begin();
 
+        decoder->subtitleIndexes.push_back(decoder->nextSubtitleIndex);
         decoder->subRips[decoder->nextSubtitleIndex++] = subRip;
     }
 
@@ -1091,6 +1093,35 @@ namespace mediadecoder
         return continueDecoding;
     }
 
+    void ProcessSrt(Producer* producer)
+    {
+        const uint32_t MAX_SUBTITLE_QUEUE_SIZE = 100;
+        Decoder* decoder = producer->decoder;
+
+        auto it = decoder->subRips.find(decoder->subtitleIndex);
+        if(it != decoder->subRips.end() && producer->subtitleQueueSize < MAX_SUBTITLE_QUEUE_SIZE)
+        {
+            SubtitleSubRip& srt = it->second;
+
+            if(srt.posIt != srt.subs->diags.end())
+            {
+                mediadecoder::Subtitle* sub = new mediadecoder::Subtitle();
+                const subtitle::SubRipDialogue& d = *srt.posIt;
+                for(auto it = d.lines.begin(); it != d.lines.end(); ++it)
+                {
+                    sub->text.push_back((*it).text);
+                }
+                sub->startTimeUs = d.startTimeUs;
+                sub->endTimeUs = d.endTimeUs;
+
+                producer->subtitleQueue->push(sub);
+                producer->subtitleQueueSize++;
+                srt.posIt++;
+            }
+        
+        }
+    }
+
     void DecoderThread(Producer* producer)
     {
         while( !producer->quitting )
@@ -1109,6 +1140,8 @@ namespace mediadecoder
             {
                 ::Seek(producer);
             }
+
+            ProcessSrt(producer);
 
             AVPacket* packet = av_packet_alloc();
             AVFrame* frame = av_frame_alloc();
@@ -1226,6 +1259,7 @@ namespace mediadecoder
         }
 
         producer->subtitleQueue = new SubtitleQueue(subtitleQueueSize);
+        producer->subtitleQueueCapacity = subtitleQueueSize;
         producer->streams.resize(decoder->avFormatContext->nb_streams);
         
         if(decoder->videoStream != nullptr)
@@ -1346,6 +1380,7 @@ namespace mediadecoder
     {
          subtitle = nullptr;
          producer->subtitleQueue->pop(subtitle);
+         producer->subtitleQueueSize--;
 
          return subtitle != nullptr;
     }

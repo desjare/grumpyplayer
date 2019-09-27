@@ -129,9 +129,6 @@ namespace mediadecoder
         std::string fontName = "Arial";
         uint32_t fontSize = 16;
         glm::vec3 color = {1.0f, 1.0f, 1.0f};
-
-        float x = 0.0f;
-        float y = 0.0f;
     };
 
     template<typename T>
@@ -148,12 +145,11 @@ namespace mediadecoder
         AudioStream* audioStream = nullptr;
         
         std::vector<SubtitleStream*> subtitleStreams;
+        std::map<uint32_t, SubtitleSubRip> subRips;
 
         std::vector<int32_t> subtitleIndexes = {-1};
         uint32_t subtitleIndex = 0;
         uint32_t nextSubtitleIndex = 0;
-
-        std::map<uint32_t, SubtitleSubRip> subRips;
         
         Producer* producer = nullptr;
         curl::Session* curl = nullptr;
@@ -169,9 +165,11 @@ namespace mediadecoder
 
         std::atomic<uint32_t> videoQueueSize;
         std::atomic<uint32_t> audioQueueSize;
+        std::atomic<uint32_t> subtitleQueueSize;
 
         uint32_t videoQueueCapacity = 0;
         uint32_t audioQueueCapacity = 0;
+        uint32_t subtitleQueueCapacity = 0;
 
         // frame pools
         VideoQueue* videoFramePool = nullptr;
