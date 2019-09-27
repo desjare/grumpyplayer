@@ -31,7 +31,7 @@ namespace audiodevice
 #ifdef WIN32
         IXAudio2* xaudioHandle = nullptr;
         IXAudio2MasteringVoice* masterVoice = nullptr;
-        IXAudio2SourceVoice* sourceVoice;
+        IXAudio2SourceVoice* sourceVoice = nullptr;
         WAVEFORMATEX wfx;
         Audio2VoiceCallback* voiceCallbacks = nullptr;
 #endif
