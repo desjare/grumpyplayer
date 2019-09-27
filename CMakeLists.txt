@@ -29,6 +29,7 @@ if (UNIX)
     find_library(BOOST_FILESYSTEM_LIBRARY boost_filesystem REQUIRED HINTS /usr/lib/x86_64-linux-gnu)
     find_library(BOOST_SYSTEM_LIBRARY boost_system REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
     find_library(BOOST_REGEX_LIBRARY boost_regex REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
+    find_library(BOOST_LOCALE_LIBRARY boost_locale REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
     find_library(FREETYPE_LIBRARY freetype REQUIRED HINTS  /usr/lib/x86_64-linux-gnu)
 
     set(THREAD_LIBRARY pthread)
@@ -61,6 +62,7 @@ if (WIN32)
     set(BOOST_FILESYSTEM_LIBRARY )
     set(BOOST_SYSTEM_LIBRARY )
     set(BOOST_REGEX_LIBRARY )
+    set(BOOST_LOCALE_LIBRARY )
 
     set(SOUND_LIBRARY )
     set(THREAD_LIBRARY )
@@ -115,6 +117,7 @@ target_link_libraries(
     ${BOOST_SYSTEM_LIBRARY}
     ${BOOST_FILESYSTEM_LIBRARY}
     ${BOOST_REGEX_LIBRARY}
+    ${BOOST_LOCALE_LIBRARY}
     ${NET_LIBRARY}
     ${THREAD_LIBRARY}
     ${GL_LIBRARY}

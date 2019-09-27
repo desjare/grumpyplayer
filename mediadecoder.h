@@ -90,6 +90,12 @@ namespace mediadecoder
         subtitle::SubStationAlphaHeader* subtitleHeader = nullptr;
     };
 
+    struct SubtitleSubRip
+    {
+        std::shared_ptr<subtitle::SubRip> subs;
+        subtitle::SubRipDialogueList::const_iterator posIt;
+    };
+
     struct VideoFrame
     {
         uint8_t* buffers[NUM_FRAME_DATA_POINTERS] = { nullptr, nullptr, nullptr, nullptr};
@@ -116,7 +122,7 @@ namespace mediadecoder
         subtitle::SubStationAlphaDialogue* dialogue = nullptr;
         
         // text subtitle
-        std::string text;
+        std::vector<std::string> text;
         uint64_t startTimeUs = 0;
         uint64_t endTimeUs = 0;
 
@@ -142,8 +148,12 @@ namespace mediadecoder
         AudioStream* audioStream = nullptr;
         
         std::vector<SubtitleStream*> subtitleStreams;
+
         std::vector<int32_t> subtitleIndexes = {-1};
         uint32_t subtitleIndex = 0;
+        uint32_t nextSubtitleIndex = 0;
+
+        std::map<uint32_t, SubtitleSubRip> subRips;
         
         Producer* producer = nullptr;
         curl::Session* curl = nullptr;
@@ -209,7 +219,9 @@ namespace mediadecoder
     bool GetHaveAudio(Decoder* decoder);
     bool GetHaveVideo(Decoder* decoder);
 
-    void ToggleSubtitle(Decoder*);
+    // subtitle
+    void AddSubtitleTrack(Decoder*, std::shared_ptr<subtitle::SubRip> track);
+    void ToggleSubtitleTrack(Decoder*);
 
     void Destroy(Decoder*&);
 

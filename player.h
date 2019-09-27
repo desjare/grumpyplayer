@@ -49,7 +49,7 @@ namespace player
     Result   Create(Player*& player);
     Result   Open(Player*, const std::string& filename);
     void     SetWindowSize(Player*,uint32_t, uint32_t);
-    void     ToggleSubtitle(Player*);
+    void     ToggleSubtitleTrack(Player*);
 
     void     Play(Player*);
     void     Seek(Player*, uint64_t timeUs);

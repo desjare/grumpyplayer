@@ -37,6 +37,17 @@ namespace subtitle
         CENTERED_MIDDLETITLE
     };
 
+    struct Line
+    {
+        std::string text;
+        float x = 0.0f;
+        float y = 0.0f;
+        float w = 0.0f;
+        float h = 0.0f;
+    };
+
+    typedef std::vector<Line> SubLineList;
+
     // https://www.matroska.org/technical/specs/subtitles/ssa.html
     struct SubStationAlphaStyle
     {
@@ -68,7 +79,6 @@ namespace subtitle
         std::string encoding;
     };
 
-
     struct SubStationAlphaHeader
     {
         // scrypt info
@@ -99,31 +109,45 @@ namespace subtitle
         std::string effect;
     };
 
-    struct SubStationAlphaLine
+    typedef std::vector<Line> SubStationAlphaLineList;
+
+    // .srt files https://en.wikipedia.org/wiki/SubRip
+
+    struct SubRipDialogue
     {
-        std::string text;
-        float x = 0.0f;
-        float y = 0.0f;
-        float w = 0.0f;
-        float h = 0.0f;
+        uint32_t counter = 0;
+        uint64_t startTimeUs = 0;
+        uint64_t endTimeUs = 0;
+        SubLineList lines; 
+    };
+    typedef std::vector<SubRipDialogue> SubRipDialogueList;
+
+    struct SubRip
+    {
+        SubRipDialogueList diags;
     };
 
-    typedef std::vector<SubStationAlphaLine> SubStationAlphaLineList;
 
-
+    // ssa / ass
     Result Parse(const std::string& ssa, SubStationAlphaHeader*& header);
     Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue);
 
-    Result GetDisplayInfo(const SubStationAlphaHeader& header,
-                          const SubStationAlphaDialogue& dialogue, 
+    // src
+    Result Parse(const std::string& path, SubRip*& subRip);
+
+    Result GetDisplayInfo(const std::vector<std::string>& lines,
                           GetTextSizeCb& textSizeCb,
                           uint32_t windowWidth,
                           uint32_t windowHeight,
+                          SubStationAlphaHeader* header,
+                          SubStationAlphaDialogue* dialogue, 
                           uint64_t& startTimeUs,
                           uint64_t& endTimeUs,
                           std::string& fontName,
                           uint32_t& fontSize,
                           glm::vec3& color, 
-                          SubStationAlphaLineList& lines);
+                          SubLineList& sublines);
+
+
 
 };

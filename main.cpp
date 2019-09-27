@@ -64,7 +64,7 @@ namespace {
 
     void SubtitleCallback(gui::Handle*, player::Player* player)
     {
-        player::ToggleSubtitle(player);
+        player::ToggleSubtitleTrack(player);
     }
 
     void SetWindowTitle(gui::Handle* handle, uint64_t timeUs, uint64_t duration, const std::string& program, const std::string& filename)
@@ -210,6 +210,8 @@ int main(int argc, char** argv)
     std::string program = "grumpy";
     std::string path;
 
+    std::shared_ptr<subtitle::SubRip> srt;
+
     Init();
 
     try{
@@ -221,7 +223,8 @@ int main(int argc, char** argv)
           ("help,h", "Print program options.")
           ("path", boost::program_options::value<std::string>(), "Path the the media file.")
           ("profiler", boost::program_options::bool_switch()->default_value(false)->notifier(EnableProfiler), "Enable profiling.")
-          ("loglevel", boost::program_options::value<std::string>(), "Specify log level: debug, info, warning or error.");
+          ("loglevel", boost::program_options::value<std::string>(), "Specify log level: debug, info, warning or error.")
+          ("srt", boost::program_options::value<std::string>(), "Specify a subtitle srt file path.");
 
         boost::program_options::variables_map vm;
         boost::program_options::store(boost::program_options::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
@@ -241,6 +244,23 @@ int main(int argc, char** argv)
         if( vm.count("loglevel") )
         {
             SetLogLevel(vm["loglevel"].as<std::string>());
+        }
+
+        if( vm.count("srt") )
+        {
+            const std::string srtPath = vm["srt"].as<std::string>();
+            subtitle::SubRip* subRip = nullptr;
+
+            Result result = subtitle::Parse(srtPath, subRip);
+            if(result)
+            {
+                srt = std::shared_ptr<subtitle::SubRip>(subRip);
+            }
+            else
+            {
+                logger::Error("Cannot read srt file: %s", result.getError().c_str());
+                return 1;
+            }
         }
     }
     catch( boost::program_options::error& ex)

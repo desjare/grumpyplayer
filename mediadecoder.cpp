@@ -515,8 +515,8 @@ namespace {
 
             if(rect->type == SUBTITLE_TEXT)
             {
-                logger::Debug("Text Sub %s", sub->text.c_str());
-                sub->text += rect->text;
+                logger::Debug("Text Sub %s", rect->text);
+                sub->text.push_back(rect->text);
             }
             else if(rect->type == SUBTITLE_ASS)
             {
@@ -531,7 +531,7 @@ namespace {
                     continue;
                 }
 
-                sub->text += dialogue->text;
+                sub->text.push_back(dialogue->text);
                 sub->header = header;
                 sub->dialogue = dialogue;
             }
@@ -540,8 +540,6 @@ namespace {
                 logger::Warn("Unsupported subtitle type %d", rect->type);
             }
         }
-
-        logger::Debug("Got subtitle on index %d: %s", stream->streamIndex, sub->text.c_str());
 
         producer->subtitleQueue->push(sub);
 
@@ -932,6 +930,7 @@ namespace mediadecoder
                 data->subtitleStreams.push_back(subtitleStream);
             }
         }
+        data->nextSubtitleIndex = data->avFormatContext->nb_streams + 1;
 
         return result;
     }
@@ -1027,7 +1026,7 @@ namespace mediadecoder
     }
 
 
-    void ToggleSubtitle(Decoder* decoder)
+    void ToggleSubtitleTrack(Decoder* decoder)
     {
         if(!decoder || !decoder->videoStream)
         {

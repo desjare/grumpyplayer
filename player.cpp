@@ -212,9 +212,9 @@ namespace {
                  if(sub->header && sub->dialogue)
                  {
                      subtitle::GetTextSizeCb textSizeCb = boost::bind(videodevice::GetTextSize, player->videoDevice, _1, _2, _3, _4, _5);
-                     subtitle::SubStationAlphaLineList lines;
+                     subtitle::SubLineList lines;
                      
-                     Result result = subtitle::GetDisplayInfo(*sub->header, *sub->dialogue, textSizeCb, width, height, sub->startTimeUs, sub->endTimeUs, 
+                     Result result = subtitle::GetDisplayInfo(sub->text, textSizeCb, width, height, sub->header, sub->dialogue, sub->startTimeUs, sub->endTimeUs, 
                                                                sub->fontName, sub->fontSize, sub->color, lines);
 
                      if(!result)
@@ -227,18 +227,6 @@ namespace {
                      {
                         videodevice::DrawText(player->videoDevice, (*it).text, sub->fontName, sub->fontSize, (*it).x, (*it).y, 1, sub->color);
                      }
-                 }
-                 else
-                 {
-                    float tw = 0.0f;
-                    float th = 0.0f;
-                    videodevice::GetTextSize(player->videoDevice, sub->text, sub->fontName, sub->fontSize, tw, th);
-
-                    // center text
-                    sub->x = width / 2.0f - tw / 2.0f;
-                    sub->y = 50.0f;
-
-                    videodevice::DrawText(player->videoDevice, sub->text, sub->fontName, sub->fontSize, sub->x, sub->y, 1, sub->color);
                  }
              }
 
@@ -261,7 +249,6 @@ namespace {
                  const bool inNextSubtitleTime = (nextSubtitleWait <= 0 && nextSubtitleWait >= -nextSubtitleDuration);
                  if(inNextSubtitleTime)
                  {
-                     logger::Info("Player: switching to next subtitle: %s", player->nextSubtitle->text.c_str());
                      if(player->subtitle)
                      {
                          mediadecoder::Release(player->producer, player->subtitle);
@@ -371,11 +358,11 @@ namespace player
         }
     }
 
-    void ToggleSubtitle(Player* player)
+    void ToggleSubtitleTrack(Player* player)
     {
         if(player && player->decoder)
         {
-            mediadecoder::ToggleSubtitle(player->decoder);
+            mediadecoder::ToggleSubtitleTrack(player->decoder);
         }
     }
 
