@@ -182,7 +182,7 @@ namespace mediadecoder
         std::vector<Stream*> streams;
 
         std::thread thread;
-        std::atomic<bool> quitting = false;;
+        std::atomic<bool> quitting = false;
 
         uint64_t currentDecodingTimeUs = 0;
 

@@ -3,13 +3,11 @@
 #include <GL/gl.h>
 #include <glm/glm.hpp>
 
-#include <freetype2/ft2build.h>
-#include FT_FREETYPE_H
+#include "result.h"
+#include "mediaformat.h"
 
 #include <map>
 
-#include "result.h"
-#include "mediaformat.h"
 
 namespace videodevice
 {
