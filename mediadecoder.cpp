@@ -931,10 +931,10 @@ namespace mediadecoder
                     std::string ssa(reinterpret_cast<char*>(codecContext->subtitle_header), codecContext->subtitle_header_size);
                     subtitle::SubStationAlphaHeader* subtitleHeader = nullptr;
 
-                    result = subtitle::Parse(ssa, subtitleHeader);
-                    if(!result)
+                    Result subtitleResult = subtitle::Parse(ssa, subtitleHeader);
+                    if(!subtitleResult)
                     {
-                        logger::Error("Could not parse ass subtitle header %s", result.getError());
+                        logger::Error("Could not parse ass subtitle header %s", subtitleResult.getError());
                         delete subtitleStream; subtitleStream = nullptr;
                         continue;
                     }
