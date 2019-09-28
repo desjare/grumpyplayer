@@ -14,6 +14,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
 #ifdef WIN32
 #pragma warning( pop ) 
 #endif
@@ -88,23 +89,31 @@ namespace
 
         if(fields.size() == 3)
         {
-            int32_t hour = std::atoi(fields[0].c_str());
-            int32_t min = std::atoi(fields[1].c_str());
-
-            std::vector<std::string> secondsFields;
-            boost::split(secondsFields, fields[2], boost::is_any_of("."));
-
-            int32_t sec = std::atoi(secondsFields[0].c_str());
-            int32_t milli = 0;
-            if(secondsFields.size() > 1)
+            try
             {
-                milli = std::atoi(secondsFields[1].c_str()) * 10;
+                int32_t hour = boost::lexical_cast<int32_t>(fields[0].c_str());
+                int32_t min =  boost::lexical_cast<int32_t>(fields[1].c_str());
+
+                std::vector<std::string> secondsFields;
+                boost::split(secondsFields, fields[2], boost::is_any_of("."));
+
+                int32_t sec = boost::lexical_cast<int32_t>(secondsFields[0].c_str());
+                int32_t milli = 0;
+                if(secondsFields.size() > 1)
+                {
+                    milli = boost::lexical_cast<int32_t>(secondsFields[1].c_str()) * 10;
+                }
+
+                seconds = hour * 60.0 * 60.0;
+                seconds += min * 60.0;
+                seconds += sec;
+                seconds += milli / 1000.0;
+            }
+            catch(const boost::bad_lexical_cast& e)
+            {
+                logger::Error("EventTimeToSecondsalid format %s", e.what());
             }
 
-            seconds = hour * 60.0 * 60.0;
-            seconds += min * 60.0;
-            seconds += sec;
-            seconds += milli / 1000.0;
         }
         return seconds;
     }
@@ -192,7 +201,7 @@ namespace
         auto it = pos.find(fieldName);
         if(it != pos.end())
         {
-            field = std::atoi(fields[it->second].c_str());
+            field = boost::lexical_cast<uint32_t>(fields[it->second].c_str());
         }
         else
         {
@@ -205,7 +214,7 @@ namespace
         auto it = pos.find(fieldName);
         if(it != pos.end())
         {
-            int32_t v = std::atoi(fields[it->second].c_str());
+            int32_t v =  boost::lexical_cast<int32_t>(fields[it->second].c_str());
             if(v == 0)
             {
                 field = false;
@@ -240,7 +249,7 @@ namespace
         auto it = pos.find(fieldName);
         if(it != pos.end())
         {
-            int32_t v = std::atoi(fields[it->second].c_str());
+            int32_t v =  boost::lexical_cast<int32_t>(fields[it->second].c_str());
 
             if(v == 1)
             {
@@ -296,7 +305,7 @@ namespace
         auto it = pos.find(fieldName);
         if(it != pos.end())
         {
-            int32_t v = std::atoi(fields[it->second].c_str());
+            int32_t v =  boost::lexical_cast<int32_t>(fields[it->second].c_str());
 
             if(v == 1)
             {
@@ -415,7 +424,7 @@ namespace
     Result ParseSubRipTime(const std::string& t, uint64_t& timeUs)
     {
         Result result;
-        // format 00:00:00.000
+        // format 00:00:00,000
         std::vector<std::string> fields;
         boost::split(fields, t, boost::is_any_of(":"));
 
@@ -423,23 +432,30 @@ namespace
 
         if(fields.size() == 3)
         {
-            uint64_t hour = std::atoi(fields[0].c_str());
-            uint64_t min = std::atoi(fields[1].c_str());
-
-            std::vector<std::string> secondsFields;
-            boost::split(secondsFields, fields[2], boost::is_any_of(","));
-
-            uint64_t sec = std::atoi(secondsFields[0].c_str());
-            uint64_t milli = 0;
-            if(secondsFields.size() > 1)
+            try
             {
-                milli = std::atoi(secondsFields[1].c_str());
-            }
+                uint64_t hour = boost::lexical_cast<uint64_t>(fields[0].c_str());
+                uint64_t min = boost::lexical_cast<uint64_t>(fields[1].c_str());
 
-            timeUs = hour * 60 * 60 * 1000000;
-            timeUs += min * 60 * 1000000;
-            timeUs += sec * 1000000;
-            timeUs += milli * 1000;
+                std::vector<std::string> secondsFields;
+                boost::split(secondsFields, fields[2], boost::is_any_of(","));
+
+                uint64_t sec = boost::lexical_cast<uint64_t>(secondsFields[0].c_str());
+                uint64_t milli = 0;
+                if(secondsFields.size() > 1)
+                {
+                    milli = boost::lexical_cast<uint64_t>(secondsFields[1].c_str());
+                }
+
+                timeUs = hour * 60 * 60 * 1000000;
+                timeUs += min * 60 * 1000000;
+                timeUs += sec * 1000000;
+                timeUs += milli * 1000;
+            }
+            catch(const boost::bad_lexical_cast& e)
+            {
+                return Result(false, "ParseSubRipTime invalid format %s", e.what());
+            }
         }
         else
         {
@@ -490,18 +506,19 @@ namespace subtitle
         std::vector<std::string> items;
     };
 
-    Result Parse(const std::string& ssa, SubStationAlphaHeader*& header)
+    Result Parse(const std::string& ssa, SubStationAlphaHeader*& parsedHeader)
     {
         Result result;
 
         logger::Debug("SSA Header\n%s", ssa.c_str());
 
         std::vector<SubStationAlphaHeaderSection*> sections;
-        SubStationAlphaHeaderSection* section = nullptr;
+        SubStationAlphaHeaderSection* headerSection = nullptr;
         std::istringstream input(ssa);
         std::string line;
 
-        header = new SubStationAlphaHeader();
+        std::unique_ptr<SubStationAlphaHeader> header(new SubStationAlphaHeader());
+        parsedHeader = nullptr;
         
         while( getline(input, line) )
         {
@@ -513,159 +530,182 @@ namespace subtitle
                 bool isSectionBegin = (*line.begin() == '[' && *line.rbegin() == ']');
                 if(isSectionBegin)
                 {
-                    if(section)
+                    if(headerSection)
                     {
-                        sections.push_back(section);
+                        sections.push_back(headerSection);
                     }
 
-                    section = new SubStationAlphaHeaderSection();
-                    section->name = line;
+                    headerSection = new SubStationAlphaHeaderSection();
+                    headerSection->name = line;
                 }
-                else if(section)
+                else if(headerSection)
                 {
-                    section->items.push_back(line);
+                    headerSection->items.push_back(line);
                 }
             }
         }
 
         // append last section
-        if(section)
+        if(headerSection)
         {
-            sections.push_back(section);
+            sections.push_back(headerSection);
         }
 
         // parse sections
-
         for(auto it = sections.begin(); it != sections.end(); ++it)
         {
             auto section = *it;
- 
-            if(compare_nocase(section->name,SECTION_SCRIPT_INFO))
+            try
             {
-                for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
+                if(compare_nocase(section->name,SECTION_SCRIPT_INFO))
                 {
-                    const std::string& item = *itemsIt;
-
-                    if(starts_with(item, PLAYRESX))
+                    for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
                     {
-                        std::string itemFields = item.substr(strlen(PLAYRESX));
-                        header->playResX = std::atoi(itemFields.c_str());
-                    }  
-                    else if(starts_with(item, PLAYRESY))
-                    {
-                        std::string itemFields = item.substr(strlen(PLAYRESX));
-                        header->playResY = std::atoi(itemFields.c_str());
-                    }  
-                }
-            }
-            else if(compare_nocase(section->name,SECTION_V4PSTYLES) || compare_nocase(section->name,SECTION_V4STYLES))
-            {
-                for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
-                {
-                    const std::string& item = *itemsIt;
+                        const std::string& item = *itemsIt;
 
-                    // parse format
-                    if(starts_with(item, FORMAT_HEADER))
-                    {
-                        std::string itemFields = item.substr(strlen(FORMAT_HEADER));
-
-                        std::vector<std::string> fields;
-                        boost::split(fields, itemFields, boost::is_any_of(","));
-                        
-                        uint32_t i = 0;
-
-                        for(auto fieldIt = fields.begin(); fieldIt != fields.end(); ++fieldIt)
+                        if(starts_with(item, PLAYRESX))
                         {
-                            std::string field = trim(*fieldIt);
-                            header->styleFormatFieldPos[field] = i++;
+                            std::string itemFields = item.substr(strlen(PLAYRESX));
+                            trim(itemFields);
+                            header->playResX = boost::lexical_cast<uint32_t>(itemFields.c_str());
+                        }  
+                        else if(starts_with(item, PLAYRESY))
+                        {
+                            std::string itemFields = item.substr(strlen(PLAYRESX));
+                            trim(itemFields);
+                            header->playResY = boost::lexical_cast<uint32_t>(itemFields.c_str());
+                        }  
+                    }
+                }
+                else if(compare_nocase(section->name,SECTION_V4PSTYLES) || compare_nocase(section->name,SECTION_V4STYLES))
+                {
+                    for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
+                    {
+                        const std::string& item = *itemsIt;
+
+                        // parse format
+                        if(starts_with(item, FORMAT_HEADER))
+                        {
+                            std::string itemFields = item.substr(strlen(FORMAT_HEADER));
+
+                            std::vector<std::string> fields;
+                            boost::split(fields, itemFields, boost::is_any_of(","));
+                            
+                            uint32_t i = 0;
+
+                            for(auto fieldIt = fields.begin(); fieldIt != fields.end(); ++fieldIt)
+                            {
+                                std::string field = trim(*fieldIt);
+                                header->styleFormatFieldPos[field] = i++;
+                            }
+                        }
+
+                        if(starts_with(item, STYLE_HEADER))
+                        {
+                            std::string itemFields = item.substr(strlen(STYLE_HEADER));
+                            SubStationAlphaStyle style;
+                            ParseStyle(header.get(), &style, itemFields);
+                            header->styles[style.name] = style;
+                        }
+
+                    }
+                    
+                }
+                else if(section->name == SECTION_EVENTS)
+                {
+                    for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
+                    {
+                        const std::string& item = *itemsIt;
+
+                        // parse format
+                        if(starts_with(item, FORMAT_HEADER))
+                        {
+                            std::string itemFields = item.substr(strlen(FORMAT_HEADER));
+
+                            std::vector<std::string> fields;
+                            boost::split(fields, itemFields, boost::is_any_of(","));
+                            
+                            uint32_t i = 0;
+
+                            for(auto fieldIt = fields.begin(); fieldIt != fields.end(); ++fieldIt)
+                            {
+                                std::string field = trim(*fieldIt);
+                                header->eventFormatFieldPos[field] = i++;
+                            }
                         }
                     }
-
-                    if(starts_with(item, STYLE_HEADER))
-                    {
-                        std::string itemFields = item.substr(strlen(STYLE_HEADER));
-                        SubStationAlphaStyle style;
-                        ParseStyle(header, &style, itemFields);
-                        header->styles[style.name] = style;
-                    }
-
                 }
-                
+
+                delete section;
             }
-            else if(section->name == SECTION_EVENTS)
+            catch(const boost::bad_lexical_cast& e)
             {
-                for(auto itemsIt = section->items.begin(); itemsIt != section->items.end(); ++itemsIt)
-                {
-                    const std::string& item = *itemsIt;
-
-                    // parse format
-                    if(starts_with(item, FORMAT_HEADER))
-                    {
-                        std::string itemFields = item.substr(strlen(FORMAT_HEADER));
-
-                        std::vector<std::string> fields;
-                        boost::split(fields, itemFields, boost::is_any_of(","));
-                        
-                        uint32_t i = 0;
-
-                        for(auto fieldIt = fields.begin(); fieldIt != fields.end(); ++fieldIt)
-                        {
-                            std::string field = trim(*fieldIt);
-                            header->eventFormatFieldPos[field] = i++;
-                        }
-                    }
-                }
+                delete section;
+                result = Result(false, "Error parsing ssa: %s", e.what());
             }
-
-            delete section;
         }
 
         if(header->eventFormatFieldPos.empty())
         {
-            delete header;
-            header = nullptr;
             result = Result(false, "No Event format found in ssa/ass header.");
         }
+
+        if(result)
+        {
+            parsedHeader = header.release();
+        }
+
         return result;
     }
 
-    Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& dialogue)
+    Result Parse(const std::string& ssa, SubStationAlphaHeader* header, SubStationAlphaDialogue*& parsedDialogue)
     {
         Result result;
         logger::Debug("Parse SSA Dialogue: %s", ssa.c_str());
 
-        if(starts_with(ssa, DIALOGUE))
+        std::unique_ptr<SubStationAlphaDialogue> dialogue(new SubStationAlphaDialogue());
+        try
         {
-            std::string itemFields = ssa.substr(strlen(DIALOGUE));
-            const size_t numFields = header->eventFormatFieldPos.size();
-
-            std::vector<std::string> fields;
-            split(fields, itemFields, ',', numFields);
-
-            if(fields.size() == numFields)
+            if(starts_with(ssa, DIALOGUE))
             {
-                dialogue = new SubStationAlphaDialogue();
+                std::string itemFields = ssa.substr(strlen(DIALOGUE));
+                const size_t numFields = header->eventFormatFieldPos.size();
 
-                FetchField(FORMAT_LAYER, dialogue->layer, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_TEXT, dialogue->text, header->eventFormatFieldPos, fields);
-                FetchFieldTime(FORMAT_START, dialogue->startTimeUs, header->eventFormatFieldPos, fields);
-                FetchFieldTime(FORMAT_END, dialogue->endTimeUs, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_EFFECT, dialogue->effect, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_MARGINL, dialogue->marginL, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_MARGINR, dialogue->marginR, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_MARGINV, dialogue->marginV, header->eventFormatFieldPos, fields);
-                FetchField(FORMAT_STYLE, dialogue->style, header->eventFormatFieldPos, fields);
+                std::vector<std::string> fields;
+                split(fields, itemFields, ',', numFields);
+
+                if(fields.size() == numFields)
+                {
+
+                    FetchField(FORMAT_LAYER, dialogue->layer, header->eventFormatFieldPos, fields);
+                    FetchField(FORMAT_TEXT, dialogue->text, header->eventFormatFieldPos, fields);
+                    FetchFieldTime(FORMAT_START, dialogue->startTimeUs, header->eventFormatFieldPos, fields);
+                    FetchFieldTime(FORMAT_END, dialogue->endTimeUs, header->eventFormatFieldPos, fields);
+                    FetchField(FORMAT_EFFECT, dialogue->effect, header->eventFormatFieldPos, fields);
+                    FetchField(FORMAT_MARGINL, dialogue->marginL, header->eventFormatFieldPos, fields);
+                    FetchField(FORMAT_MARGINR, dialogue->marginR, header->eventFormatFieldPos, fields);
+                    FetchField(FORMAT_MARGINV, dialogue->marginV, header->eventFormatFieldPos, fields);
+                    FetchField(FORMAT_STYLE, dialogue->style, header->eventFormatFieldPos, fields);
+                }
+                else
+                {
+                    result = Result(false, "Dialogue fields does not match format.");
+                }
             }
             else
             {
-                result = Result(false, "Dialogue fields does not match format.");
+                result = Result(false, "Dialogue not found in events.");
             }
         }
-        else
+        catch(const boost::bad_lexical_cast& e)
         {
-            result = Result(false, "Dialogue not found in events.");
+            result = Result(false, "Error parsing ssa: %s", e.what());
         }
 
+        if(result)
+        {
+            parsedDialogue = dialogue.release();
+        }
 
         return result;
     }
@@ -831,10 +871,13 @@ namespace subtitle
         return result;
     }
 
-    Result Parse(const std::string& path, SubRip*& subRip)
+    Result Parse(const std::string& path, SubRip*& parsedSubRip)
     {
         Result result;
         std::string utf8;
+        parsedSubRip = nullptr;
+
+        std::unique_ptr<SubRip> subRip(new SubRip);
          
         result = filesystem::ReadTextFileToUTF8(path, utf8);
         if(!result)
@@ -844,7 +887,6 @@ namespace subtitle
 
         std::istringstream file(utf8);
         std::string line;
-        subRip = new SubRip();
 
         // Example format
 
@@ -860,40 +902,52 @@ namespace subtitle
                 continue;
             }
 
-            SubRipDialogue diag;
-            diag.counter = std::atoi(line.c_str());
-
-            if(getline(file,line))
+            try
             {
-                line = trim(line);
-                result = ParseSubRipTime(line, diag.startTimeUs, diag.endTimeUs);
-                if(!result)
+                SubRipDialogue diag;
+                diag.counter =  std::atoi(line.c_str());
+
+                if(getline(file,line))
                 {
-                    return result;
+                    line = trim(line);
+                    result = ParseSubRipTime(line, diag.startTimeUs, diag.endTimeUs);
+                    if(!result)
+                    {
+                        return result;
+                    }
                 }
-            }
-            else
-            {
-                return Result(false, "Invalid format. Expecting a time range.");
-            }
-
-            while( getline(file, line) )
-            {
-                line = trim(line);
-                if(line.empty())
+                else
                 {
-                    break;
+                    return Result(false, "Invalid format. Expecting a time range.");
                 }
-                auto regex =  boost::regex(R"(<b>|</b>|<i>|</i>|<u>|</u>)", boost::regex_constants::perl | 
-                                                                            boost::regex::no_mod_s | boost::regex::no_mod_m | 
-                                                                            boost::regex_constants::mod_x);
-                line = boost::regex_replace(line, regex, "");
 
-                Line diagLine;
-                diagLine.text = line;
-                diag.lines.push_back(diagLine);
+                while( getline(file, line) )
+                {
+                    line = trim(line);
+                    if(line.empty())
+                    {
+                        break;
+                    }
+                    auto regex =  boost::regex(R"(<b>|</b>|<i>|</i>|<u>|</u>)", boost::regex_constants::perl | 
+                                                                                boost::regex::no_mod_s | boost::regex::no_mod_m | 
+                                                                                boost::regex_constants::mod_x);
+                    line = boost::regex_replace(line, regex, "");
+
+                    Line diagLine;
+                    diagLine.text = line;
+                    diag.lines.push_back(diagLine);
+                }
+                subRip->diags.push_back(diag);
             }
-            subRip->diags.push_back(diag);
+            catch(const boost::bad_lexical_cast& e)
+            {
+                return Result(false, "Error parsing %s: %s", path.c_str(), e.what());
+            }
+        }
+
+        if(result)
+        {
+            parsedSubRip = subRip.release();
         }
 
         return result;
