@@ -11,6 +11,13 @@ namespace {
     const int64_t queueFullSleepTimeMs = 100;
     const int64_t pauseSleepTimeMs = 500;
     const int64_t doneSleepTimeMs = 2000;
+    
+    const int64_t sleepThresholdUs = 10000;
+    const int64_t sleepThresholdLogUs = 1000000;
+    const int64_t millisecondUs = 1000;
+    const int64_t logDeltaThresholdUs = 1000;
+
+    const double seekFrameSkipThresholdSec = 30.0;
 
     player::SwapBufferCallback swapBufferCallback;
 }
@@ -18,10 +25,6 @@ namespace {
 namespace {
     bool WaitForPlayback(const char* name, uint64_t startTimeUs, uint64_t timeUs, int64_t waitThresholdUs)
     {
-        const int64_t sleepThresholdUs = 10000;
-        const int64_t millisecondUs = 1000;
-        const int64_t logDeltaThresholdUs = 100;
-
         int64_t waitTime = chrono::Wait(startTimeUs, timeUs);
 
         if( waitTime <= 0 )
@@ -33,6 +36,11 @@ namespace {
         {
             if( waitTime >= sleepThresholdUs )
             {
+                if(waitTime >= sleepThresholdLogUs)
+                {
+                    logger::Warn("WaitForPlayback. %s Got frame to soon %f seconds. Sleeping.", name, chrono::Seconds(waitTime));
+                }
+
                 std::this_thread::sleep_for(std::chrono::microseconds(waitTime-millisecondUs));
                 waitTime = chrono::Wait(startTimeUs, timeUs);
 
@@ -436,6 +444,42 @@ namespace player
         assert(!player->buffering);
         scopeguard::SetValue bufferingGuard(player->buffering, true, false);
 
+        mediadecoder::Release(player->producer, player->videoFrame);
+        mediadecoder::WaitForPlayback(player->producer);
+
+        int64_t sleepTime = 0;
+
+        // skip old frames from decoder
+        do
+        {
+            if(!player->videoFrame)
+            {
+                mediadecoder::Consume(player->producer, player->videoFrame);
+            }
+
+            if(!player->videoFrame)
+            {
+                break;
+            }
+
+            int64_t deltaUs = player->videoFrame->timeUs - timeUs;
+            double deltaSec = chrono::Seconds(deltaUs);
+            if(deltaSec < seekFrameSkipThresholdSec && deltaSec > 0.0)
+            {
+                logger::Warn("Seek sleeping for %f", chrono::Seconds(deltaUs));
+                sleepTime = deltaUs;
+                break;
+            }
+
+            logger::Warn("Player: Seek skipping frame %f frame %ld time %ld", chrono::Seconds(deltaUs), player->videoFrame->timeUs, timeUs);
+
+            mediadecoder::Release(player->producer, player->videoFrame);
+            player->videoFrame = nullptr;
+
+
+        } while(true);
+
+
         Result result = StartAudioPlayback(player);
         if(!result)
         {
@@ -445,6 +489,12 @@ namespace player
 
         // reset playback start time
         player->playbackStartTimeUs = static_cast<int64_t>(chrono::Now()) - static_cast<int64_t>(timeUs);
+
+        // we got video frame in the future, sleep until we can play them
+        if(sleepTime != 0)
+        {
+            std::this_thread::sleep_for(std::chrono::microseconds(sleepTime));
+        }
         
         logger::Info("Seek end");
     }
@@ -513,7 +563,7 @@ namespace player
              const bool drawFrame 
                        = WaitForPlayback("video", player->playbackStartTimeUs, player->videoFrame->timeUs, waitThresholdUs);
 
-             if( drawFrame )
+             if( drawFrame && player->videoFrame )
              {
                  profiler::ScopeProfiler profiler(profiler::PROFILER_VIDEO_DRAW);
 
@@ -539,19 +589,16 @@ namespace player
                  mediadecoder::Release(player->producer, player->videoFrame);
                  player->videoFrame = nullptr;
              }
-             else 
+             else if(player->videoFrame)
              {
-                 logger::Warn( "Player: No draw frame" );
+                 mediadecoder::Release(player->producer, player->videoFrame);
+                 player->videoFrame = nullptr;
              }
          }
          else if(player->producer->done)
          {
              std::this_thread::sleep_for(std::chrono::milliseconds(doneSleepTimeMs));
          }
-         else 
-         {
-             logger::Warn( "Player: No video frame" );
-         } 
     }
 
     void Close(Player* player)

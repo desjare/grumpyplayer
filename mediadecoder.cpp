@@ -443,6 +443,7 @@ namespace {
         }
 
         videoFrame->timeUs = timeUs;
+        logger::Trace("Decode frame %f", chrono::Seconds(timeUs));
 
         // Convert the video frame to output format using sws_scale
         if(videoStream->swsContext)
@@ -549,6 +550,7 @@ namespace {
 
     void Seek(mediadecoder::Producer* producer )
     {
+        logger::Info("Seek %f", chrono::Seconds(producer->seekTime));
         for( auto it = producer->streams.begin(); it != producer->streams.end(); ++it)
         {
             mediadecoder::Stream* stream = *it;
@@ -1343,6 +1345,11 @@ namespace mediadecoder
 
     void Release(Producer* producer, VideoFrame* frame)
     {
+        if(!frame)
+        {
+            return;
+        }
+
         const bool outcome
                     = producer->videoFramePool->push(frame);
 
@@ -1354,6 +1361,11 @@ namespace mediadecoder
 
     void Release(Producer* producer, AudioFrame* frame)
     {
+        if(!frame)
+        {
+            return;
+        }
+
         const bool outcome
                     = producer->audioFramePool->push(frame);
         if(!outcome)
@@ -1427,6 +1439,8 @@ namespace mediadecoder
             std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_PLAYBACK_SLEEP_TIME_MS));
             haveVideo = producer->videoQueueSize > nbBufferForPlayback;
         }
+
+        logger::Info("Playback ready %d buffers", producer->videoQueueSize.load());
     }
 }
 

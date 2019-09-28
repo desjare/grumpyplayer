@@ -223,7 +223,6 @@ namespace
             {
                 field = true;
             }
-
         }
         else
         {
@@ -461,7 +460,6 @@ namespace
         {
             return Result(false, "ParseSubRipTime invalid format %s", t.c_str());
         }
-
 
         return result;
     }
